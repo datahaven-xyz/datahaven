@@ -2091,8 +2091,8 @@ export const dataHavenServiceManagerAbi = [
   },
   {
     type: 'function',
-    inputs: [],
-    name: 'buildNewValidatorSetMessage',
+    inputs: [{ name: 'targetEra', internalType: 'uint64', type: 'uint64' }],
+    name: 'buildNewValidatorSetMessageForEra',
     outputs: [{ name: '', internalType: 'bytes', type: 'bytes' }],
     stateMutability: 'view',
   },
@@ -2150,6 +2150,11 @@ export const dataHavenServiceManagerAbi = [
       },
       {
         name: '_snowbridgeGatewayAddress',
+        internalType: 'address',
+        type: 'address',
+      },
+      {
+        name: '_validatorSetSubmitter',
         internalType: 'address',
         type: 'address',
       },
@@ -2214,10 +2219,11 @@ export const dataHavenServiceManagerAbi = [
   {
     type: 'function',
     inputs: [
+      { name: 'targetEra', internalType: 'uint64', type: 'uint64' },
       { name: 'executionFee', internalType: 'uint128', type: 'uint128' },
       { name: 'relayerFee', internalType: 'uint128', type: 'uint128' },
     ],
-    name: 'sendNewValidatorSet',
+    name: 'sendNewValidatorSetForEra',
     outputs: [],
     stateMutability: 'payable',
   },
@@ -2240,6 +2246,15 @@ export const dataHavenServiceManagerAbi = [
       },
     ],
     name: 'setSnowbridgeGateway',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'newSubmitter', internalType: 'address', type: 'address' },
+    ],
+    name: 'setValidatorSetSubmitter',
     outputs: [],
     stateMutability: 'nonpayable',
   },
@@ -2378,6 +2393,13 @@ export const dataHavenServiceManagerAbi = [
     type: 'function',
     inputs: [{ name: '', internalType: 'address', type: 'address' }],
     name: 'validatorEthAddressToSolochainAddress',
+    outputs: [{ name: '', internalType: 'address', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'validatorSetSubmitter',
     outputs: [{ name: '', internalType: 'address', type: 'address' }],
     stateMutability: 'view',
   },
@@ -2587,6 +2609,50 @@ export const dataHavenServiceManagerAbi = [
     ],
     name: 'ValidatorRemovedFromAllowlist',
   },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'targetEra',
+        internalType: 'uint64',
+        type: 'uint64',
+        indexed: true,
+      },
+      {
+        name: 'payloadHash',
+        internalType: 'bytes32',
+        type: 'bytes32',
+        indexed: false,
+      },
+      {
+        name: 'submitter',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+    ],
+    name: 'ValidatorSetMessageSubmitted',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'oldSubmitter',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'newSubmitter',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+    ],
+    name: 'ValidatorSetSubmitterUpdated',
+  },
   { type: 'error', inputs: [], name: 'CallerIsNotValidator' },
   { type: 'error', inputs: [], name: 'CantDeregisterFromMultipleOperatorSets' },
   { type: 'error', inputs: [], name: 'CantRegisterToMultipleOperatorSets' },
@@ -2596,6 +2662,7 @@ export const dataHavenServiceManagerAbi = [
   { type: 'error', inputs: [], name: 'InvalidSolochainAddressLength' },
   { type: 'error', inputs: [], name: 'OnlyAllocationManager' },
   { type: 'error', inputs: [], name: 'OnlyRewardsInitiator' },
+  { type: 'error', inputs: [], name: 'OnlyValidatorSetSubmitter' },
   { type: 'error', inputs: [], name: 'OperatorNotInAllowlist' },
   { type: 'error', inputs: [], name: 'SolochainAddressAlreadyAssigned' },
   { type: 'error', inputs: [], name: 'UnknownSolochainAddress' },
@@ -9292,45 +9359,45 @@ export const readAvsDirectory = /*#__PURE__*/ createReadContract({
  */
 export const readAvsDirectoryOperatorAvsRegistrationTypehash =
   /*#__PURE__*/ createReadContract({
-    abi: avsDirectoryAbi,
-    functionName: 'OPERATOR_AVS_REGISTRATION_TYPEHASH',
-  })
+  abi: avsDirectoryAbi,
+  functionName: 'OPERATOR_AVS_REGISTRATION_TYPEHASH',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link avsDirectoryAbi}__ and `functionName` set to `"OPERATOR_SET_FORCE_DEREGISTRATION_TYPEHASH"`
  */
 export const readAvsDirectoryOperatorSetForceDeregistrationTypehash =
   /*#__PURE__*/ createReadContract({
-    abi: avsDirectoryAbi,
-    functionName: 'OPERATOR_SET_FORCE_DEREGISTRATION_TYPEHASH',
-  })
+  abi: avsDirectoryAbi,
+  functionName: 'OPERATOR_SET_FORCE_DEREGISTRATION_TYPEHASH',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link avsDirectoryAbi}__ and `functionName` set to `"OPERATOR_SET_REGISTRATION_TYPEHASH"`
  */
 export const readAvsDirectoryOperatorSetRegistrationTypehash =
   /*#__PURE__*/ createReadContract({
-    abi: avsDirectoryAbi,
-    functionName: 'OPERATOR_SET_REGISTRATION_TYPEHASH',
-  })
+  abi: avsDirectoryAbi,
+  functionName: 'OPERATOR_SET_REGISTRATION_TYPEHASH',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link avsDirectoryAbi}__ and `functionName` set to `"avsOperatorStatus"`
  */
 export const readAvsDirectoryAvsOperatorStatus =
   /*#__PURE__*/ createReadContract({
-    abi: avsDirectoryAbi,
-    functionName: 'avsOperatorStatus',
-  })
+  abi: avsDirectoryAbi,
+  functionName: 'avsOperatorStatus',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link avsDirectoryAbi}__ and `functionName` set to `"calculateOperatorAVSRegistrationDigestHash"`
  */
 export const readAvsDirectoryCalculateOperatorAvsRegistrationDigestHash =
   /*#__PURE__*/ createReadContract({
-    abi: avsDirectoryAbi,
-    functionName: 'calculateOperatorAVSRegistrationDigestHash',
-  })
+  abi: avsDirectoryAbi,
+  functionName: 'calculateOperatorAVSRegistrationDigestHash',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link avsDirectoryAbi}__ and `functionName` set to `"delegation"`
@@ -9352,9 +9419,9 @@ export const readAvsDirectoryDomainSeparator = /*#__PURE__*/ createReadContract(
  */
 export const readAvsDirectoryOperatorSaltIsSpent =
   /*#__PURE__*/ createReadContract({
-    abi: avsDirectoryAbi,
-    functionName: 'operatorSaltIsSpent',
-  })
+  abi: avsDirectoryAbi,
+  functionName: 'operatorSaltIsSpent',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link avsDirectoryAbi}__ and `functionName` set to `"owner"`
@@ -9408,9 +9475,9 @@ export const writeAvsDirectoryCancelSalt = /*#__PURE__*/ createWriteContract({
  */
 export const writeAvsDirectoryDeregisterOperatorFromAvs =
   /*#__PURE__*/ createWriteContract({
-    abi: avsDirectoryAbi,
-    functionName: 'deregisterOperatorFromAVS',
-  })
+  abi: avsDirectoryAbi,
+  functionName: 'deregisterOperatorFromAVS',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link avsDirectoryAbi}__ and `functionName` set to `"initialize"`
@@ -9441,27 +9508,27 @@ export const writeAvsDirectoryPauseAll = /*#__PURE__*/ createWriteContract({
  */
 export const writeAvsDirectoryRegisterOperatorToAvs =
   /*#__PURE__*/ createWriteContract({
-    abi: avsDirectoryAbi,
-    functionName: 'registerOperatorToAVS',
-  })
+  abi: avsDirectoryAbi,
+  functionName: 'registerOperatorToAVS',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link avsDirectoryAbi}__ and `functionName` set to `"renounceOwnership"`
  */
 export const writeAvsDirectoryRenounceOwnership =
   /*#__PURE__*/ createWriteContract({
-    abi: avsDirectoryAbi,
-    functionName: 'renounceOwnership',
-  })
+  abi: avsDirectoryAbi,
+  functionName: 'renounceOwnership',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link avsDirectoryAbi}__ and `functionName` set to `"transferOwnership"`
  */
 export const writeAvsDirectoryTransferOwnership =
   /*#__PURE__*/ createWriteContract({
-    abi: avsDirectoryAbi,
-    functionName: 'transferOwnership',
-  })
+  abi: avsDirectoryAbi,
+  functionName: 'transferOwnership',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link avsDirectoryAbi}__ and `functionName` set to `"unpause"`
@@ -9476,9 +9543,9 @@ export const writeAvsDirectoryUnpause = /*#__PURE__*/ createWriteContract({
  */
 export const writeAvsDirectoryUpdateAvsMetadataUri =
   /*#__PURE__*/ createWriteContract({
-    abi: avsDirectoryAbi,
-    functionName: 'updateAVSMetadataURI',
-  })
+  abi: avsDirectoryAbi,
+  functionName: 'updateAVSMetadataURI',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link avsDirectoryAbi}__
@@ -9492,27 +9559,27 @@ export const simulateAvsDirectory = /*#__PURE__*/ createSimulateContract({
  */
 export const simulateAvsDirectoryCancelSalt =
   /*#__PURE__*/ createSimulateContract({
-    abi: avsDirectoryAbi,
-    functionName: 'cancelSalt',
-  })
+  abi: avsDirectoryAbi,
+  functionName: 'cancelSalt',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link avsDirectoryAbi}__ and `functionName` set to `"deregisterOperatorFromAVS"`
  */
 export const simulateAvsDirectoryDeregisterOperatorFromAvs =
   /*#__PURE__*/ createSimulateContract({
-    abi: avsDirectoryAbi,
-    functionName: 'deregisterOperatorFromAVS',
-  })
+  abi: avsDirectoryAbi,
+  functionName: 'deregisterOperatorFromAVS',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link avsDirectoryAbi}__ and `functionName` set to `"initialize"`
  */
 export const simulateAvsDirectoryInitialize =
   /*#__PURE__*/ createSimulateContract({
-    abi: avsDirectoryAbi,
-    functionName: 'initialize',
-  })
+  abi: avsDirectoryAbi,
+  functionName: 'initialize',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link avsDirectoryAbi}__ and `functionName` set to `"pause"`
@@ -9527,36 +9594,36 @@ export const simulateAvsDirectoryPause = /*#__PURE__*/ createSimulateContract({
  */
 export const simulateAvsDirectoryPauseAll =
   /*#__PURE__*/ createSimulateContract({
-    abi: avsDirectoryAbi,
-    functionName: 'pauseAll',
-  })
+  abi: avsDirectoryAbi,
+  functionName: 'pauseAll',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link avsDirectoryAbi}__ and `functionName` set to `"registerOperatorToAVS"`
  */
 export const simulateAvsDirectoryRegisterOperatorToAvs =
   /*#__PURE__*/ createSimulateContract({
-    abi: avsDirectoryAbi,
-    functionName: 'registerOperatorToAVS',
-  })
+  abi: avsDirectoryAbi,
+  functionName: 'registerOperatorToAVS',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link avsDirectoryAbi}__ and `functionName` set to `"renounceOwnership"`
  */
 export const simulateAvsDirectoryRenounceOwnership =
   /*#__PURE__*/ createSimulateContract({
-    abi: avsDirectoryAbi,
-    functionName: 'renounceOwnership',
-  })
+  abi: avsDirectoryAbi,
+  functionName: 'renounceOwnership',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link avsDirectoryAbi}__ and `functionName` set to `"transferOwnership"`
  */
 export const simulateAvsDirectoryTransferOwnership =
   /*#__PURE__*/ createSimulateContract({
-    abi: avsDirectoryAbi,
-    functionName: 'transferOwnership',
-  })
+  abi: avsDirectoryAbi,
+  functionName: 'transferOwnership',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link avsDirectoryAbi}__ and `functionName` set to `"unpause"`
@@ -9570,9 +9637,9 @@ export const simulateAvsDirectoryUnpause = /*#__PURE__*/ createSimulateContract(
  */
 export const simulateAvsDirectoryUpdateAvsMetadataUri =
   /*#__PURE__*/ createSimulateContract({
-    abi: avsDirectoryAbi,
-    functionName: 'updateAVSMetadataURI',
-  })
+  abi: avsDirectoryAbi,
+  functionName: 'updateAVSMetadataURI',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link avsDirectoryAbi}__
@@ -9586,54 +9653,54 @@ export const watchAvsDirectoryEvent = /*#__PURE__*/ createWatchContractEvent({
  */
 export const watchAvsDirectoryAvsMetadataUriUpdatedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: avsDirectoryAbi,
-    eventName: 'AVSMetadataURIUpdated',
-  })
+  abi: avsDirectoryAbi,
+  eventName: 'AVSMetadataURIUpdated',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link avsDirectoryAbi}__ and `eventName` set to `"Initialized"`
  */
 export const watchAvsDirectoryInitializedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: avsDirectoryAbi,
-    eventName: 'Initialized',
-  })
+  abi: avsDirectoryAbi,
+  eventName: 'Initialized',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link avsDirectoryAbi}__ and `eventName` set to `"OperatorAVSRegistrationStatusUpdated"`
  */
 export const watchAvsDirectoryOperatorAvsRegistrationStatusUpdatedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: avsDirectoryAbi,
-    eventName: 'OperatorAVSRegistrationStatusUpdated',
-  })
+  abi: avsDirectoryAbi,
+  eventName: 'OperatorAVSRegistrationStatusUpdated',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link avsDirectoryAbi}__ and `eventName` set to `"OwnershipTransferred"`
  */
 export const watchAvsDirectoryOwnershipTransferredEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: avsDirectoryAbi,
-    eventName: 'OwnershipTransferred',
-  })
+  abi: avsDirectoryAbi,
+  eventName: 'OwnershipTransferred',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link avsDirectoryAbi}__ and `eventName` set to `"Paused"`
  */
 export const watchAvsDirectoryPausedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: avsDirectoryAbi,
-    eventName: 'Paused',
-  })
+  abi: avsDirectoryAbi,
+  eventName: 'Paused',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link avsDirectoryAbi}__ and `eventName` set to `"Unpaused"`
  */
 export const watchAvsDirectoryUnpausedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: avsDirectoryAbi,
-    eventName: 'Unpaused',
-  })
+  abi: avsDirectoryAbi,
+  eventName: 'Unpaused',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link agentAbi}__
@@ -9711,18 +9778,18 @@ export const writeAgentExecutorDeposit = /*#__PURE__*/ createWriteContract({
  */
 export const writeAgentExecutorTransferEther =
   /*#__PURE__*/ createWriteContract({
-    abi: agentExecutorAbi,
-    functionName: 'transferEther',
-  })
+  abi: agentExecutorAbi,
+  functionName: 'transferEther',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link agentExecutorAbi}__ and `functionName` set to `"transferToken"`
  */
 export const writeAgentExecutorTransferToken =
   /*#__PURE__*/ createWriteContract({
-    abi: agentExecutorAbi,
-    functionName: 'transferToken',
-  })
+  abi: agentExecutorAbi,
+  functionName: 'transferToken',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link agentExecutorAbi}__
@@ -9736,36 +9803,36 @@ export const simulateAgentExecutor = /*#__PURE__*/ createSimulateContract({
  */
 export const simulateAgentExecutorCallContract =
   /*#__PURE__*/ createSimulateContract({
-    abi: agentExecutorAbi,
-    functionName: 'callContract',
-  })
+  abi: agentExecutorAbi,
+  functionName: 'callContract',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link agentExecutorAbi}__ and `functionName` set to `"deposit"`
  */
 export const simulateAgentExecutorDeposit =
   /*#__PURE__*/ createSimulateContract({
-    abi: agentExecutorAbi,
-    functionName: 'deposit',
-  })
+  abi: agentExecutorAbi,
+  functionName: 'deposit',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link agentExecutorAbi}__ and `functionName` set to `"transferEther"`
  */
 export const simulateAgentExecutorTransferEther =
   /*#__PURE__*/ createSimulateContract({
-    abi: agentExecutorAbi,
-    functionName: 'transferEther',
-  })
+  abi: agentExecutorAbi,
+  functionName: 'transferEther',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link agentExecutorAbi}__ and `functionName` set to `"transferToken"`
  */
 export const simulateAgentExecutorTransferToken =
   /*#__PURE__*/ createSimulateContract({
-    abi: agentExecutorAbi,
-    functionName: 'transferToken',
-  })
+  abi: agentExecutorAbi,
+  functionName: 'transferToken',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link allocationManagerAbi}__
@@ -9779,18 +9846,18 @@ export const readAllocationManager = /*#__PURE__*/ createReadContract({
  */
 export const readAllocationManagerAllocationConfigurationDelay =
   /*#__PURE__*/ createReadContract({
-    abi: allocationManagerAbi,
-    functionName: 'ALLOCATION_CONFIGURATION_DELAY',
-  })
+  abi: allocationManagerAbi,
+  functionName: 'ALLOCATION_CONFIGURATION_DELAY',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link allocationManagerAbi}__ and `functionName` set to `"DEALLOCATION_DELAY"`
  */
 export const readAllocationManagerDeallocationDelay =
   /*#__PURE__*/ createReadContract({
-    abi: allocationManagerAbi,
-    functionName: 'DEALLOCATION_DELAY',
-  })
+  abi: allocationManagerAbi,
+  functionName: 'DEALLOCATION_DELAY',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link allocationManagerAbi}__ and `functionName` set to `"delegation"`
@@ -9804,126 +9871,126 @@ export const readAllocationManagerDelegation = /*#__PURE__*/ createReadContract(
  */
 export const readAllocationManagerEigenStrategy =
   /*#__PURE__*/ createReadContract({
-    abi: allocationManagerAbi,
-    functionName: 'eigenStrategy',
-  })
+  abi: allocationManagerAbi,
+  functionName: 'eigenStrategy',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link allocationManagerAbi}__ and `functionName` set to `"getAVSRegistrar"`
  */
 export const readAllocationManagerGetAvsRegistrar =
   /*#__PURE__*/ createReadContract({
-    abi: allocationManagerAbi,
-    functionName: 'getAVSRegistrar',
-  })
+  abi: allocationManagerAbi,
+  functionName: 'getAVSRegistrar',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link allocationManagerAbi}__ and `functionName` set to `"getAllocatableMagnitude"`
  */
 export const readAllocationManagerGetAllocatableMagnitude =
   /*#__PURE__*/ createReadContract({
-    abi: allocationManagerAbi,
-    functionName: 'getAllocatableMagnitude',
-  })
+  abi: allocationManagerAbi,
+  functionName: 'getAllocatableMagnitude',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link allocationManagerAbi}__ and `functionName` set to `"getAllocatedSets"`
  */
 export const readAllocationManagerGetAllocatedSets =
   /*#__PURE__*/ createReadContract({
-    abi: allocationManagerAbi,
-    functionName: 'getAllocatedSets',
-  })
+  abi: allocationManagerAbi,
+  functionName: 'getAllocatedSets',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link allocationManagerAbi}__ and `functionName` set to `"getAllocatedStake"`
  */
 export const readAllocationManagerGetAllocatedStake =
   /*#__PURE__*/ createReadContract({
-    abi: allocationManagerAbi,
-    functionName: 'getAllocatedStake',
-  })
+  abi: allocationManagerAbi,
+  functionName: 'getAllocatedStake',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link allocationManagerAbi}__ and `functionName` set to `"getAllocatedStrategies"`
  */
 export const readAllocationManagerGetAllocatedStrategies =
   /*#__PURE__*/ createReadContract({
-    abi: allocationManagerAbi,
-    functionName: 'getAllocatedStrategies',
-  })
+  abi: allocationManagerAbi,
+  functionName: 'getAllocatedStrategies',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link allocationManagerAbi}__ and `functionName` set to `"getAllocation"`
  */
 export const readAllocationManagerGetAllocation =
   /*#__PURE__*/ createReadContract({
-    abi: allocationManagerAbi,
-    functionName: 'getAllocation',
-  })
+  abi: allocationManagerAbi,
+  functionName: 'getAllocation',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link allocationManagerAbi}__ and `functionName` set to `"getAllocationDelay"`
  */
 export const readAllocationManagerGetAllocationDelay =
   /*#__PURE__*/ createReadContract({
-    abi: allocationManagerAbi,
-    functionName: 'getAllocationDelay',
-  })
+  abi: allocationManagerAbi,
+  functionName: 'getAllocationDelay',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link allocationManagerAbi}__ and `functionName` set to `"getAllocations"`
  */
 export const readAllocationManagerGetAllocations =
   /*#__PURE__*/ createReadContract({
-    abi: allocationManagerAbi,
-    functionName: 'getAllocations',
-  })
+  abi: allocationManagerAbi,
+  functionName: 'getAllocations',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link allocationManagerAbi}__ and `functionName` set to `"getEncumberedMagnitude"`
  */
 export const readAllocationManagerGetEncumberedMagnitude =
   /*#__PURE__*/ createReadContract({
-    abi: allocationManagerAbi,
-    functionName: 'getEncumberedMagnitude',
-  })
+  abi: allocationManagerAbi,
+  functionName: 'getEncumberedMagnitude',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link allocationManagerAbi}__ and `functionName` set to `"getMaxMagnitude"`
  */
 export const readAllocationManagerGetMaxMagnitude =
   /*#__PURE__*/ createReadContract({
-    abi: allocationManagerAbi,
-    functionName: 'getMaxMagnitude',
-  })
+  abi: allocationManagerAbi,
+  functionName: 'getMaxMagnitude',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link allocationManagerAbi}__ and `functionName` set to `"getMaxMagnitudes"`
  */
 export const readAllocationManagerGetMaxMagnitudes =
   /*#__PURE__*/ createReadContract({
-    abi: allocationManagerAbi,
-    functionName: 'getMaxMagnitudes',
-  })
+  abi: allocationManagerAbi,
+  functionName: 'getMaxMagnitudes',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link allocationManagerAbi}__ and `functionName` set to `"getMaxMagnitudesAtBlock"`
  */
 export const readAllocationManagerGetMaxMagnitudesAtBlock =
   /*#__PURE__*/ createReadContract({
-    abi: allocationManagerAbi,
-    functionName: 'getMaxMagnitudesAtBlock',
-  })
+  abi: allocationManagerAbi,
+  functionName: 'getMaxMagnitudesAtBlock',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link allocationManagerAbi}__ and `functionName` set to `"getMemberCount"`
  */
 export const readAllocationManagerGetMemberCount =
   /*#__PURE__*/ createReadContract({
-    abi: allocationManagerAbi,
-    functionName: 'getMemberCount',
-  })
+  abi: allocationManagerAbi,
+  functionName: 'getMemberCount',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link allocationManagerAbi}__ and `functionName` set to `"getMembers"`
@@ -9937,108 +10004,108 @@ export const readAllocationManagerGetMembers = /*#__PURE__*/ createReadContract(
  */
 export const readAllocationManagerGetMinimumSlashableStake =
   /*#__PURE__*/ createReadContract({
-    abi: allocationManagerAbi,
-    functionName: 'getMinimumSlashableStake',
-  })
+  abi: allocationManagerAbi,
+  functionName: 'getMinimumSlashableStake',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link allocationManagerAbi}__ and `functionName` set to `"getOperatorSetCount"`
  */
 export const readAllocationManagerGetOperatorSetCount =
   /*#__PURE__*/ createReadContract({
-    abi: allocationManagerAbi,
-    functionName: 'getOperatorSetCount',
-  })
+  abi: allocationManagerAbi,
+  functionName: 'getOperatorSetCount',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link allocationManagerAbi}__ and `functionName` set to `"getRedistributionRecipient"`
  */
 export const readAllocationManagerGetRedistributionRecipient =
   /*#__PURE__*/ createReadContract({
-    abi: allocationManagerAbi,
-    functionName: 'getRedistributionRecipient',
-  })
+  abi: allocationManagerAbi,
+  functionName: 'getRedistributionRecipient',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link allocationManagerAbi}__ and `functionName` set to `"getRegisteredSets"`
  */
 export const readAllocationManagerGetRegisteredSets =
   /*#__PURE__*/ createReadContract({
-    abi: allocationManagerAbi,
-    functionName: 'getRegisteredSets',
-  })
+  abi: allocationManagerAbi,
+  functionName: 'getRegisteredSets',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link allocationManagerAbi}__ and `functionName` set to `"getSlashCount"`
  */
 export const readAllocationManagerGetSlashCount =
   /*#__PURE__*/ createReadContract({
-    abi: allocationManagerAbi,
-    functionName: 'getSlashCount',
-  })
+  abi: allocationManagerAbi,
+  functionName: 'getSlashCount',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link allocationManagerAbi}__ and `functionName` set to `"getStrategiesInOperatorSet"`
  */
 export const readAllocationManagerGetStrategiesInOperatorSet =
   /*#__PURE__*/ createReadContract({
-    abi: allocationManagerAbi,
-    functionName: 'getStrategiesInOperatorSet',
-  })
+  abi: allocationManagerAbi,
+  functionName: 'getStrategiesInOperatorSet',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link allocationManagerAbi}__ and `functionName` set to `"getStrategyAllocations"`
  */
 export const readAllocationManagerGetStrategyAllocations =
   /*#__PURE__*/ createReadContract({
-    abi: allocationManagerAbi,
-    functionName: 'getStrategyAllocations',
-  })
+  abi: allocationManagerAbi,
+  functionName: 'getStrategyAllocations',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link allocationManagerAbi}__ and `functionName` set to `"isMemberOfOperatorSet"`
  */
 export const readAllocationManagerIsMemberOfOperatorSet =
   /*#__PURE__*/ createReadContract({
-    abi: allocationManagerAbi,
-    functionName: 'isMemberOfOperatorSet',
-  })
+  abi: allocationManagerAbi,
+  functionName: 'isMemberOfOperatorSet',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link allocationManagerAbi}__ and `functionName` set to `"isOperatorRedistributable"`
  */
 export const readAllocationManagerIsOperatorRedistributable =
   /*#__PURE__*/ createReadContract({
-    abi: allocationManagerAbi,
-    functionName: 'isOperatorRedistributable',
-  })
+  abi: allocationManagerAbi,
+  functionName: 'isOperatorRedistributable',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link allocationManagerAbi}__ and `functionName` set to `"isOperatorSet"`
  */
 export const readAllocationManagerIsOperatorSet =
   /*#__PURE__*/ createReadContract({
-    abi: allocationManagerAbi,
-    functionName: 'isOperatorSet',
-  })
+  abi: allocationManagerAbi,
+  functionName: 'isOperatorSet',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link allocationManagerAbi}__ and `functionName` set to `"isOperatorSlashable"`
  */
 export const readAllocationManagerIsOperatorSlashable =
   /*#__PURE__*/ createReadContract({
-    abi: allocationManagerAbi,
-    functionName: 'isOperatorSlashable',
-  })
+  abi: allocationManagerAbi,
+  functionName: 'isOperatorSlashable',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link allocationManagerAbi}__ and `functionName` set to `"isRedistributingOperatorSet"`
  */
 export const readAllocationManagerIsRedistributingOperatorSet =
   /*#__PURE__*/ createReadContract({
-    abi: allocationManagerAbi,
-    functionName: 'isRedistributingOperatorSet',
-  })
+  abi: allocationManagerAbi,
+  functionName: 'isRedistributingOperatorSet',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link allocationManagerAbi}__ and `functionName` set to `"paused"`
@@ -10053,18 +10120,18 @@ export const readAllocationManagerPaused = /*#__PURE__*/ createReadContract({
  */
 export const readAllocationManagerPauserRegistry =
   /*#__PURE__*/ createReadContract({
-    abi: allocationManagerAbi,
-    functionName: 'pauserRegistry',
-  })
+  abi: allocationManagerAbi,
+  functionName: 'pauserRegistry',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link allocationManagerAbi}__ and `functionName` set to `"permissionController"`
  */
 export const readAllocationManagerPermissionController =
   /*#__PURE__*/ createReadContract({
-    abi: allocationManagerAbi,
-    functionName: 'permissionController',
-  })
+  abi: allocationManagerAbi,
+  functionName: 'permissionController',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link allocationManagerAbi}__ and `functionName` set to `"version"`
@@ -10086,63 +10153,63 @@ export const writeAllocationManager = /*#__PURE__*/ createWriteContract({
  */
 export const writeAllocationManagerAddStrategiesToOperatorSet =
   /*#__PURE__*/ createWriteContract({
-    abi: allocationManagerAbi,
-    functionName: 'addStrategiesToOperatorSet',
-  })
+  abi: allocationManagerAbi,
+  functionName: 'addStrategiesToOperatorSet',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link allocationManagerAbi}__ and `functionName` set to `"clearDeallocationQueue"`
  */
 export const writeAllocationManagerClearDeallocationQueue =
   /*#__PURE__*/ createWriteContract({
-    abi: allocationManagerAbi,
-    functionName: 'clearDeallocationQueue',
-  })
+  abi: allocationManagerAbi,
+  functionName: 'clearDeallocationQueue',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link allocationManagerAbi}__ and `functionName` set to `"createOperatorSets"`
  */
 export const writeAllocationManagerCreateOperatorSets =
   /*#__PURE__*/ createWriteContract({
-    abi: allocationManagerAbi,
-    functionName: 'createOperatorSets',
-  })
+  abi: allocationManagerAbi,
+  functionName: 'createOperatorSets',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link allocationManagerAbi}__ and `functionName` set to `"createRedistributingOperatorSets"`
  */
 export const writeAllocationManagerCreateRedistributingOperatorSets =
   /*#__PURE__*/ createWriteContract({
-    abi: allocationManagerAbi,
-    functionName: 'createRedistributingOperatorSets',
-  })
+  abi: allocationManagerAbi,
+  functionName: 'createRedistributingOperatorSets',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link allocationManagerAbi}__ and `functionName` set to `"deregisterFromOperatorSets"`
  */
 export const writeAllocationManagerDeregisterFromOperatorSets =
   /*#__PURE__*/ createWriteContract({
-    abi: allocationManagerAbi,
-    functionName: 'deregisterFromOperatorSets',
-  })
+  abi: allocationManagerAbi,
+  functionName: 'deregisterFromOperatorSets',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link allocationManagerAbi}__ and `functionName` set to `"initialize"`
  */
 export const writeAllocationManagerInitialize =
   /*#__PURE__*/ createWriteContract({
-    abi: allocationManagerAbi,
-    functionName: 'initialize',
-  })
+  abi: allocationManagerAbi,
+  functionName: 'initialize',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link allocationManagerAbi}__ and `functionName` set to `"modifyAllocations"`
  */
 export const writeAllocationManagerModifyAllocations =
   /*#__PURE__*/ createWriteContract({
-    abi: allocationManagerAbi,
-    functionName: 'modifyAllocations',
-  })
+  abi: allocationManagerAbi,
+  functionName: 'modifyAllocations',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link allocationManagerAbi}__ and `functionName` set to `"pause"`
@@ -10164,45 +10231,45 @@ export const writeAllocationManagerPauseAll = /*#__PURE__*/ createWriteContract(
  */
 export const writeAllocationManagerRegisterForOperatorSets =
   /*#__PURE__*/ createWriteContract({
-    abi: allocationManagerAbi,
-    functionName: 'registerForOperatorSets',
-  })
+  abi: allocationManagerAbi,
+  functionName: 'registerForOperatorSets',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link allocationManagerAbi}__ and `functionName` set to `"removeStrategiesFromOperatorSet"`
  */
 export const writeAllocationManagerRemoveStrategiesFromOperatorSet =
   /*#__PURE__*/ createWriteContract({
-    abi: allocationManagerAbi,
-    functionName: 'removeStrategiesFromOperatorSet',
-  })
+  abi: allocationManagerAbi,
+  functionName: 'removeStrategiesFromOperatorSet',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link allocationManagerAbi}__ and `functionName` set to `"setAVSRegistrar"`
  */
 export const writeAllocationManagerSetAvsRegistrar =
   /*#__PURE__*/ createWriteContract({
-    abi: allocationManagerAbi,
-    functionName: 'setAVSRegistrar',
-  })
+  abi: allocationManagerAbi,
+  functionName: 'setAVSRegistrar',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link allocationManagerAbi}__ and `functionName` set to `"setAllocationDelay"`
  */
 export const writeAllocationManagerSetAllocationDelay =
   /*#__PURE__*/ createWriteContract({
-    abi: allocationManagerAbi,
-    functionName: 'setAllocationDelay',
-  })
+  abi: allocationManagerAbi,
+  functionName: 'setAllocationDelay',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link allocationManagerAbi}__ and `functionName` set to `"slashOperator"`
  */
 export const writeAllocationManagerSlashOperator =
   /*#__PURE__*/ createWriteContract({
-    abi: allocationManagerAbi,
-    functionName: 'slashOperator',
-  })
+  abi: allocationManagerAbi,
+  functionName: 'slashOperator',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link allocationManagerAbi}__ and `functionName` set to `"unpause"`
@@ -10217,9 +10284,9 @@ export const writeAllocationManagerUnpause = /*#__PURE__*/ createWriteContract({
  */
 export const writeAllocationManagerUpdateAvsMetadataUri =
   /*#__PURE__*/ createWriteContract({
-    abi: allocationManagerAbi,
-    functionName: 'updateAVSMetadataURI',
-  })
+  abi: allocationManagerAbi,
+  functionName: 'updateAVSMetadataURI',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link allocationManagerAbi}__
@@ -10233,144 +10300,144 @@ export const simulateAllocationManager = /*#__PURE__*/ createSimulateContract({
  */
 export const simulateAllocationManagerAddStrategiesToOperatorSet =
   /*#__PURE__*/ createSimulateContract({
-    abi: allocationManagerAbi,
-    functionName: 'addStrategiesToOperatorSet',
-  })
+  abi: allocationManagerAbi,
+  functionName: 'addStrategiesToOperatorSet',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link allocationManagerAbi}__ and `functionName` set to `"clearDeallocationQueue"`
  */
 export const simulateAllocationManagerClearDeallocationQueue =
   /*#__PURE__*/ createSimulateContract({
-    abi: allocationManagerAbi,
-    functionName: 'clearDeallocationQueue',
-  })
+  abi: allocationManagerAbi,
+  functionName: 'clearDeallocationQueue',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link allocationManagerAbi}__ and `functionName` set to `"createOperatorSets"`
  */
 export const simulateAllocationManagerCreateOperatorSets =
   /*#__PURE__*/ createSimulateContract({
-    abi: allocationManagerAbi,
-    functionName: 'createOperatorSets',
-  })
+  abi: allocationManagerAbi,
+  functionName: 'createOperatorSets',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link allocationManagerAbi}__ and `functionName` set to `"createRedistributingOperatorSets"`
  */
 export const simulateAllocationManagerCreateRedistributingOperatorSets =
   /*#__PURE__*/ createSimulateContract({
-    abi: allocationManagerAbi,
-    functionName: 'createRedistributingOperatorSets',
-  })
+  abi: allocationManagerAbi,
+  functionName: 'createRedistributingOperatorSets',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link allocationManagerAbi}__ and `functionName` set to `"deregisterFromOperatorSets"`
  */
 export const simulateAllocationManagerDeregisterFromOperatorSets =
   /*#__PURE__*/ createSimulateContract({
-    abi: allocationManagerAbi,
-    functionName: 'deregisterFromOperatorSets',
-  })
+  abi: allocationManagerAbi,
+  functionName: 'deregisterFromOperatorSets',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link allocationManagerAbi}__ and `functionName` set to `"initialize"`
  */
 export const simulateAllocationManagerInitialize =
   /*#__PURE__*/ createSimulateContract({
-    abi: allocationManagerAbi,
-    functionName: 'initialize',
-  })
+  abi: allocationManagerAbi,
+  functionName: 'initialize',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link allocationManagerAbi}__ and `functionName` set to `"modifyAllocations"`
  */
 export const simulateAllocationManagerModifyAllocations =
   /*#__PURE__*/ createSimulateContract({
-    abi: allocationManagerAbi,
-    functionName: 'modifyAllocations',
-  })
+  abi: allocationManagerAbi,
+  functionName: 'modifyAllocations',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link allocationManagerAbi}__ and `functionName` set to `"pause"`
  */
 export const simulateAllocationManagerPause =
   /*#__PURE__*/ createSimulateContract({
-    abi: allocationManagerAbi,
-    functionName: 'pause',
-  })
+  abi: allocationManagerAbi,
+  functionName: 'pause',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link allocationManagerAbi}__ and `functionName` set to `"pauseAll"`
  */
 export const simulateAllocationManagerPauseAll =
   /*#__PURE__*/ createSimulateContract({
-    abi: allocationManagerAbi,
-    functionName: 'pauseAll',
-  })
+  abi: allocationManagerAbi,
+  functionName: 'pauseAll',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link allocationManagerAbi}__ and `functionName` set to `"registerForOperatorSets"`
  */
 export const simulateAllocationManagerRegisterForOperatorSets =
   /*#__PURE__*/ createSimulateContract({
-    abi: allocationManagerAbi,
-    functionName: 'registerForOperatorSets',
-  })
+  abi: allocationManagerAbi,
+  functionName: 'registerForOperatorSets',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link allocationManagerAbi}__ and `functionName` set to `"removeStrategiesFromOperatorSet"`
  */
 export const simulateAllocationManagerRemoveStrategiesFromOperatorSet =
   /*#__PURE__*/ createSimulateContract({
-    abi: allocationManagerAbi,
-    functionName: 'removeStrategiesFromOperatorSet',
-  })
+  abi: allocationManagerAbi,
+  functionName: 'removeStrategiesFromOperatorSet',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link allocationManagerAbi}__ and `functionName` set to `"setAVSRegistrar"`
  */
 export const simulateAllocationManagerSetAvsRegistrar =
   /*#__PURE__*/ createSimulateContract({
-    abi: allocationManagerAbi,
-    functionName: 'setAVSRegistrar',
-  })
+  abi: allocationManagerAbi,
+  functionName: 'setAVSRegistrar',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link allocationManagerAbi}__ and `functionName` set to `"setAllocationDelay"`
  */
 export const simulateAllocationManagerSetAllocationDelay =
   /*#__PURE__*/ createSimulateContract({
-    abi: allocationManagerAbi,
-    functionName: 'setAllocationDelay',
-  })
+  abi: allocationManagerAbi,
+  functionName: 'setAllocationDelay',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link allocationManagerAbi}__ and `functionName` set to `"slashOperator"`
  */
 export const simulateAllocationManagerSlashOperator =
   /*#__PURE__*/ createSimulateContract({
-    abi: allocationManagerAbi,
-    functionName: 'slashOperator',
-  })
+  abi: allocationManagerAbi,
+  functionName: 'slashOperator',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link allocationManagerAbi}__ and `functionName` set to `"unpause"`
  */
 export const simulateAllocationManagerUnpause =
   /*#__PURE__*/ createSimulateContract({
-    abi: allocationManagerAbi,
-    functionName: 'unpause',
-  })
+  abi: allocationManagerAbi,
+  functionName: 'unpause',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link allocationManagerAbi}__ and `functionName` set to `"updateAVSMetadataURI"`
  */
 export const simulateAllocationManagerUpdateAvsMetadataUri =
   /*#__PURE__*/ createSimulateContract({
-    abi: allocationManagerAbi,
-    functionName: 'updateAVSMetadataURI',
-  })
+  abi: allocationManagerAbi,
+  functionName: 'updateAVSMetadataURI',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link allocationManagerAbi}__
@@ -10383,144 +10450,144 @@ export const watchAllocationManagerEvent =
  */
 export const watchAllocationManagerAvsMetadataUriUpdatedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: allocationManagerAbi,
-    eventName: 'AVSMetadataURIUpdated',
-  })
+  abi: allocationManagerAbi,
+  eventName: 'AVSMetadataURIUpdated',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link allocationManagerAbi}__ and `eventName` set to `"AVSRegistrarSet"`
  */
 export const watchAllocationManagerAvsRegistrarSetEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: allocationManagerAbi,
-    eventName: 'AVSRegistrarSet',
-  })
+  abi: allocationManagerAbi,
+  eventName: 'AVSRegistrarSet',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link allocationManagerAbi}__ and `eventName` set to `"AllocationDelaySet"`
  */
 export const watchAllocationManagerAllocationDelaySetEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: allocationManagerAbi,
-    eventName: 'AllocationDelaySet',
-  })
+  abi: allocationManagerAbi,
+  eventName: 'AllocationDelaySet',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link allocationManagerAbi}__ and `eventName` set to `"AllocationUpdated"`
  */
 export const watchAllocationManagerAllocationUpdatedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: allocationManagerAbi,
-    eventName: 'AllocationUpdated',
-  })
+  abi: allocationManagerAbi,
+  eventName: 'AllocationUpdated',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link allocationManagerAbi}__ and `eventName` set to `"EncumberedMagnitudeUpdated"`
  */
 export const watchAllocationManagerEncumberedMagnitudeUpdatedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: allocationManagerAbi,
-    eventName: 'EncumberedMagnitudeUpdated',
-  })
+  abi: allocationManagerAbi,
+  eventName: 'EncumberedMagnitudeUpdated',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link allocationManagerAbi}__ and `eventName` set to `"Initialized"`
  */
 export const watchAllocationManagerInitializedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: allocationManagerAbi,
-    eventName: 'Initialized',
-  })
+  abi: allocationManagerAbi,
+  eventName: 'Initialized',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link allocationManagerAbi}__ and `eventName` set to `"MaxMagnitudeUpdated"`
  */
 export const watchAllocationManagerMaxMagnitudeUpdatedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: allocationManagerAbi,
-    eventName: 'MaxMagnitudeUpdated',
-  })
+  abi: allocationManagerAbi,
+  eventName: 'MaxMagnitudeUpdated',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link allocationManagerAbi}__ and `eventName` set to `"OperatorAddedToOperatorSet"`
  */
 export const watchAllocationManagerOperatorAddedToOperatorSetEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: allocationManagerAbi,
-    eventName: 'OperatorAddedToOperatorSet',
-  })
+  abi: allocationManagerAbi,
+  eventName: 'OperatorAddedToOperatorSet',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link allocationManagerAbi}__ and `eventName` set to `"OperatorRemovedFromOperatorSet"`
  */
 export const watchAllocationManagerOperatorRemovedFromOperatorSetEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: allocationManagerAbi,
-    eventName: 'OperatorRemovedFromOperatorSet',
-  })
+  abi: allocationManagerAbi,
+  eventName: 'OperatorRemovedFromOperatorSet',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link allocationManagerAbi}__ and `eventName` set to `"OperatorSetCreated"`
  */
 export const watchAllocationManagerOperatorSetCreatedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: allocationManagerAbi,
-    eventName: 'OperatorSetCreated',
-  })
+  abi: allocationManagerAbi,
+  eventName: 'OperatorSetCreated',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link allocationManagerAbi}__ and `eventName` set to `"OperatorSlashed"`
  */
 export const watchAllocationManagerOperatorSlashedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: allocationManagerAbi,
-    eventName: 'OperatorSlashed',
-  })
+  abi: allocationManagerAbi,
+  eventName: 'OperatorSlashed',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link allocationManagerAbi}__ and `eventName` set to `"Paused"`
  */
 export const watchAllocationManagerPausedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: allocationManagerAbi,
-    eventName: 'Paused',
-  })
+  abi: allocationManagerAbi,
+  eventName: 'Paused',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link allocationManagerAbi}__ and `eventName` set to `"RedistributionAddressSet"`
  */
 export const watchAllocationManagerRedistributionAddressSetEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: allocationManagerAbi,
-    eventName: 'RedistributionAddressSet',
-  })
+  abi: allocationManagerAbi,
+  eventName: 'RedistributionAddressSet',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link allocationManagerAbi}__ and `eventName` set to `"StrategyAddedToOperatorSet"`
  */
 export const watchAllocationManagerStrategyAddedToOperatorSetEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: allocationManagerAbi,
-    eventName: 'StrategyAddedToOperatorSet',
-  })
+  abi: allocationManagerAbi,
+  eventName: 'StrategyAddedToOperatorSet',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link allocationManagerAbi}__ and `eventName` set to `"StrategyRemovedFromOperatorSet"`
  */
 export const watchAllocationManagerStrategyRemovedFromOperatorSetEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: allocationManagerAbi,
-    eventName: 'StrategyRemovedFromOperatorSet',
-  })
+  abi: allocationManagerAbi,
+  eventName: 'StrategyRemovedFromOperatorSet',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link allocationManagerAbi}__ and `eventName` set to `"Unpaused"`
  */
 export const watchAllocationManagerUnpausedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: allocationManagerAbi,
-    eventName: 'Unpaused',
-  })
+  abi: allocationManagerAbi,
+  eventName: 'Unpaused',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link beefyClientAbi}__
@@ -10542,27 +10609,27 @@ export const readBeefyClientMmrRootId = /*#__PURE__*/ createReadContract({
  */
 export const readBeefyClientCreateFinalBitfield =
   /*#__PURE__*/ createReadContract({
-    abi: beefyClientAbi,
-    functionName: 'createFinalBitfield',
-  })
+  abi: beefyClientAbi,
+  functionName: 'createFinalBitfield',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link beefyClientAbi}__ and `functionName` set to `"createInitialBitfield"`
  */
 export const readBeefyClientCreateInitialBitfield =
   /*#__PURE__*/ createReadContract({
-    abi: beefyClientAbi,
-    functionName: 'createInitialBitfield',
-  })
+  abi: beefyClientAbi,
+  functionName: 'createInitialBitfield',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link beefyClientAbi}__ and `functionName` set to `"currentValidatorSet"`
  */
 export const readBeefyClientCurrentValidatorSet =
   /*#__PURE__*/ createReadContract({
-    abi: beefyClientAbi,
-    functionName: 'currentValidatorSet',
-  })
+  abi: beefyClientAbi,
+  functionName: 'currentValidatorSet',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link beefyClientAbi}__ and `functionName` set to `"latestBeefyBlock"`
@@ -10584,9 +10651,9 @@ export const readBeefyClientLatestMmrRoot = /*#__PURE__*/ createReadContract({
  */
 export const readBeefyClientMinNumRequiredSignatures =
   /*#__PURE__*/ createReadContract({
-    abi: beefyClientAbi,
-    functionName: 'minNumRequiredSignatures',
-  })
+  abi: beefyClientAbi,
+  functionName: 'minNumRequiredSignatures',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link beefyClientAbi}__ and `functionName` set to `"nextValidatorSet"`
@@ -10600,18 +10667,18 @@ export const readBeefyClientNextValidatorSet = /*#__PURE__*/ createReadContract(
  */
 export const readBeefyClientRandaoCommitDelay =
   /*#__PURE__*/ createReadContract({
-    abi: beefyClientAbi,
-    functionName: 'randaoCommitDelay',
-  })
+  abi: beefyClientAbi,
+  functionName: 'randaoCommitDelay',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link beefyClientAbi}__ and `functionName` set to `"randaoCommitExpiration"`
  */
 export const readBeefyClientRandaoCommitExpiration =
   /*#__PURE__*/ createReadContract({
-    abi: beefyClientAbi,
-    functionName: 'randaoCommitExpiration',
-  })
+  abi: beefyClientAbi,
+  functionName: 'randaoCommitExpiration',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link beefyClientAbi}__ and `functionName` set to `"tickets"`
@@ -10626,9 +10693,9 @@ export const readBeefyClientTickets = /*#__PURE__*/ createReadContract({
  */
 export const readBeefyClientVerifyMmrLeafProof =
   /*#__PURE__*/ createReadContract({
-    abi: beefyClientAbi,
-    functionName: 'verifyMMRLeafProof',
-  })
+  abi: beefyClientAbi,
+  functionName: 'verifyMMRLeafProof',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link beefyClientAbi}__
@@ -10642,9 +10709,9 @@ export const writeBeefyClient = /*#__PURE__*/ createWriteContract({
  */
 export const writeBeefyClientCommitPrevRandao =
   /*#__PURE__*/ createWriteContract({
-    abi: beefyClientAbi,
-    functionName: 'commitPrevRandao',
-  })
+  abi: beefyClientAbi,
+  functionName: 'commitPrevRandao',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link beefyClientAbi}__ and `functionName` set to `"submitFinal"`
@@ -10674,27 +10741,27 @@ export const simulateBeefyClient = /*#__PURE__*/ createSimulateContract({
  */
 export const simulateBeefyClientCommitPrevRandao =
   /*#__PURE__*/ createSimulateContract({
-    abi: beefyClientAbi,
-    functionName: 'commitPrevRandao',
-  })
+  abi: beefyClientAbi,
+  functionName: 'commitPrevRandao',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link beefyClientAbi}__ and `functionName` set to `"submitFinal"`
  */
 export const simulateBeefyClientSubmitFinal =
   /*#__PURE__*/ createSimulateContract({
-    abi: beefyClientAbi,
-    functionName: 'submitFinal',
-  })
+  abi: beefyClientAbi,
+  functionName: 'submitFinal',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link beefyClientAbi}__ and `functionName` set to `"submitInitial"`
  */
 export const simulateBeefyClientSubmitInitial =
   /*#__PURE__*/ createSimulateContract({
-    abi: beefyClientAbi,
-    functionName: 'submitInitial',
-  })
+  abi: beefyClientAbi,
+  functionName: 'submitInitial',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link beefyClientAbi}__
@@ -10708,18 +10775,18 @@ export const watchBeefyClientEvent = /*#__PURE__*/ createWatchContractEvent({
  */
 export const watchBeefyClientNewMmrRootEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: beefyClientAbi,
-    eventName: 'NewMMRRoot',
-  })
+  abi: beefyClientAbi,
+  eventName: 'NewMMRRoot',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link beefyClientAbi}__ and `eventName` set to `"NewTicket"`
  */
 export const watchBeefyClientNewTicketEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: beefyClientAbi,
-    eventName: 'NewTicket',
-  })
+  abi: beefyClientAbi,
+  eventName: 'NewTicket',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__
@@ -10733,126 +10800,135 @@ export const readDataHavenServiceManager = /*#__PURE__*/ createReadContract({
  */
 export const readDataHavenServiceManagerDatahavenAvsMetadata =
   /*#__PURE__*/ createReadContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'DATAHAVEN_AVS_METADATA',
-  })
+  abi: dataHavenServiceManagerAbi,
+  functionName: 'DATAHAVEN_AVS_METADATA',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"MAX_ACTIVE_VALIDATORS"`
  */
 export const readDataHavenServiceManagerMaxActiveValidators =
   /*#__PURE__*/ createReadContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'MAX_ACTIVE_VALIDATORS',
-  })
+  abi: dataHavenServiceManagerAbi,
+  functionName: 'MAX_ACTIVE_VALIDATORS',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"VALIDATORS_SET_ID"`
  */
 export const readDataHavenServiceManagerValidatorsSetId =
   /*#__PURE__*/ createReadContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'VALIDATORS_SET_ID',
-  })
+  abi: dataHavenServiceManagerAbi,
+  functionName: 'VALIDATORS_SET_ID',
+})
 
 /**
- * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"buildNewValidatorSetMessage"`
+ * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"buildNewValidatorSetMessageForEra"`
  */
-export const readDataHavenServiceManagerBuildNewValidatorSetMessage =
+export const readDataHavenServiceManagerBuildNewValidatorSetMessageForEra =
   /*#__PURE__*/ createReadContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'buildNewValidatorSetMessage',
-  })
+  abi: dataHavenServiceManagerAbi,
+  functionName: 'buildNewValidatorSetMessageForEra',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"getStrategiesAndMultipliers"`
  */
 export const readDataHavenServiceManagerGetStrategiesAndMultipliers =
   /*#__PURE__*/ createReadContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'getStrategiesAndMultipliers',
-  })
+  abi: dataHavenServiceManagerAbi,
+  functionName: 'getStrategiesAndMultipliers',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"owner"`
  */
 export const readDataHavenServiceManagerOwner =
   /*#__PURE__*/ createReadContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'owner',
-  })
+  abi: dataHavenServiceManagerAbi,
+  functionName: 'owner',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"rewardsInitiator"`
  */
 export const readDataHavenServiceManagerRewardsInitiator =
   /*#__PURE__*/ createReadContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'rewardsInitiator',
-  })
+  abi: dataHavenServiceManagerAbi,
+  functionName: 'rewardsInitiator',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"snowbridgeGateway"`
  */
 export const readDataHavenServiceManagerSnowbridgeGateway =
   /*#__PURE__*/ createReadContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'snowbridgeGateway',
-  })
+  abi: dataHavenServiceManagerAbi,
+  functionName: 'snowbridgeGateway',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"strategiesAndMultipliers"`
  */
 export const readDataHavenServiceManagerStrategiesAndMultipliers =
   /*#__PURE__*/ createReadContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'strategiesAndMultipliers',
-  })
+  abi: dataHavenServiceManagerAbi,
+  functionName: 'strategiesAndMultipliers',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"supportsAVS"`
  */
 export const readDataHavenServiceManagerSupportsAvs =
   /*#__PURE__*/ createReadContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'supportsAVS',
-  })
+  abi: dataHavenServiceManagerAbi,
+  functionName: 'supportsAVS',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"validatorEthAddressToSolochainAddress"`
  */
 export const readDataHavenServiceManagerValidatorEthAddressToSolochainAddress =
   /*#__PURE__*/ createReadContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'validatorEthAddressToSolochainAddress',
-  })
+  abi: dataHavenServiceManagerAbi,
+  functionName: 'validatorEthAddressToSolochainAddress',
+})
+
+/**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"validatorSetSubmitter"`
+ */
+export const readDataHavenServiceManagerValidatorSetSubmitter =
+  /*#__PURE__*/ createReadContract({
+  abi: dataHavenServiceManagerAbi,
+  functionName: 'validatorSetSubmitter',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"validatorSolochainAddressToEthAddress"`
  */
 export const readDataHavenServiceManagerValidatorSolochainAddressToEthAddress =
   /*#__PURE__*/ createReadContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'validatorSolochainAddressToEthAddress',
-  })
+  abi: dataHavenServiceManagerAbi,
+  functionName: 'validatorSolochainAddressToEthAddress',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"validatorsAllowlist"`
  */
 export const readDataHavenServiceManagerValidatorsAllowlist =
   /*#__PURE__*/ createReadContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'validatorsAllowlist',
-  })
+  abi: dataHavenServiceManagerAbi,
+  functionName: 'validatorsAllowlist',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"validatorsSupportedStrategies"`
  */
 export const readDataHavenServiceManagerValidatorsSupportedStrategies =
   /*#__PURE__*/ createReadContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'validatorsSupportedStrategies',
-  })
+  abi: dataHavenServiceManagerAbi,
+  functionName: 'validatorsSupportedStrategies',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__
@@ -10866,162 +10942,172 @@ export const writeDataHavenServiceManager = /*#__PURE__*/ createWriteContract({
  */
 export const writeDataHavenServiceManagerAddStrategiesToValidatorsSupportedStrategies =
   /*#__PURE__*/ createWriteContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'addStrategiesToValidatorsSupportedStrategies',
-  })
+  abi: dataHavenServiceManagerAbi,
+  functionName: 'addStrategiesToValidatorsSupportedStrategies',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"addValidatorToAllowlist"`
  */
 export const writeDataHavenServiceManagerAddValidatorToAllowlist =
   /*#__PURE__*/ createWriteContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'addValidatorToAllowlist',
-  })
+  abi: dataHavenServiceManagerAbi,
+  functionName: 'addValidatorToAllowlist',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"deregisterOperator"`
  */
 export const writeDataHavenServiceManagerDeregisterOperator =
   /*#__PURE__*/ createWriteContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'deregisterOperator',
-  })
+  abi: dataHavenServiceManagerAbi,
+  functionName: 'deregisterOperator',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"deregisterOperatorFromOperatorSets"`
  */
 export const writeDataHavenServiceManagerDeregisterOperatorFromOperatorSets =
   /*#__PURE__*/ createWriteContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'deregisterOperatorFromOperatorSets',
-  })
+  abi: dataHavenServiceManagerAbi,
+  functionName: 'deregisterOperatorFromOperatorSets',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"initialize"`
  */
 export const writeDataHavenServiceManagerInitialize =
   /*#__PURE__*/ createWriteContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'initialize',
-  })
+  abi: dataHavenServiceManagerAbi,
+  functionName: 'initialize',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"registerOperator"`
  */
 export const writeDataHavenServiceManagerRegisterOperator =
   /*#__PURE__*/ createWriteContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'registerOperator',
-  })
+  abi: dataHavenServiceManagerAbi,
+  functionName: 'registerOperator',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"removeStrategiesFromValidatorsSupportedStrategies"`
  */
 export const writeDataHavenServiceManagerRemoveStrategiesFromValidatorsSupportedStrategies =
   /*#__PURE__*/ createWriteContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'removeStrategiesFromValidatorsSupportedStrategies',
-  })
+  abi: dataHavenServiceManagerAbi,
+  functionName: 'removeStrategiesFromValidatorsSupportedStrategies',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"removeValidatorFromAllowlist"`
  */
 export const writeDataHavenServiceManagerRemoveValidatorFromAllowlist =
   /*#__PURE__*/ createWriteContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'removeValidatorFromAllowlist',
-  })
+  abi: dataHavenServiceManagerAbi,
+  functionName: 'removeValidatorFromAllowlist',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"renounceOwnership"`
  */
 export const writeDataHavenServiceManagerRenounceOwnership =
   /*#__PURE__*/ createWriteContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'renounceOwnership',
-  })
+  abi: dataHavenServiceManagerAbi,
+  functionName: 'renounceOwnership',
+})
 
 /**
- * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"sendNewValidatorSet"`
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"sendNewValidatorSetForEra"`
  */
-export const writeDataHavenServiceManagerSendNewValidatorSet =
+export const writeDataHavenServiceManagerSendNewValidatorSetForEra =
   /*#__PURE__*/ createWriteContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'sendNewValidatorSet',
-  })
+  abi: dataHavenServiceManagerAbi,
+  functionName: 'sendNewValidatorSetForEra',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"setRewardsInitiator"`
  */
 export const writeDataHavenServiceManagerSetRewardsInitiator =
   /*#__PURE__*/ createWriteContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'setRewardsInitiator',
-  })
+  abi: dataHavenServiceManagerAbi,
+  functionName: 'setRewardsInitiator',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"setSnowbridgeGateway"`
  */
 export const writeDataHavenServiceManagerSetSnowbridgeGateway =
   /*#__PURE__*/ createWriteContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'setSnowbridgeGateway',
-  })
+  abi: dataHavenServiceManagerAbi,
+  functionName: 'setSnowbridgeGateway',
+})
 
+/**
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"setStrategiesAndMultipliers"`
  */
 export const writeDataHavenServiceManagerSetStrategiesAndMultipliers =
   /*#__PURE__*/ createWriteContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'setStrategiesAndMultipliers',
-  })
+  abi: dataHavenServiceManagerAbi,
+  functionName: 'setStrategiesAndMultipliers',
+})
+
+/**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"setValidatorSetSubmitter"`
+ */
+export const writeDataHavenServiceManagerSetValidatorSetSubmitter =
+  /*#__PURE__*/ createWriteContract({
+  abi: dataHavenServiceManagerAbi,
+  functionName: 'setValidatorSetSubmitter',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"slashValidatorsOperator"`
  */
 export const writeDataHavenServiceManagerSlashValidatorsOperator =
   /*#__PURE__*/ createWriteContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'slashValidatorsOperator',
-  })
+  abi: dataHavenServiceManagerAbi,
+  functionName: 'slashValidatorsOperator',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"submitRewards"`
  */
 export const writeDataHavenServiceManagerSubmitRewards =
   /*#__PURE__*/ createWriteContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'submitRewards',
-  })
+  abi: dataHavenServiceManagerAbi,
+  functionName: 'submitRewards',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"transferOwnership"`
  */
 export const writeDataHavenServiceManagerTransferOwnership =
   /*#__PURE__*/ createWriteContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'transferOwnership',
-  })
+  abi: dataHavenServiceManagerAbi,
+  functionName: 'transferOwnership',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"updateAVSMetadataURI"`
  */
 export const writeDataHavenServiceManagerUpdateAvsMetadataUri =
   /*#__PURE__*/ createWriteContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'updateAVSMetadataURI',
-  })
+  abi: dataHavenServiceManagerAbi,
+  functionName: 'updateAVSMetadataURI',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"updateSolochainAddressForValidator"`
  */
 export const writeDataHavenServiceManagerUpdateSolochainAddressForValidator =
   /*#__PURE__*/ createWriteContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'updateSolochainAddressForValidator',
-  })
+  abi: dataHavenServiceManagerAbi,
+  functionName: 'updateSolochainAddressForValidator',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__
@@ -11034,162 +11120,172 @@ export const simulateDataHavenServiceManager =
  */
 export const simulateDataHavenServiceManagerAddStrategiesToValidatorsSupportedStrategies =
   /*#__PURE__*/ createSimulateContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'addStrategiesToValidatorsSupportedStrategies',
-  })
+  abi: dataHavenServiceManagerAbi,
+  functionName: 'addStrategiesToValidatorsSupportedStrategies',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"addValidatorToAllowlist"`
  */
 export const simulateDataHavenServiceManagerAddValidatorToAllowlist =
   /*#__PURE__*/ createSimulateContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'addValidatorToAllowlist',
-  })
+  abi: dataHavenServiceManagerAbi,
+  functionName: 'addValidatorToAllowlist',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"deregisterOperator"`
  */
 export const simulateDataHavenServiceManagerDeregisterOperator =
   /*#__PURE__*/ createSimulateContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'deregisterOperator',
-  })
+  abi: dataHavenServiceManagerAbi,
+  functionName: 'deregisterOperator',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"deregisterOperatorFromOperatorSets"`
  */
 export const simulateDataHavenServiceManagerDeregisterOperatorFromOperatorSets =
   /*#__PURE__*/ createSimulateContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'deregisterOperatorFromOperatorSets',
-  })
+  abi: dataHavenServiceManagerAbi,
+  functionName: 'deregisterOperatorFromOperatorSets',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"initialize"`
  */
 export const simulateDataHavenServiceManagerInitialize =
   /*#__PURE__*/ createSimulateContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'initialize',
-  })
+  abi: dataHavenServiceManagerAbi,
+  functionName: 'initialize',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"registerOperator"`
  */
 export const simulateDataHavenServiceManagerRegisterOperator =
   /*#__PURE__*/ createSimulateContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'registerOperator',
-  })
+  abi: dataHavenServiceManagerAbi,
+  functionName: 'registerOperator',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"removeStrategiesFromValidatorsSupportedStrategies"`
  */
 export const simulateDataHavenServiceManagerRemoveStrategiesFromValidatorsSupportedStrategies =
   /*#__PURE__*/ createSimulateContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'removeStrategiesFromValidatorsSupportedStrategies',
-  })
+  abi: dataHavenServiceManagerAbi,
+  functionName: 'removeStrategiesFromValidatorsSupportedStrategies',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"removeValidatorFromAllowlist"`
  */
 export const simulateDataHavenServiceManagerRemoveValidatorFromAllowlist =
   /*#__PURE__*/ createSimulateContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'removeValidatorFromAllowlist',
-  })
+  abi: dataHavenServiceManagerAbi,
+  functionName: 'removeValidatorFromAllowlist',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"renounceOwnership"`
  */
 export const simulateDataHavenServiceManagerRenounceOwnership =
   /*#__PURE__*/ createSimulateContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'renounceOwnership',
-  })
+  abi: dataHavenServiceManagerAbi,
+  functionName: 'renounceOwnership',
+})
 
 /**
- * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"sendNewValidatorSet"`
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"sendNewValidatorSetForEra"`
  */
-export const simulateDataHavenServiceManagerSendNewValidatorSet =
+export const simulateDataHavenServiceManagerSendNewValidatorSetForEra =
   /*#__PURE__*/ createSimulateContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'sendNewValidatorSet',
-  })
+  abi: dataHavenServiceManagerAbi,
+  functionName: 'sendNewValidatorSetForEra',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"setRewardsInitiator"`
  */
 export const simulateDataHavenServiceManagerSetRewardsInitiator =
   /*#__PURE__*/ createSimulateContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'setRewardsInitiator',
-  })
+  abi: dataHavenServiceManagerAbi,
+  functionName: 'setRewardsInitiator',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"setSnowbridgeGateway"`
  */
 export const simulateDataHavenServiceManagerSetSnowbridgeGateway =
   /*#__PURE__*/ createSimulateContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'setSnowbridgeGateway',
-  })
+  abi: dataHavenServiceManagerAbi,
+  functionName: 'setSnowbridgeGateway',
+})
 
+/**
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"setStrategiesAndMultipliers"`
  */
 export const simulateDataHavenServiceManagerSetStrategiesAndMultipliers =
   /*#__PURE__*/ createSimulateContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'setStrategiesAndMultipliers',
-  })
+  abi: dataHavenServiceManagerAbi,
+  functionName: 'setStrategiesAndMultipliers',
+})
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"setValidatorSetSubmitter"`
+ */
+export const simulateDataHavenServiceManagerSetValidatorSetSubmitter =
+  /*#__PURE__*/ createSimulateContract({
+  abi: dataHavenServiceManagerAbi,
+  functionName: 'setValidatorSetSubmitter',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"slashValidatorsOperator"`
  */
 export const simulateDataHavenServiceManagerSlashValidatorsOperator =
   /*#__PURE__*/ createSimulateContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'slashValidatorsOperator',
-  })
+  abi: dataHavenServiceManagerAbi,
+  functionName: 'slashValidatorsOperator',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"submitRewards"`
  */
 export const simulateDataHavenServiceManagerSubmitRewards =
   /*#__PURE__*/ createSimulateContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'submitRewards',
-  })
+  abi: dataHavenServiceManagerAbi,
+  functionName: 'submitRewards',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"transferOwnership"`
  */
 export const simulateDataHavenServiceManagerTransferOwnership =
   /*#__PURE__*/ createSimulateContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'transferOwnership',
-  })
+  abi: dataHavenServiceManagerAbi,
+  functionName: 'transferOwnership',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"updateAVSMetadataURI"`
  */
 export const simulateDataHavenServiceManagerUpdateAvsMetadataUri =
   /*#__PURE__*/ createSimulateContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'updateAVSMetadataURI',
-  })
+  abi: dataHavenServiceManagerAbi,
+  functionName: 'updateAVSMetadataURI',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"updateSolochainAddressForValidator"`
  */
 export const simulateDataHavenServiceManagerUpdateSolochainAddressForValidator =
   /*#__PURE__*/ createSimulateContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'updateSolochainAddressForValidator',
-  })
+  abi: dataHavenServiceManagerAbi,
+  functionName: 'updateSolochainAddressForValidator',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__
@@ -11202,108 +11298,126 @@ export const watchDataHavenServiceManagerEvent =
  */
 export const watchDataHavenServiceManagerInitializedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: dataHavenServiceManagerAbi,
-    eventName: 'Initialized',
-  })
+  abi: dataHavenServiceManagerAbi,
+  eventName: 'Initialized',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `eventName` set to `"OperatorDeregistered"`
  */
 export const watchDataHavenServiceManagerOperatorDeregisteredEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: dataHavenServiceManagerAbi,
-    eventName: 'OperatorDeregistered',
-  })
+  abi: dataHavenServiceManagerAbi,
+  eventName: 'OperatorDeregistered',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `eventName` set to `"OperatorRegistered"`
  */
 export const watchDataHavenServiceManagerOperatorRegisteredEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: dataHavenServiceManagerAbi,
-    eventName: 'OperatorRegistered',
-  })
+  abi: dataHavenServiceManagerAbi,
+  eventName: 'OperatorRegistered',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `eventName` set to `"OwnershipTransferred"`
  */
 export const watchDataHavenServiceManagerOwnershipTransferredEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: dataHavenServiceManagerAbi,
-    eventName: 'OwnershipTransferred',
-  })
+  abi: dataHavenServiceManagerAbi,
+  eventName: 'OwnershipTransferred',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `eventName` set to `"RewardsInitiatorSet"`
  */
 export const watchDataHavenServiceManagerRewardsInitiatorSetEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: dataHavenServiceManagerAbi,
-    eventName: 'RewardsInitiatorSet',
-  })
+  abi: dataHavenServiceManagerAbi,
+  eventName: 'RewardsInitiatorSet',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `eventName` set to `"RewardsSubmitted"`
  */
 export const watchDataHavenServiceManagerRewardsSubmittedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: dataHavenServiceManagerAbi,
-    eventName: 'RewardsSubmitted',
-  })
+  abi: dataHavenServiceManagerAbi,
+  eventName: 'RewardsSubmitted',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `eventName` set to `"SlashingComplete"`
  */
 export const watchDataHavenServiceManagerSlashingCompleteEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: dataHavenServiceManagerAbi,
-    eventName: 'SlashingComplete',
-  })
+  abi: dataHavenServiceManagerAbi,
+  eventName: 'SlashingComplete',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `eventName` set to `"SnowbridgeGatewaySet"`
  */
 export const watchDataHavenServiceManagerSnowbridgeGatewaySetEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: dataHavenServiceManagerAbi,
-    eventName: 'SnowbridgeGatewaySet',
-  })
+  abi: dataHavenServiceManagerAbi,
+  eventName: 'SnowbridgeGatewaySet',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `eventName` set to `"SolochainAddressUpdated"`
  */
 export const watchDataHavenServiceManagerSolochainAddressUpdatedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: dataHavenServiceManagerAbi,
-    eventName: 'SolochainAddressUpdated',
-  })
+  abi: dataHavenServiceManagerAbi,
+  eventName: 'SolochainAddressUpdated',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `eventName` set to `"StrategiesAndMultipliersSet"`
  */
 export const watchDataHavenServiceManagerStrategiesAndMultipliersSetEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: dataHavenServiceManagerAbi,
-    eventName: 'StrategiesAndMultipliersSet',
-  })
+  abi: dataHavenServiceManagerAbi,
+  eventName: 'StrategiesAndMultipliersSet',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `eventName` set to `"ValidatorAddedToAllowlist"`
  */
 export const watchDataHavenServiceManagerValidatorAddedToAllowlistEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: dataHavenServiceManagerAbi,
-    eventName: 'ValidatorAddedToAllowlist',
-  })
+  abi: dataHavenServiceManagerAbi,
+  eventName: 'ValidatorAddedToAllowlist',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `eventName` set to `"ValidatorRemovedFromAllowlist"`
  */
 export const watchDataHavenServiceManagerValidatorRemovedFromAllowlistEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: dataHavenServiceManagerAbi,
-    eventName: 'ValidatorRemovedFromAllowlist',
-  })
+  abi: dataHavenServiceManagerAbi,
+  eventName: 'ValidatorRemovedFromAllowlist',
+})
+
+/**
+ * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `eventName` set to `"ValidatorSetMessageSubmitted"`
+ */
+export const watchDataHavenServiceManagerValidatorSetMessageSubmittedEvent =
+  /*#__PURE__*/ createWatchContractEvent({
+  abi: dataHavenServiceManagerAbi,
+  eventName: 'ValidatorSetMessageSubmitted',
+})
+
+/**
+ * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `eventName` set to `"ValidatorSetSubmitterUpdated"`
+ */
+export const watchDataHavenServiceManagerValidatorSetSubmitterUpdatedEvent =
+  /*#__PURE__*/ createWatchContractEvent({
+  abi: dataHavenServiceManagerAbi,
+  eventName: 'ValidatorSetSubmitterUpdated',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link delegationManagerAbi}__
@@ -11317,198 +11431,198 @@ export const readDelegationManager = /*#__PURE__*/ createReadContract({
  */
 export const readDelegationManagerDelegationApprovalTypehash =
   /*#__PURE__*/ createReadContract({
-    abi: delegationManagerAbi,
-    functionName: 'DELEGATION_APPROVAL_TYPEHASH',
-  })
+  abi: delegationManagerAbi,
+  functionName: 'DELEGATION_APPROVAL_TYPEHASH',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link delegationManagerAbi}__ and `functionName` set to `"allocationManager"`
  */
 export const readDelegationManagerAllocationManager =
   /*#__PURE__*/ createReadContract({
-    abi: delegationManagerAbi,
-    functionName: 'allocationManager',
-  })
+  abi: delegationManagerAbi,
+  functionName: 'allocationManager',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link delegationManagerAbi}__ and `functionName` set to `"beaconChainETHStrategy"`
  */
 export const readDelegationManagerBeaconChainEthStrategy =
   /*#__PURE__*/ createReadContract({
-    abi: delegationManagerAbi,
-    functionName: 'beaconChainETHStrategy',
-  })
+  abi: delegationManagerAbi,
+  functionName: 'beaconChainETHStrategy',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link delegationManagerAbi}__ and `functionName` set to `"calculateDelegationApprovalDigestHash"`
  */
 export const readDelegationManagerCalculateDelegationApprovalDigestHash =
   /*#__PURE__*/ createReadContract({
-    abi: delegationManagerAbi,
-    functionName: 'calculateDelegationApprovalDigestHash',
-  })
+  abi: delegationManagerAbi,
+  functionName: 'calculateDelegationApprovalDigestHash',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link delegationManagerAbi}__ and `functionName` set to `"calculateWithdrawalRoot"`
  */
 export const readDelegationManagerCalculateWithdrawalRoot =
   /*#__PURE__*/ createReadContract({
-    abi: delegationManagerAbi,
-    functionName: 'calculateWithdrawalRoot',
-  })
+  abi: delegationManagerAbi,
+  functionName: 'calculateWithdrawalRoot',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link delegationManagerAbi}__ and `functionName` set to `"convertToDepositShares"`
  */
 export const readDelegationManagerConvertToDepositShares =
   /*#__PURE__*/ createReadContract({
-    abi: delegationManagerAbi,
-    functionName: 'convertToDepositShares',
-  })
+  abi: delegationManagerAbi,
+  functionName: 'convertToDepositShares',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link delegationManagerAbi}__ and `functionName` set to `"cumulativeWithdrawalsQueued"`
  */
 export const readDelegationManagerCumulativeWithdrawalsQueued =
   /*#__PURE__*/ createReadContract({
-    abi: delegationManagerAbi,
-    functionName: 'cumulativeWithdrawalsQueued',
-  })
+  abi: delegationManagerAbi,
+  functionName: 'cumulativeWithdrawalsQueued',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link delegationManagerAbi}__ and `functionName` set to `"delegatedTo"`
  */
 export const readDelegationManagerDelegatedTo =
   /*#__PURE__*/ createReadContract({
-    abi: delegationManagerAbi,
-    functionName: 'delegatedTo',
-  })
+  abi: delegationManagerAbi,
+  functionName: 'delegatedTo',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link delegationManagerAbi}__ and `functionName` set to `"delegationApprover"`
  */
 export const readDelegationManagerDelegationApprover =
   /*#__PURE__*/ createReadContract({
-    abi: delegationManagerAbi,
-    functionName: 'delegationApprover',
-  })
+  abi: delegationManagerAbi,
+  functionName: 'delegationApprover',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link delegationManagerAbi}__ and `functionName` set to `"delegationApproverSaltIsSpent"`
  */
 export const readDelegationManagerDelegationApproverSaltIsSpent =
   /*#__PURE__*/ createReadContract({
-    abi: delegationManagerAbi,
-    functionName: 'delegationApproverSaltIsSpent',
-  })
+  abi: delegationManagerAbi,
+  functionName: 'delegationApproverSaltIsSpent',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link delegationManagerAbi}__ and `functionName` set to `"depositScalingFactor"`
  */
 export const readDelegationManagerDepositScalingFactor =
   /*#__PURE__*/ createReadContract({
-    abi: delegationManagerAbi,
-    functionName: 'depositScalingFactor',
-  })
+  abi: delegationManagerAbi,
+  functionName: 'depositScalingFactor',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link delegationManagerAbi}__ and `functionName` set to `"domainSeparator"`
  */
 export const readDelegationManagerDomainSeparator =
   /*#__PURE__*/ createReadContract({
-    abi: delegationManagerAbi,
-    functionName: 'domainSeparator',
-  })
+  abi: delegationManagerAbi,
+  functionName: 'domainSeparator',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link delegationManagerAbi}__ and `functionName` set to `"eigenPodManager"`
  */
 export const readDelegationManagerEigenPodManager =
   /*#__PURE__*/ createReadContract({
-    abi: delegationManagerAbi,
-    functionName: 'eigenPodManager',
-  })
+  abi: delegationManagerAbi,
+  functionName: 'eigenPodManager',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link delegationManagerAbi}__ and `functionName` set to `"getDepositedShares"`
  */
 export const readDelegationManagerGetDepositedShares =
   /*#__PURE__*/ createReadContract({
-    abi: delegationManagerAbi,
-    functionName: 'getDepositedShares',
-  })
+  abi: delegationManagerAbi,
+  functionName: 'getDepositedShares',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link delegationManagerAbi}__ and `functionName` set to `"getOperatorShares"`
  */
 export const readDelegationManagerGetOperatorShares =
   /*#__PURE__*/ createReadContract({
-    abi: delegationManagerAbi,
-    functionName: 'getOperatorShares',
-  })
+  abi: delegationManagerAbi,
+  functionName: 'getOperatorShares',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link delegationManagerAbi}__ and `functionName` set to `"getOperatorsShares"`
  */
 export const readDelegationManagerGetOperatorsShares =
   /*#__PURE__*/ createReadContract({
-    abi: delegationManagerAbi,
-    functionName: 'getOperatorsShares',
-  })
+  abi: delegationManagerAbi,
+  functionName: 'getOperatorsShares',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link delegationManagerAbi}__ and `functionName` set to `"getQueuedWithdrawal"`
  */
 export const readDelegationManagerGetQueuedWithdrawal =
   /*#__PURE__*/ createReadContract({
-    abi: delegationManagerAbi,
-    functionName: 'getQueuedWithdrawal',
-  })
+  abi: delegationManagerAbi,
+  functionName: 'getQueuedWithdrawal',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link delegationManagerAbi}__ and `functionName` set to `"getQueuedWithdrawalRoots"`
  */
 export const readDelegationManagerGetQueuedWithdrawalRoots =
   /*#__PURE__*/ createReadContract({
-    abi: delegationManagerAbi,
-    functionName: 'getQueuedWithdrawalRoots',
-  })
+  abi: delegationManagerAbi,
+  functionName: 'getQueuedWithdrawalRoots',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link delegationManagerAbi}__ and `functionName` set to `"getQueuedWithdrawals"`
  */
 export const readDelegationManagerGetQueuedWithdrawals =
   /*#__PURE__*/ createReadContract({
-    abi: delegationManagerAbi,
-    functionName: 'getQueuedWithdrawals',
-  })
+  abi: delegationManagerAbi,
+  functionName: 'getQueuedWithdrawals',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link delegationManagerAbi}__ and `functionName` set to `"getSlashableSharesInQueue"`
  */
 export const readDelegationManagerGetSlashableSharesInQueue =
   /*#__PURE__*/ createReadContract({
-    abi: delegationManagerAbi,
-    functionName: 'getSlashableSharesInQueue',
-  })
+  abi: delegationManagerAbi,
+  functionName: 'getSlashableSharesInQueue',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link delegationManagerAbi}__ and `functionName` set to `"getWithdrawableShares"`
  */
 export const readDelegationManagerGetWithdrawableShares =
   /*#__PURE__*/ createReadContract({
-    abi: delegationManagerAbi,
-    functionName: 'getWithdrawableShares',
-  })
+  abi: delegationManagerAbi,
+  functionName: 'getWithdrawableShares',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link delegationManagerAbi}__ and `functionName` set to `"isDelegated"`
  */
 export const readDelegationManagerIsDelegated =
   /*#__PURE__*/ createReadContract({
-    abi: delegationManagerAbi,
-    functionName: 'isDelegated',
-  })
+  abi: delegationManagerAbi,
+  functionName: 'isDelegated',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link delegationManagerAbi}__ and `functionName` set to `"isOperator"`
@@ -11522,18 +11636,18 @@ export const readDelegationManagerIsOperator = /*#__PURE__*/ createReadContract(
  */
 export const readDelegationManagerMinWithdrawalDelayBlocks =
   /*#__PURE__*/ createReadContract({
-    abi: delegationManagerAbi,
-    functionName: 'minWithdrawalDelayBlocks',
-  })
+  abi: delegationManagerAbi,
+  functionName: 'minWithdrawalDelayBlocks',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link delegationManagerAbi}__ and `functionName` set to `"operatorShares"`
  */
 export const readDelegationManagerOperatorShares =
   /*#__PURE__*/ createReadContract({
-    abi: delegationManagerAbi,
-    functionName: 'operatorShares',
-  })
+  abi: delegationManagerAbi,
+  functionName: 'operatorShares',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link delegationManagerAbi}__ and `functionName` set to `"paused"`
@@ -11548,45 +11662,45 @@ export const readDelegationManagerPaused = /*#__PURE__*/ createReadContract({
  */
 export const readDelegationManagerPauserRegistry =
   /*#__PURE__*/ createReadContract({
-    abi: delegationManagerAbi,
-    functionName: 'pauserRegistry',
-  })
+  abi: delegationManagerAbi,
+  functionName: 'pauserRegistry',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link delegationManagerAbi}__ and `functionName` set to `"pendingWithdrawals"`
  */
 export const readDelegationManagerPendingWithdrawals =
   /*#__PURE__*/ createReadContract({
-    abi: delegationManagerAbi,
-    functionName: 'pendingWithdrawals',
-  })
+  abi: delegationManagerAbi,
+  functionName: 'pendingWithdrawals',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link delegationManagerAbi}__ and `functionName` set to `"permissionController"`
  */
 export const readDelegationManagerPermissionController =
   /*#__PURE__*/ createReadContract({
-    abi: delegationManagerAbi,
-    functionName: 'permissionController',
-  })
+  abi: delegationManagerAbi,
+  functionName: 'permissionController',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link delegationManagerAbi}__ and `functionName` set to `"queuedWithdrawals"`
  */
 export const readDelegationManagerQueuedWithdrawals =
   /*#__PURE__*/ createReadContract({
-    abi: delegationManagerAbi,
-    functionName: 'queuedWithdrawals',
-  })
+  abi: delegationManagerAbi,
+  functionName: 'queuedWithdrawals',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link delegationManagerAbi}__ and `functionName` set to `"strategyManager"`
  */
 export const readDelegationManagerStrategyManager =
   /*#__PURE__*/ createReadContract({
-    abi: delegationManagerAbi,
-    functionName: 'strategyManager',
-  })
+  abi: delegationManagerAbi,
+  functionName: 'strategyManager',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link delegationManagerAbi}__ and `functionName` set to `"version"`
@@ -11608,63 +11722,63 @@ export const writeDelegationManager = /*#__PURE__*/ createWriteContract({
  */
 export const writeDelegationManagerCompleteQueuedWithdrawal =
   /*#__PURE__*/ createWriteContract({
-    abi: delegationManagerAbi,
-    functionName: 'completeQueuedWithdrawal',
-  })
+  abi: delegationManagerAbi,
+  functionName: 'completeQueuedWithdrawal',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link delegationManagerAbi}__ and `functionName` set to `"completeQueuedWithdrawals"`
  */
 export const writeDelegationManagerCompleteQueuedWithdrawals =
   /*#__PURE__*/ createWriteContract({
-    abi: delegationManagerAbi,
-    functionName: 'completeQueuedWithdrawals',
-  })
+  abi: delegationManagerAbi,
+  functionName: 'completeQueuedWithdrawals',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link delegationManagerAbi}__ and `functionName` set to `"decreaseDelegatedShares"`
  */
 export const writeDelegationManagerDecreaseDelegatedShares =
   /*#__PURE__*/ createWriteContract({
-    abi: delegationManagerAbi,
-    functionName: 'decreaseDelegatedShares',
-  })
+  abi: delegationManagerAbi,
+  functionName: 'decreaseDelegatedShares',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link delegationManagerAbi}__ and `functionName` set to `"delegateTo"`
  */
 export const writeDelegationManagerDelegateTo =
   /*#__PURE__*/ createWriteContract({
-    abi: delegationManagerAbi,
-    functionName: 'delegateTo',
-  })
+  abi: delegationManagerAbi,
+  functionName: 'delegateTo',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link delegationManagerAbi}__ and `functionName` set to `"increaseDelegatedShares"`
  */
 export const writeDelegationManagerIncreaseDelegatedShares =
   /*#__PURE__*/ createWriteContract({
-    abi: delegationManagerAbi,
-    functionName: 'increaseDelegatedShares',
-  })
+  abi: delegationManagerAbi,
+  functionName: 'increaseDelegatedShares',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link delegationManagerAbi}__ and `functionName` set to `"initialize"`
  */
 export const writeDelegationManagerInitialize =
   /*#__PURE__*/ createWriteContract({
-    abi: delegationManagerAbi,
-    functionName: 'initialize',
-  })
+  abi: delegationManagerAbi,
+  functionName: 'initialize',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link delegationManagerAbi}__ and `functionName` set to `"modifyOperatorDetails"`
  */
 export const writeDelegationManagerModifyOperatorDetails =
   /*#__PURE__*/ createWriteContract({
-    abi: delegationManagerAbi,
-    functionName: 'modifyOperatorDetails',
-  })
+  abi: delegationManagerAbi,
+  functionName: 'modifyOperatorDetails',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link delegationManagerAbi}__ and `functionName` set to `"pause"`
@@ -11686,45 +11800,45 @@ export const writeDelegationManagerPauseAll = /*#__PURE__*/ createWriteContract(
  */
 export const writeDelegationManagerQueueWithdrawals =
   /*#__PURE__*/ createWriteContract({
-    abi: delegationManagerAbi,
-    functionName: 'queueWithdrawals',
-  })
+  abi: delegationManagerAbi,
+  functionName: 'queueWithdrawals',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link delegationManagerAbi}__ and `functionName` set to `"redelegate"`
  */
 export const writeDelegationManagerRedelegate =
   /*#__PURE__*/ createWriteContract({
-    abi: delegationManagerAbi,
-    functionName: 'redelegate',
-  })
+  abi: delegationManagerAbi,
+  functionName: 'redelegate',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link delegationManagerAbi}__ and `functionName` set to `"registerAsOperator"`
  */
 export const writeDelegationManagerRegisterAsOperator =
   /*#__PURE__*/ createWriteContract({
-    abi: delegationManagerAbi,
-    functionName: 'registerAsOperator',
-  })
+  abi: delegationManagerAbi,
+  functionName: 'registerAsOperator',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link delegationManagerAbi}__ and `functionName` set to `"slashOperatorShares"`
  */
 export const writeDelegationManagerSlashOperatorShares =
   /*#__PURE__*/ createWriteContract({
-    abi: delegationManagerAbi,
-    functionName: 'slashOperatorShares',
-  })
+  abi: delegationManagerAbi,
+  functionName: 'slashOperatorShares',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link delegationManagerAbi}__ and `functionName` set to `"undelegate"`
  */
 export const writeDelegationManagerUndelegate =
   /*#__PURE__*/ createWriteContract({
-    abi: delegationManagerAbi,
-    functionName: 'undelegate',
-  })
+  abi: delegationManagerAbi,
+  functionName: 'undelegate',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link delegationManagerAbi}__ and `functionName` set to `"unpause"`
@@ -11739,9 +11853,9 @@ export const writeDelegationManagerUnpause = /*#__PURE__*/ createWriteContract({
  */
 export const writeDelegationManagerUpdateOperatorMetadataUri =
   /*#__PURE__*/ createWriteContract({
-    abi: delegationManagerAbi,
-    functionName: 'updateOperatorMetadataURI',
-  })
+  abi: delegationManagerAbi,
+  functionName: 'updateOperatorMetadataURI',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link delegationManagerAbi}__
@@ -11755,144 +11869,144 @@ export const simulateDelegationManager = /*#__PURE__*/ createSimulateContract({
  */
 export const simulateDelegationManagerCompleteQueuedWithdrawal =
   /*#__PURE__*/ createSimulateContract({
-    abi: delegationManagerAbi,
-    functionName: 'completeQueuedWithdrawal',
-  })
+  abi: delegationManagerAbi,
+  functionName: 'completeQueuedWithdrawal',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link delegationManagerAbi}__ and `functionName` set to `"completeQueuedWithdrawals"`
  */
 export const simulateDelegationManagerCompleteQueuedWithdrawals =
   /*#__PURE__*/ createSimulateContract({
-    abi: delegationManagerAbi,
-    functionName: 'completeQueuedWithdrawals',
-  })
+  abi: delegationManagerAbi,
+  functionName: 'completeQueuedWithdrawals',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link delegationManagerAbi}__ and `functionName` set to `"decreaseDelegatedShares"`
  */
 export const simulateDelegationManagerDecreaseDelegatedShares =
   /*#__PURE__*/ createSimulateContract({
-    abi: delegationManagerAbi,
-    functionName: 'decreaseDelegatedShares',
-  })
+  abi: delegationManagerAbi,
+  functionName: 'decreaseDelegatedShares',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link delegationManagerAbi}__ and `functionName` set to `"delegateTo"`
  */
 export const simulateDelegationManagerDelegateTo =
   /*#__PURE__*/ createSimulateContract({
-    abi: delegationManagerAbi,
-    functionName: 'delegateTo',
-  })
+  abi: delegationManagerAbi,
+  functionName: 'delegateTo',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link delegationManagerAbi}__ and `functionName` set to `"increaseDelegatedShares"`
  */
 export const simulateDelegationManagerIncreaseDelegatedShares =
   /*#__PURE__*/ createSimulateContract({
-    abi: delegationManagerAbi,
-    functionName: 'increaseDelegatedShares',
-  })
+  abi: delegationManagerAbi,
+  functionName: 'increaseDelegatedShares',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link delegationManagerAbi}__ and `functionName` set to `"initialize"`
  */
 export const simulateDelegationManagerInitialize =
   /*#__PURE__*/ createSimulateContract({
-    abi: delegationManagerAbi,
-    functionName: 'initialize',
-  })
+  abi: delegationManagerAbi,
+  functionName: 'initialize',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link delegationManagerAbi}__ and `functionName` set to `"modifyOperatorDetails"`
  */
 export const simulateDelegationManagerModifyOperatorDetails =
   /*#__PURE__*/ createSimulateContract({
-    abi: delegationManagerAbi,
-    functionName: 'modifyOperatorDetails',
-  })
+  abi: delegationManagerAbi,
+  functionName: 'modifyOperatorDetails',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link delegationManagerAbi}__ and `functionName` set to `"pause"`
  */
 export const simulateDelegationManagerPause =
   /*#__PURE__*/ createSimulateContract({
-    abi: delegationManagerAbi,
-    functionName: 'pause',
-  })
+  abi: delegationManagerAbi,
+  functionName: 'pause',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link delegationManagerAbi}__ and `functionName` set to `"pauseAll"`
  */
 export const simulateDelegationManagerPauseAll =
   /*#__PURE__*/ createSimulateContract({
-    abi: delegationManagerAbi,
-    functionName: 'pauseAll',
-  })
+  abi: delegationManagerAbi,
+  functionName: 'pauseAll',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link delegationManagerAbi}__ and `functionName` set to `"queueWithdrawals"`
  */
 export const simulateDelegationManagerQueueWithdrawals =
   /*#__PURE__*/ createSimulateContract({
-    abi: delegationManagerAbi,
-    functionName: 'queueWithdrawals',
-  })
+  abi: delegationManagerAbi,
+  functionName: 'queueWithdrawals',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link delegationManagerAbi}__ and `functionName` set to `"redelegate"`
  */
 export const simulateDelegationManagerRedelegate =
   /*#__PURE__*/ createSimulateContract({
-    abi: delegationManagerAbi,
-    functionName: 'redelegate',
-  })
+  abi: delegationManagerAbi,
+  functionName: 'redelegate',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link delegationManagerAbi}__ and `functionName` set to `"registerAsOperator"`
  */
 export const simulateDelegationManagerRegisterAsOperator =
   /*#__PURE__*/ createSimulateContract({
-    abi: delegationManagerAbi,
-    functionName: 'registerAsOperator',
-  })
+  abi: delegationManagerAbi,
+  functionName: 'registerAsOperator',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link delegationManagerAbi}__ and `functionName` set to `"slashOperatorShares"`
  */
 export const simulateDelegationManagerSlashOperatorShares =
   /*#__PURE__*/ createSimulateContract({
-    abi: delegationManagerAbi,
-    functionName: 'slashOperatorShares',
-  })
+  abi: delegationManagerAbi,
+  functionName: 'slashOperatorShares',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link delegationManagerAbi}__ and `functionName` set to `"undelegate"`
  */
 export const simulateDelegationManagerUndelegate =
   /*#__PURE__*/ createSimulateContract({
-    abi: delegationManagerAbi,
-    functionName: 'undelegate',
-  })
+  abi: delegationManagerAbi,
+  functionName: 'undelegate',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link delegationManagerAbi}__ and `functionName` set to `"unpause"`
  */
 export const simulateDelegationManagerUnpause =
   /*#__PURE__*/ createSimulateContract({
-    abi: delegationManagerAbi,
-    functionName: 'unpause',
-  })
+  abi: delegationManagerAbi,
+  functionName: 'unpause',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link delegationManagerAbi}__ and `functionName` set to `"updateOperatorMetadataURI"`
  */
 export const simulateDelegationManagerUpdateOperatorMetadataUri =
   /*#__PURE__*/ createSimulateContract({
-    abi: delegationManagerAbi,
-    functionName: 'updateOperatorMetadataURI',
-  })
+  abi: delegationManagerAbi,
+  functionName: 'updateOperatorMetadataURI',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link delegationManagerAbi}__
@@ -11905,135 +12019,135 @@ export const watchDelegationManagerEvent =
  */
 export const watchDelegationManagerDelegationApproverUpdatedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: delegationManagerAbi,
-    eventName: 'DelegationApproverUpdated',
-  })
+  abi: delegationManagerAbi,
+  eventName: 'DelegationApproverUpdated',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link delegationManagerAbi}__ and `eventName` set to `"DepositScalingFactorUpdated"`
  */
 export const watchDelegationManagerDepositScalingFactorUpdatedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: delegationManagerAbi,
-    eventName: 'DepositScalingFactorUpdated',
-  })
+  abi: delegationManagerAbi,
+  eventName: 'DepositScalingFactorUpdated',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link delegationManagerAbi}__ and `eventName` set to `"Initialized"`
  */
 export const watchDelegationManagerInitializedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: delegationManagerAbi,
-    eventName: 'Initialized',
-  })
+  abi: delegationManagerAbi,
+  eventName: 'Initialized',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link delegationManagerAbi}__ and `eventName` set to `"OperatorMetadataURIUpdated"`
  */
 export const watchDelegationManagerOperatorMetadataUriUpdatedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: delegationManagerAbi,
-    eventName: 'OperatorMetadataURIUpdated',
-  })
+  abi: delegationManagerAbi,
+  eventName: 'OperatorMetadataURIUpdated',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link delegationManagerAbi}__ and `eventName` set to `"OperatorRegistered"`
  */
 export const watchDelegationManagerOperatorRegisteredEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: delegationManagerAbi,
-    eventName: 'OperatorRegistered',
-  })
+  abi: delegationManagerAbi,
+  eventName: 'OperatorRegistered',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link delegationManagerAbi}__ and `eventName` set to `"OperatorSharesDecreased"`
  */
 export const watchDelegationManagerOperatorSharesDecreasedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: delegationManagerAbi,
-    eventName: 'OperatorSharesDecreased',
-  })
+  abi: delegationManagerAbi,
+  eventName: 'OperatorSharesDecreased',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link delegationManagerAbi}__ and `eventName` set to `"OperatorSharesIncreased"`
  */
 export const watchDelegationManagerOperatorSharesIncreasedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: delegationManagerAbi,
-    eventName: 'OperatorSharesIncreased',
-  })
+  abi: delegationManagerAbi,
+  eventName: 'OperatorSharesIncreased',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link delegationManagerAbi}__ and `eventName` set to `"OperatorSharesSlashed"`
  */
 export const watchDelegationManagerOperatorSharesSlashedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: delegationManagerAbi,
-    eventName: 'OperatorSharesSlashed',
-  })
+  abi: delegationManagerAbi,
+  eventName: 'OperatorSharesSlashed',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link delegationManagerAbi}__ and `eventName` set to `"Paused"`
  */
 export const watchDelegationManagerPausedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: delegationManagerAbi,
-    eventName: 'Paused',
-  })
+  abi: delegationManagerAbi,
+  eventName: 'Paused',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link delegationManagerAbi}__ and `eventName` set to `"SlashingWithdrawalCompleted"`
  */
 export const watchDelegationManagerSlashingWithdrawalCompletedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: delegationManagerAbi,
-    eventName: 'SlashingWithdrawalCompleted',
-  })
+  abi: delegationManagerAbi,
+  eventName: 'SlashingWithdrawalCompleted',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link delegationManagerAbi}__ and `eventName` set to `"SlashingWithdrawalQueued"`
  */
 export const watchDelegationManagerSlashingWithdrawalQueuedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: delegationManagerAbi,
-    eventName: 'SlashingWithdrawalQueued',
-  })
+  abi: delegationManagerAbi,
+  eventName: 'SlashingWithdrawalQueued',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link delegationManagerAbi}__ and `eventName` set to `"StakerDelegated"`
  */
 export const watchDelegationManagerStakerDelegatedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: delegationManagerAbi,
-    eventName: 'StakerDelegated',
-  })
+  abi: delegationManagerAbi,
+  eventName: 'StakerDelegated',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link delegationManagerAbi}__ and `eventName` set to `"StakerForceUndelegated"`
  */
 export const watchDelegationManagerStakerForceUndelegatedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: delegationManagerAbi,
-    eventName: 'StakerForceUndelegated',
-  })
+  abi: delegationManagerAbi,
+  eventName: 'StakerForceUndelegated',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link delegationManagerAbi}__ and `eventName` set to `"StakerUndelegated"`
  */
 export const watchDelegationManagerStakerUndelegatedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: delegationManagerAbi,
-    eventName: 'StakerUndelegated',
-  })
+  abi: delegationManagerAbi,
+  eventName: 'StakerUndelegated',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link delegationManagerAbi}__ and `eventName` set to `"Unpaused"`
  */
 export const watchDelegationManagerUnpausedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: delegationManagerAbi,
-    eventName: 'Unpaused',
-  })
+  abi: delegationManagerAbi,
+  eventName: 'Unpaused',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link eigenPodAbi}__
@@ -12047,18 +12161,18 @@ export const readEigenPod = /*#__PURE__*/ createReadContract({
  */
 export const readEigenPodActiveValidatorCount =
   /*#__PURE__*/ createReadContract({
-    abi: eigenPodAbi,
-    functionName: 'activeValidatorCount',
-  })
+  abi: eigenPodAbi,
+  functionName: 'activeValidatorCount',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link eigenPodAbi}__ and `functionName` set to `"checkpointBalanceExitedGwei"`
  */
 export const readEigenPodCheckpointBalanceExitedGwei =
   /*#__PURE__*/ createReadContract({
-    abi: eigenPodAbi,
-    functionName: 'checkpointBalanceExitedGwei',
-  })
+  abi: eigenPodAbi,
+  functionName: 'checkpointBalanceExitedGwei',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link eigenPodAbi}__ and `functionName` set to `"currentCheckpoint"`
@@ -12073,9 +12187,9 @@ export const readEigenPodCurrentCheckpoint = /*#__PURE__*/ createReadContract({
  */
 export const readEigenPodCurrentCheckpointTimestamp =
   /*#__PURE__*/ createReadContract({
-    abi: eigenPodAbi,
-    functionName: 'currentCheckpointTimestamp',
-  })
+  abi: eigenPodAbi,
+  functionName: 'currentCheckpointTimestamp',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link eigenPodAbi}__ and `functionName` set to `"eigenPodManager"`
@@ -12098,9 +12212,9 @@ export const readEigenPodEthPos = /*#__PURE__*/ createReadContract({
  */
 export const readEigenPodGetConsolidationRequestFee =
   /*#__PURE__*/ createReadContract({
-    abi: eigenPodAbi,
-    functionName: 'getConsolidationRequestFee',
-  })
+  abi: eigenPodAbi,
+  functionName: 'getConsolidationRequestFee',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link eigenPodAbi}__ and `functionName` set to `"getParentBlockRoot"`
@@ -12115,18 +12229,18 @@ export const readEigenPodGetParentBlockRoot = /*#__PURE__*/ createReadContract({
  */
 export const readEigenPodGetWithdrawalRequestFee =
   /*#__PURE__*/ createReadContract({
-    abi: eigenPodAbi,
-    functionName: 'getWithdrawalRequestFee',
-  })
+  abi: eigenPodAbi,
+  functionName: 'getWithdrawalRequestFee',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link eigenPodAbi}__ and `functionName` set to `"lastCheckpointTimestamp"`
  */
 export const readEigenPodLastCheckpointTimestamp =
   /*#__PURE__*/ createReadContract({
-    abi: eigenPodAbi,
-    functionName: 'lastCheckpointTimestamp',
-  })
+  abi: eigenPodAbi,
+  functionName: 'lastCheckpointTimestamp',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link eigenPodAbi}__ and `functionName` set to `"podOwner"`
@@ -12149,18 +12263,18 @@ export const readEigenPodProofSubmitter = /*#__PURE__*/ createReadContract({
  */
 export const readEigenPodValidatorPubkeyHashToInfo =
   /*#__PURE__*/ createReadContract({
-    abi: eigenPodAbi,
-    functionName: 'validatorPubkeyHashToInfo',
-  })
+  abi: eigenPodAbi,
+  functionName: 'validatorPubkeyHashToInfo',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link eigenPodAbi}__ and `functionName` set to `"validatorPubkeyToInfo"`
  */
 export const readEigenPodValidatorPubkeyToInfo =
   /*#__PURE__*/ createReadContract({
-    abi: eigenPodAbi,
-    functionName: 'validatorPubkeyToInfo',
-  })
+  abi: eigenPodAbi,
+  functionName: 'validatorPubkeyToInfo',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link eigenPodAbi}__ and `functionName` set to `"validatorStatus"`
@@ -12183,9 +12297,9 @@ export const readEigenPodVersion = /*#__PURE__*/ createReadContract({
  */
 export const readEigenPodWithdrawableRestakedExecutionLayerGwei =
   /*#__PURE__*/ createReadContract({
-    abi: eigenPodAbi,
-    functionName: 'withdrawableRestakedExecutionLayerGwei',
-  })
+  abi: eigenPodAbi,
+  functionName: 'withdrawableRestakedExecutionLayerGwei',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link eigenPodAbi}__
@@ -12215,9 +12329,9 @@ export const writeEigenPodRecoverTokens = /*#__PURE__*/ createWriteContract({
  */
 export const writeEigenPodRequestConsolidation =
   /*#__PURE__*/ createWriteContract({
-    abi: eigenPodAbi,
-    functionName: 'requestConsolidation',
-  })
+  abi: eigenPodAbi,
+  functionName: 'requestConsolidation',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link eigenPodAbi}__ and `functionName` set to `"requestWithdrawal"`
@@ -12254,36 +12368,36 @@ export const writeEigenPodStartCheckpoint = /*#__PURE__*/ createWriteContract({
  */
 export const writeEigenPodVerifyCheckpointProofs =
   /*#__PURE__*/ createWriteContract({
-    abi: eigenPodAbi,
-    functionName: 'verifyCheckpointProofs',
-  })
+  abi: eigenPodAbi,
+  functionName: 'verifyCheckpointProofs',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link eigenPodAbi}__ and `functionName` set to `"verifyStaleBalance"`
  */
 export const writeEigenPodVerifyStaleBalance =
   /*#__PURE__*/ createWriteContract({
-    abi: eigenPodAbi,
-    functionName: 'verifyStaleBalance',
-  })
+  abi: eigenPodAbi,
+  functionName: 'verifyStaleBalance',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link eigenPodAbi}__ and `functionName` set to `"verifyWithdrawalCredentials"`
  */
 export const writeEigenPodVerifyWithdrawalCredentials =
   /*#__PURE__*/ createWriteContract({
-    abi: eigenPodAbi,
-    functionName: 'verifyWithdrawalCredentials',
-  })
+  abi: eigenPodAbi,
+  functionName: 'verifyWithdrawalCredentials',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link eigenPodAbi}__ and `functionName` set to `"withdrawRestakedBeaconChainETH"`
  */
 export const writeEigenPodWithdrawRestakedBeaconChainEth =
   /*#__PURE__*/ createWriteContract({
-    abi: eigenPodAbi,
-    functionName: 'withdrawRestakedBeaconChainETH',
-  })
+  abi: eigenPodAbi,
+  functionName: 'withdrawRestakedBeaconChainETH',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link eigenPodAbi}__
@@ -12305,36 +12419,36 @@ export const simulateEigenPodInitialize = /*#__PURE__*/ createSimulateContract({
  */
 export const simulateEigenPodRecoverTokens =
   /*#__PURE__*/ createSimulateContract({
-    abi: eigenPodAbi,
-    functionName: 'recoverTokens',
-  })
+  abi: eigenPodAbi,
+  functionName: 'recoverTokens',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link eigenPodAbi}__ and `functionName` set to `"requestConsolidation"`
  */
 export const simulateEigenPodRequestConsolidation =
   /*#__PURE__*/ createSimulateContract({
-    abi: eigenPodAbi,
-    functionName: 'requestConsolidation',
-  })
+  abi: eigenPodAbi,
+  functionName: 'requestConsolidation',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link eigenPodAbi}__ and `functionName` set to `"requestWithdrawal"`
  */
 export const simulateEigenPodRequestWithdrawal =
   /*#__PURE__*/ createSimulateContract({
-    abi: eigenPodAbi,
-    functionName: 'requestWithdrawal',
-  })
+  abi: eigenPodAbi,
+  functionName: 'requestWithdrawal',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link eigenPodAbi}__ and `functionName` set to `"setProofSubmitter"`
  */
 export const simulateEigenPodSetProofSubmitter =
   /*#__PURE__*/ createSimulateContract({
-    abi: eigenPodAbi,
-    functionName: 'setProofSubmitter',
-  })
+  abi: eigenPodAbi,
+  functionName: 'setProofSubmitter',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link eigenPodAbi}__ and `functionName` set to `"stake"`
@@ -12349,45 +12463,45 @@ export const simulateEigenPodStake = /*#__PURE__*/ createSimulateContract({
  */
 export const simulateEigenPodStartCheckpoint =
   /*#__PURE__*/ createSimulateContract({
-    abi: eigenPodAbi,
-    functionName: 'startCheckpoint',
-  })
+  abi: eigenPodAbi,
+  functionName: 'startCheckpoint',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link eigenPodAbi}__ and `functionName` set to `"verifyCheckpointProofs"`
  */
 export const simulateEigenPodVerifyCheckpointProofs =
   /*#__PURE__*/ createSimulateContract({
-    abi: eigenPodAbi,
-    functionName: 'verifyCheckpointProofs',
-  })
+  abi: eigenPodAbi,
+  functionName: 'verifyCheckpointProofs',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link eigenPodAbi}__ and `functionName` set to `"verifyStaleBalance"`
  */
 export const simulateEigenPodVerifyStaleBalance =
   /*#__PURE__*/ createSimulateContract({
-    abi: eigenPodAbi,
-    functionName: 'verifyStaleBalance',
-  })
+  abi: eigenPodAbi,
+  functionName: 'verifyStaleBalance',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link eigenPodAbi}__ and `functionName` set to `"verifyWithdrawalCredentials"`
  */
 export const simulateEigenPodVerifyWithdrawalCredentials =
   /*#__PURE__*/ createSimulateContract({
-    abi: eigenPodAbi,
-    functionName: 'verifyWithdrawalCredentials',
-  })
+  abi: eigenPodAbi,
+  functionName: 'verifyWithdrawalCredentials',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link eigenPodAbi}__ and `functionName` set to `"withdrawRestakedBeaconChainETH"`
  */
 export const simulateEigenPodWithdrawRestakedBeaconChainEth =
   /*#__PURE__*/ createSimulateContract({
-    abi: eigenPodAbi,
-    functionName: 'withdrawRestakedBeaconChainETH',
-  })
+  abi: eigenPodAbi,
+  functionName: 'withdrawRestakedBeaconChainETH',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link eigenPodAbi}__
@@ -12401,135 +12515,135 @@ export const watchEigenPodEvent = /*#__PURE__*/ createWatchContractEvent({
  */
 export const watchEigenPodCheckpointCreatedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: eigenPodAbi,
-    eventName: 'CheckpointCreated',
-  })
+  abi: eigenPodAbi,
+  eventName: 'CheckpointCreated',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link eigenPodAbi}__ and `eventName` set to `"CheckpointFinalized"`
  */
 export const watchEigenPodCheckpointFinalizedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: eigenPodAbi,
-    eventName: 'CheckpointFinalized',
-  })
+  abi: eigenPodAbi,
+  eventName: 'CheckpointFinalized',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link eigenPodAbi}__ and `eventName` set to `"ConsolidationRequested"`
  */
 export const watchEigenPodConsolidationRequestedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: eigenPodAbi,
-    eventName: 'ConsolidationRequested',
-  })
+  abi: eigenPodAbi,
+  eventName: 'ConsolidationRequested',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link eigenPodAbi}__ and `eventName` set to `"EigenPodStaked"`
  */
 export const watchEigenPodEigenPodStakedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: eigenPodAbi,
-    eventName: 'EigenPodStaked',
-  })
+  abi: eigenPodAbi,
+  eventName: 'EigenPodStaked',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link eigenPodAbi}__ and `eventName` set to `"ExitRequested"`
  */
 export const watchEigenPodExitRequestedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: eigenPodAbi,
-    eventName: 'ExitRequested',
-  })
+  abi: eigenPodAbi,
+  eventName: 'ExitRequested',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link eigenPodAbi}__ and `eventName` set to `"Initialized"`
  */
 export const watchEigenPodInitializedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: eigenPodAbi,
-    eventName: 'Initialized',
-  })
+  abi: eigenPodAbi,
+  eventName: 'Initialized',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link eigenPodAbi}__ and `eventName` set to `"NonBeaconChainETHReceived"`
  */
 export const watchEigenPodNonBeaconChainEthReceivedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: eigenPodAbi,
-    eventName: 'NonBeaconChainETHReceived',
-  })
+  abi: eigenPodAbi,
+  eventName: 'NonBeaconChainETHReceived',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link eigenPodAbi}__ and `eventName` set to `"ProofSubmitterUpdated"`
  */
 export const watchEigenPodProofSubmitterUpdatedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: eigenPodAbi,
-    eventName: 'ProofSubmitterUpdated',
-  })
+  abi: eigenPodAbi,
+  eventName: 'ProofSubmitterUpdated',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link eigenPodAbi}__ and `eventName` set to `"RestakedBeaconChainETHWithdrawn"`
  */
 export const watchEigenPodRestakedBeaconChainEthWithdrawnEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: eigenPodAbi,
-    eventName: 'RestakedBeaconChainETHWithdrawn',
-  })
+  abi: eigenPodAbi,
+  eventName: 'RestakedBeaconChainETHWithdrawn',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link eigenPodAbi}__ and `eventName` set to `"SwitchToCompoundingRequested"`
  */
 export const watchEigenPodSwitchToCompoundingRequestedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: eigenPodAbi,
-    eventName: 'SwitchToCompoundingRequested',
-  })
+  abi: eigenPodAbi,
+  eventName: 'SwitchToCompoundingRequested',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link eigenPodAbi}__ and `eventName` set to `"ValidatorBalanceUpdated"`
  */
 export const watchEigenPodValidatorBalanceUpdatedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: eigenPodAbi,
-    eventName: 'ValidatorBalanceUpdated',
-  })
+  abi: eigenPodAbi,
+  eventName: 'ValidatorBalanceUpdated',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link eigenPodAbi}__ and `eventName` set to `"ValidatorCheckpointed"`
  */
 export const watchEigenPodValidatorCheckpointedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: eigenPodAbi,
-    eventName: 'ValidatorCheckpointed',
-  })
+  abi: eigenPodAbi,
+  eventName: 'ValidatorCheckpointed',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link eigenPodAbi}__ and `eventName` set to `"ValidatorRestaked"`
  */
 export const watchEigenPodValidatorRestakedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: eigenPodAbi,
-    eventName: 'ValidatorRestaked',
-  })
+  abi: eigenPodAbi,
+  eventName: 'ValidatorRestaked',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link eigenPodAbi}__ and `eventName` set to `"ValidatorWithdrawn"`
  */
 export const watchEigenPodValidatorWithdrawnEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: eigenPodAbi,
-    eventName: 'ValidatorWithdrawn',
-  })
+  abi: eigenPodAbi,
+  eventName: 'ValidatorWithdrawn',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link eigenPodAbi}__ and `eventName` set to `"WithdrawalRequested"`
  */
 export const watchEigenPodWithdrawalRequestedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: eigenPodAbi,
-    eventName: 'WithdrawalRequested',
-  })
+  abi: eigenPodAbi,
+  eventName: 'WithdrawalRequested',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link eigenPodManagerAbi}__
@@ -12543,45 +12657,45 @@ export const readEigenPodManager = /*#__PURE__*/ createReadContract({
  */
 export const readEigenPodManagerBeaconChainEthStrategy =
   /*#__PURE__*/ createReadContract({
-    abi: eigenPodManagerAbi,
-    functionName: 'beaconChainETHStrategy',
-  })
+  abi: eigenPodManagerAbi,
+  functionName: 'beaconChainETHStrategy',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link eigenPodManagerAbi}__ and `functionName` set to `"beaconChainSlashingFactor"`
  */
 export const readEigenPodManagerBeaconChainSlashingFactor =
   /*#__PURE__*/ createReadContract({
-    abi: eigenPodManagerAbi,
-    functionName: 'beaconChainSlashingFactor',
-  })
+  abi: eigenPodManagerAbi,
+  functionName: 'beaconChainSlashingFactor',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link eigenPodManagerAbi}__ and `functionName` set to `"burnableETHShares"`
  */
 export const readEigenPodManagerBurnableEthShares =
   /*#__PURE__*/ createReadContract({
-    abi: eigenPodManagerAbi,
-    functionName: 'burnableETHShares',
-  })
+  abi: eigenPodManagerAbi,
+  functionName: 'burnableETHShares',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link eigenPodManagerAbi}__ and `functionName` set to `"delegationManager"`
  */
 export const readEigenPodManagerDelegationManager =
   /*#__PURE__*/ createReadContract({
-    abi: eigenPodManagerAbi,
-    functionName: 'delegationManager',
-  })
+  abi: eigenPodManagerAbi,
+  functionName: 'delegationManager',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link eigenPodManagerAbi}__ and `functionName` set to `"eigenPodBeacon"`
  */
 export const readEigenPodManagerEigenPodBeacon =
   /*#__PURE__*/ createReadContract({
-    abi: eigenPodManagerAbi,
-    functionName: 'eigenPodBeacon',
-  })
+  abi: eigenPodManagerAbi,
+  functionName: 'eigenPodBeacon',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link eigenPodManagerAbi}__ and `functionName` set to `"ethPOS"`
@@ -12644,45 +12758,45 @@ export const readEigenPodManagerPaused = /*#__PURE__*/ createReadContract({
  */
 export const readEigenPodManagerPauserRegistry =
   /*#__PURE__*/ createReadContract({
-    abi: eigenPodManagerAbi,
-    functionName: 'pauserRegistry',
-  })
+  abi: eigenPodManagerAbi,
+  functionName: 'pauserRegistry',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link eigenPodManagerAbi}__ and `functionName` set to `"pectraForkTimestamp"`
  */
 export const readEigenPodManagerPectraForkTimestamp =
   /*#__PURE__*/ createReadContract({
-    abi: eigenPodManagerAbi,
-    functionName: 'pectraForkTimestamp',
-  })
+  abi: eigenPodManagerAbi,
+  functionName: 'pectraForkTimestamp',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link eigenPodManagerAbi}__ and `functionName` set to `"podOwnerDepositShares"`
  */
 export const readEigenPodManagerPodOwnerDepositShares =
   /*#__PURE__*/ createReadContract({
-    abi: eigenPodManagerAbi,
-    functionName: 'podOwnerDepositShares',
-  })
+  abi: eigenPodManagerAbi,
+  functionName: 'podOwnerDepositShares',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link eigenPodManagerAbi}__ and `functionName` set to `"proofTimestampSetter"`
  */
 export const readEigenPodManagerProofTimestampSetter =
   /*#__PURE__*/ createReadContract({
-    abi: eigenPodManagerAbi,
-    functionName: 'proofTimestampSetter',
-  })
+  abi: eigenPodManagerAbi,
+  functionName: 'proofTimestampSetter',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link eigenPodManagerAbi}__ and `functionName` set to `"stakerDepositShares"`
  */
 export const readEigenPodManagerStakerDepositShares =
   /*#__PURE__*/ createReadContract({
-    abi: eigenPodManagerAbi,
-    functionName: 'stakerDepositShares',
-  })
+  abi: eigenPodManagerAbi,
+  functionName: 'stakerDepositShares',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link eigenPodManagerAbi}__ and `functionName` set to `"version"`
@@ -12720,9 +12834,9 @@ export const writeEigenPodManagerCreatePod = /*#__PURE__*/ createWriteContract({
  */
 export const writeEigenPodManagerIncreaseBurnOrRedistributableShares =
   /*#__PURE__*/ createWriteContract({
-    abi: eigenPodManagerAbi,
-    functionName: 'increaseBurnOrRedistributableShares',
-  })
+  abi: eigenPodManagerAbi,
+  functionName: 'increaseBurnOrRedistributableShares',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link eigenPodManagerAbi}__ and `functionName` set to `"initialize"`
@@ -12752,45 +12866,45 @@ export const writeEigenPodManagerPauseAll = /*#__PURE__*/ createWriteContract({
  */
 export const writeEigenPodManagerRecordBeaconChainEthBalanceUpdate =
   /*#__PURE__*/ createWriteContract({
-    abi: eigenPodManagerAbi,
-    functionName: 'recordBeaconChainETHBalanceUpdate',
-  })
+  abi: eigenPodManagerAbi,
+  functionName: 'recordBeaconChainETHBalanceUpdate',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link eigenPodManagerAbi}__ and `functionName` set to `"removeDepositShares"`
  */
 export const writeEigenPodManagerRemoveDepositShares =
   /*#__PURE__*/ createWriteContract({
-    abi: eigenPodManagerAbi,
-    functionName: 'removeDepositShares',
-  })
+  abi: eigenPodManagerAbi,
+  functionName: 'removeDepositShares',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link eigenPodManagerAbi}__ and `functionName` set to `"renounceOwnership"`
  */
 export const writeEigenPodManagerRenounceOwnership =
   /*#__PURE__*/ createWriteContract({
-    abi: eigenPodManagerAbi,
-    functionName: 'renounceOwnership',
-  })
+  abi: eigenPodManagerAbi,
+  functionName: 'renounceOwnership',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link eigenPodManagerAbi}__ and `functionName` set to `"setPectraForkTimestamp"`
  */
 export const writeEigenPodManagerSetPectraForkTimestamp =
   /*#__PURE__*/ createWriteContract({
-    abi: eigenPodManagerAbi,
-    functionName: 'setPectraForkTimestamp',
-  })
+  abi: eigenPodManagerAbi,
+  functionName: 'setPectraForkTimestamp',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link eigenPodManagerAbi}__ and `functionName` set to `"setProofTimestampSetter"`
  */
 export const writeEigenPodManagerSetProofTimestampSetter =
   /*#__PURE__*/ createWriteContract({
-    abi: eigenPodManagerAbi,
-    functionName: 'setProofTimestampSetter',
-  })
+  abi: eigenPodManagerAbi,
+  functionName: 'setProofTimestampSetter',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link eigenPodManagerAbi}__ and `functionName` set to `"stake"`
@@ -12805,9 +12919,9 @@ export const writeEigenPodManagerStake = /*#__PURE__*/ createWriteContract({
  */
 export const writeEigenPodManagerTransferOwnership =
   /*#__PURE__*/ createWriteContract({
-    abi: eigenPodManagerAbi,
-    functionName: 'transferOwnership',
-  })
+  abi: eigenPodManagerAbi,
+  functionName: 'transferOwnership',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link eigenPodManagerAbi}__ and `functionName` set to `"unpause"`
@@ -12822,9 +12936,9 @@ export const writeEigenPodManagerUnpause = /*#__PURE__*/ createWriteContract({
  */
 export const writeEigenPodManagerWithdrawSharesAsTokens =
   /*#__PURE__*/ createWriteContract({
-    abi: eigenPodManagerAbi,
-    functionName: 'withdrawSharesAsTokens',
-  })
+  abi: eigenPodManagerAbi,
+  functionName: 'withdrawSharesAsTokens',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link eigenPodManagerAbi}__
@@ -12838,135 +12952,135 @@ export const simulateEigenPodManager = /*#__PURE__*/ createSimulateContract({
  */
 export const simulateEigenPodManagerAddShares =
   /*#__PURE__*/ createSimulateContract({
-    abi: eigenPodManagerAbi,
-    functionName: 'addShares',
-  })
+  abi: eigenPodManagerAbi,
+  functionName: 'addShares',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link eigenPodManagerAbi}__ and `functionName` set to `"createPod"`
  */
 export const simulateEigenPodManagerCreatePod =
   /*#__PURE__*/ createSimulateContract({
-    abi: eigenPodManagerAbi,
-    functionName: 'createPod',
-  })
+  abi: eigenPodManagerAbi,
+  functionName: 'createPod',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link eigenPodManagerAbi}__ and `functionName` set to `"increaseBurnOrRedistributableShares"`
  */
 export const simulateEigenPodManagerIncreaseBurnOrRedistributableShares =
   /*#__PURE__*/ createSimulateContract({
-    abi: eigenPodManagerAbi,
-    functionName: 'increaseBurnOrRedistributableShares',
-  })
+  abi: eigenPodManagerAbi,
+  functionName: 'increaseBurnOrRedistributableShares',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link eigenPodManagerAbi}__ and `functionName` set to `"initialize"`
  */
 export const simulateEigenPodManagerInitialize =
   /*#__PURE__*/ createSimulateContract({
-    abi: eigenPodManagerAbi,
-    functionName: 'initialize',
-  })
+  abi: eigenPodManagerAbi,
+  functionName: 'initialize',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link eigenPodManagerAbi}__ and `functionName` set to `"pause"`
  */
 export const simulateEigenPodManagerPause =
   /*#__PURE__*/ createSimulateContract({
-    abi: eigenPodManagerAbi,
-    functionName: 'pause',
-  })
+  abi: eigenPodManagerAbi,
+  functionName: 'pause',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link eigenPodManagerAbi}__ and `functionName` set to `"pauseAll"`
  */
 export const simulateEigenPodManagerPauseAll =
   /*#__PURE__*/ createSimulateContract({
-    abi: eigenPodManagerAbi,
-    functionName: 'pauseAll',
-  })
+  abi: eigenPodManagerAbi,
+  functionName: 'pauseAll',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link eigenPodManagerAbi}__ and `functionName` set to `"recordBeaconChainETHBalanceUpdate"`
  */
 export const simulateEigenPodManagerRecordBeaconChainEthBalanceUpdate =
   /*#__PURE__*/ createSimulateContract({
-    abi: eigenPodManagerAbi,
-    functionName: 'recordBeaconChainETHBalanceUpdate',
-  })
+  abi: eigenPodManagerAbi,
+  functionName: 'recordBeaconChainETHBalanceUpdate',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link eigenPodManagerAbi}__ and `functionName` set to `"removeDepositShares"`
  */
 export const simulateEigenPodManagerRemoveDepositShares =
   /*#__PURE__*/ createSimulateContract({
-    abi: eigenPodManagerAbi,
-    functionName: 'removeDepositShares',
-  })
+  abi: eigenPodManagerAbi,
+  functionName: 'removeDepositShares',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link eigenPodManagerAbi}__ and `functionName` set to `"renounceOwnership"`
  */
 export const simulateEigenPodManagerRenounceOwnership =
   /*#__PURE__*/ createSimulateContract({
-    abi: eigenPodManagerAbi,
-    functionName: 'renounceOwnership',
-  })
+  abi: eigenPodManagerAbi,
+  functionName: 'renounceOwnership',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link eigenPodManagerAbi}__ and `functionName` set to `"setPectraForkTimestamp"`
  */
 export const simulateEigenPodManagerSetPectraForkTimestamp =
   /*#__PURE__*/ createSimulateContract({
-    abi: eigenPodManagerAbi,
-    functionName: 'setPectraForkTimestamp',
-  })
+  abi: eigenPodManagerAbi,
+  functionName: 'setPectraForkTimestamp',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link eigenPodManagerAbi}__ and `functionName` set to `"setProofTimestampSetter"`
  */
 export const simulateEigenPodManagerSetProofTimestampSetter =
   /*#__PURE__*/ createSimulateContract({
-    abi: eigenPodManagerAbi,
-    functionName: 'setProofTimestampSetter',
-  })
+  abi: eigenPodManagerAbi,
+  functionName: 'setProofTimestampSetter',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link eigenPodManagerAbi}__ and `functionName` set to `"stake"`
  */
 export const simulateEigenPodManagerStake =
   /*#__PURE__*/ createSimulateContract({
-    abi: eigenPodManagerAbi,
-    functionName: 'stake',
-  })
+  abi: eigenPodManagerAbi,
+  functionName: 'stake',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link eigenPodManagerAbi}__ and `functionName` set to `"transferOwnership"`
  */
 export const simulateEigenPodManagerTransferOwnership =
   /*#__PURE__*/ createSimulateContract({
-    abi: eigenPodManagerAbi,
-    functionName: 'transferOwnership',
-  })
+  abi: eigenPodManagerAbi,
+  functionName: 'transferOwnership',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link eigenPodManagerAbi}__ and `functionName` set to `"unpause"`
  */
 export const simulateEigenPodManagerUnpause =
   /*#__PURE__*/ createSimulateContract({
-    abi: eigenPodManagerAbi,
-    functionName: 'unpause',
-  })
+  abi: eigenPodManagerAbi,
+  functionName: 'unpause',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link eigenPodManagerAbi}__ and `functionName` set to `"withdrawSharesAsTokens"`
  */
 export const simulateEigenPodManagerWithdrawSharesAsTokens =
   /*#__PURE__*/ createSimulateContract({
-    abi: eigenPodManagerAbi,
-    functionName: 'withdrawSharesAsTokens',
-  })
+  abi: eigenPodManagerAbi,
+  functionName: 'withdrawSharesAsTokens',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link eigenPodManagerAbi}__
@@ -12980,117 +13094,117 @@ export const watchEigenPodManagerEvent = /*#__PURE__*/ createWatchContractEvent(
  */
 export const watchEigenPodManagerBeaconChainEthDepositedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: eigenPodManagerAbi,
-    eventName: 'BeaconChainETHDeposited',
-  })
+  abi: eigenPodManagerAbi,
+  eventName: 'BeaconChainETHDeposited',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link eigenPodManagerAbi}__ and `eventName` set to `"BeaconChainETHWithdrawalCompleted"`
  */
 export const watchEigenPodManagerBeaconChainEthWithdrawalCompletedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: eigenPodManagerAbi,
-    eventName: 'BeaconChainETHWithdrawalCompleted',
-  })
+  abi: eigenPodManagerAbi,
+  eventName: 'BeaconChainETHWithdrawalCompleted',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link eigenPodManagerAbi}__ and `eventName` set to `"BeaconChainSlashingFactorDecreased"`
  */
 export const watchEigenPodManagerBeaconChainSlashingFactorDecreasedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: eigenPodManagerAbi,
-    eventName: 'BeaconChainSlashingFactorDecreased',
-  })
+  abi: eigenPodManagerAbi,
+  eventName: 'BeaconChainSlashingFactorDecreased',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link eigenPodManagerAbi}__ and `eventName` set to `"BurnableETHSharesIncreased"`
  */
 export const watchEigenPodManagerBurnableEthSharesIncreasedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: eigenPodManagerAbi,
-    eventName: 'BurnableETHSharesIncreased',
-  })
+  abi: eigenPodManagerAbi,
+  eventName: 'BurnableETHSharesIncreased',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link eigenPodManagerAbi}__ and `eventName` set to `"Initialized"`
  */
 export const watchEigenPodManagerInitializedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: eigenPodManagerAbi,
-    eventName: 'Initialized',
-  })
+  abi: eigenPodManagerAbi,
+  eventName: 'Initialized',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link eigenPodManagerAbi}__ and `eventName` set to `"NewTotalShares"`
  */
 export const watchEigenPodManagerNewTotalSharesEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: eigenPodManagerAbi,
-    eventName: 'NewTotalShares',
-  })
+  abi: eigenPodManagerAbi,
+  eventName: 'NewTotalShares',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link eigenPodManagerAbi}__ and `eventName` set to `"OwnershipTransferred"`
  */
 export const watchEigenPodManagerOwnershipTransferredEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: eigenPodManagerAbi,
-    eventName: 'OwnershipTransferred',
-  })
+  abi: eigenPodManagerAbi,
+  eventName: 'OwnershipTransferred',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link eigenPodManagerAbi}__ and `eventName` set to `"Paused"`
  */
 export const watchEigenPodManagerPausedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: eigenPodManagerAbi,
-    eventName: 'Paused',
-  })
+  abi: eigenPodManagerAbi,
+  eventName: 'Paused',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link eigenPodManagerAbi}__ and `eventName` set to `"PectraForkTimestampSet"`
  */
 export const watchEigenPodManagerPectraForkTimestampSetEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: eigenPodManagerAbi,
-    eventName: 'PectraForkTimestampSet',
-  })
+  abi: eigenPodManagerAbi,
+  eventName: 'PectraForkTimestampSet',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link eigenPodManagerAbi}__ and `eventName` set to `"PodDeployed"`
  */
 export const watchEigenPodManagerPodDeployedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: eigenPodManagerAbi,
-    eventName: 'PodDeployed',
-  })
+  abi: eigenPodManagerAbi,
+  eventName: 'PodDeployed',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link eigenPodManagerAbi}__ and `eventName` set to `"PodSharesUpdated"`
  */
 export const watchEigenPodManagerPodSharesUpdatedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: eigenPodManagerAbi,
-    eventName: 'PodSharesUpdated',
-  })
+  abi: eigenPodManagerAbi,
+  eventName: 'PodSharesUpdated',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link eigenPodManagerAbi}__ and `eventName` set to `"ProofTimestampSetterSet"`
  */
 export const watchEigenPodManagerProofTimestampSetterSetEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: eigenPodManagerAbi,
-    eventName: 'ProofTimestampSetterSet',
-  })
+  abi: eigenPodManagerAbi,
+  eventName: 'ProofTimestampSetterSet',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link eigenPodManagerAbi}__ and `eventName` set to `"Unpaused"`
  */
 export const watchEigenPodManagerUnpausedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: eigenPodManagerAbi,
-    eventName: 'Unpaused',
-  })
+  abi: eigenPodManagerAbi,
+  eventName: 'Unpaused',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link gatewayAbi}__
@@ -13134,9 +13248,9 @@ export const readGatewayChannelNoncesOf = /*#__PURE__*/ createReadContract({
  */
 export const readGatewayChannelOperatingModeOf =
   /*#__PURE__*/ createReadContract({
-    abi: gatewayAbi,
-    functionName: 'channelOperatingModeOf',
-  })
+  abi: gatewayAbi,
+  functionName: 'channelOperatingModeOf',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link gatewayAbi}__ and `functionName` set to `"implementation"`
@@ -13183,9 +13297,9 @@ export const readGatewayQueryForeignTokenId = /*#__PURE__*/ createReadContract({
  */
 export const readGatewayQuoteRegisterTokenFee =
   /*#__PURE__*/ createReadContract({
-    abi: gatewayAbi,
-    functionName: 'quoteRegisterTokenFee',
-  })
+  abi: gatewayAbi,
+  functionName: 'quoteRegisterTokenFee',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link gatewayAbi}__ and `functionName` set to `"quoteSendTokenFee"`
@@ -13271,63 +13385,63 @@ export const writeGatewaySubmitV1 = /*#__PURE__*/ createWriteContract({
  */
 export const writeGatewayV1HandleAgentExecute =
   /*#__PURE__*/ createWriteContract({
-    abi: gatewayAbi,
-    functionName: 'v1_handleAgentExecute',
-  })
+  abi: gatewayAbi,
+  functionName: 'v1_handleAgentExecute',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link gatewayAbi}__ and `functionName` set to `"v1_handleMintForeignToken"`
  */
 export const writeGatewayV1HandleMintForeignToken =
   /*#__PURE__*/ createWriteContract({
-    abi: gatewayAbi,
-    functionName: 'v1_handleMintForeignToken',
-  })
+  abi: gatewayAbi,
+  functionName: 'v1_handleMintForeignToken',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link gatewayAbi}__ and `functionName` set to `"v1_handleRegisterForeignToken"`
  */
 export const writeGatewayV1HandleRegisterForeignToken =
   /*#__PURE__*/ createWriteContract({
-    abi: gatewayAbi,
-    functionName: 'v1_handleRegisterForeignToken',
-  })
+  abi: gatewayAbi,
+  functionName: 'v1_handleRegisterForeignToken',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link gatewayAbi}__ and `functionName` set to `"v1_handleSetOperatingMode"`
  */
 export const writeGatewayV1HandleSetOperatingMode =
   /*#__PURE__*/ createWriteContract({
-    abi: gatewayAbi,
-    functionName: 'v1_handleSetOperatingMode',
-  })
+  abi: gatewayAbi,
+  functionName: 'v1_handleSetOperatingMode',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link gatewayAbi}__ and `functionName` set to `"v1_handleSetPricingParameters"`
  */
 export const writeGatewayV1HandleSetPricingParameters =
   /*#__PURE__*/ createWriteContract({
-    abi: gatewayAbi,
-    functionName: 'v1_handleSetPricingParameters',
-  })
+  abi: gatewayAbi,
+  functionName: 'v1_handleSetPricingParameters',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link gatewayAbi}__ and `functionName` set to `"v1_handleSetTokenTransferFees"`
  */
 export const writeGatewayV1HandleSetTokenTransferFees =
   /*#__PURE__*/ createWriteContract({
-    abi: gatewayAbi,
-    functionName: 'v1_handleSetTokenTransferFees',
-  })
+  abi: gatewayAbi,
+  functionName: 'v1_handleSetTokenTransferFees',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link gatewayAbi}__ and `functionName` set to `"v1_handleUnlockNativeToken"`
  */
 export const writeGatewayV1HandleUnlockNativeToken =
   /*#__PURE__*/ createWriteContract({
-    abi: gatewayAbi,
-    functionName: 'v1_handleUnlockNativeToken',
-  })
+  abi: gatewayAbi,
+  functionName: 'v1_handleUnlockNativeToken',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link gatewayAbi}__ and `functionName` set to `"v1_handleUpgrade"`
@@ -13350,45 +13464,45 @@ export const writeGatewayV2CreateAgent = /*#__PURE__*/ createWriteContract({
  */
 export const writeGatewayV2HandleCallContract =
   /*#__PURE__*/ createWriteContract({
-    abi: gatewayAbi,
-    functionName: 'v2_handleCallContract',
-  })
+  abi: gatewayAbi,
+  functionName: 'v2_handleCallContract',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link gatewayAbi}__ and `functionName` set to `"v2_handleMintForeignToken"`
  */
 export const writeGatewayV2HandleMintForeignToken =
   /*#__PURE__*/ createWriteContract({
-    abi: gatewayAbi,
-    functionName: 'v2_handleMintForeignToken',
-  })
+  abi: gatewayAbi,
+  functionName: 'v2_handleMintForeignToken',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link gatewayAbi}__ and `functionName` set to `"v2_handleRegisterForeignToken"`
  */
 export const writeGatewayV2HandleRegisterForeignToken =
   /*#__PURE__*/ createWriteContract({
-    abi: gatewayAbi,
-    functionName: 'v2_handleRegisterForeignToken',
-  })
+  abi: gatewayAbi,
+  functionName: 'v2_handleRegisterForeignToken',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link gatewayAbi}__ and `functionName` set to `"v2_handleSetOperatingMode"`
  */
 export const writeGatewayV2HandleSetOperatingMode =
   /*#__PURE__*/ createWriteContract({
-    abi: gatewayAbi,
-    functionName: 'v2_handleSetOperatingMode',
-  })
+  abi: gatewayAbi,
+  functionName: 'v2_handleSetOperatingMode',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link gatewayAbi}__ and `functionName` set to `"v2_handleUnlockNativeToken"`
  */
 export const writeGatewayV2HandleUnlockNativeToken =
   /*#__PURE__*/ createWriteContract({
-    abi: gatewayAbi,
-    functionName: 'v2_handleUnlockNativeToken',
-  })
+  abi: gatewayAbi,
+  functionName: 'v2_handleUnlockNativeToken',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link gatewayAbi}__ and `functionName` set to `"v2_handleUpgrade"`
@@ -13449,9 +13563,9 @@ export const simulateGatewayInitialize = /*#__PURE__*/ createSimulateContract({
  */
 export const simulateGatewayRegisterToken =
   /*#__PURE__*/ createSimulateContract({
-    abi: gatewayAbi,
-    functionName: 'registerToken',
-  })
+  abi: gatewayAbi,
+  functionName: 'registerToken',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link gatewayAbi}__ and `functionName` set to `"sendToken"`
@@ -13474,153 +13588,153 @@ export const simulateGatewaySubmitV1 = /*#__PURE__*/ createSimulateContract({
  */
 export const simulateGatewayV1HandleAgentExecute =
   /*#__PURE__*/ createSimulateContract({
-    abi: gatewayAbi,
-    functionName: 'v1_handleAgentExecute',
-  })
+  abi: gatewayAbi,
+  functionName: 'v1_handleAgentExecute',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link gatewayAbi}__ and `functionName` set to `"v1_handleMintForeignToken"`
  */
 export const simulateGatewayV1HandleMintForeignToken =
   /*#__PURE__*/ createSimulateContract({
-    abi: gatewayAbi,
-    functionName: 'v1_handleMintForeignToken',
-  })
+  abi: gatewayAbi,
+  functionName: 'v1_handleMintForeignToken',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link gatewayAbi}__ and `functionName` set to `"v1_handleRegisterForeignToken"`
  */
 export const simulateGatewayV1HandleRegisterForeignToken =
   /*#__PURE__*/ createSimulateContract({
-    abi: gatewayAbi,
-    functionName: 'v1_handleRegisterForeignToken',
-  })
+  abi: gatewayAbi,
+  functionName: 'v1_handleRegisterForeignToken',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link gatewayAbi}__ and `functionName` set to `"v1_handleSetOperatingMode"`
  */
 export const simulateGatewayV1HandleSetOperatingMode =
   /*#__PURE__*/ createSimulateContract({
-    abi: gatewayAbi,
-    functionName: 'v1_handleSetOperatingMode',
-  })
+  abi: gatewayAbi,
+  functionName: 'v1_handleSetOperatingMode',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link gatewayAbi}__ and `functionName` set to `"v1_handleSetPricingParameters"`
  */
 export const simulateGatewayV1HandleSetPricingParameters =
   /*#__PURE__*/ createSimulateContract({
-    abi: gatewayAbi,
-    functionName: 'v1_handleSetPricingParameters',
-  })
+  abi: gatewayAbi,
+  functionName: 'v1_handleSetPricingParameters',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link gatewayAbi}__ and `functionName` set to `"v1_handleSetTokenTransferFees"`
  */
 export const simulateGatewayV1HandleSetTokenTransferFees =
   /*#__PURE__*/ createSimulateContract({
-    abi: gatewayAbi,
-    functionName: 'v1_handleSetTokenTransferFees',
-  })
+  abi: gatewayAbi,
+  functionName: 'v1_handleSetTokenTransferFees',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link gatewayAbi}__ and `functionName` set to `"v1_handleUnlockNativeToken"`
  */
 export const simulateGatewayV1HandleUnlockNativeToken =
   /*#__PURE__*/ createSimulateContract({
-    abi: gatewayAbi,
-    functionName: 'v1_handleUnlockNativeToken',
-  })
+  abi: gatewayAbi,
+  functionName: 'v1_handleUnlockNativeToken',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link gatewayAbi}__ and `functionName` set to `"v1_handleUpgrade"`
  */
 export const simulateGatewayV1HandleUpgrade =
   /*#__PURE__*/ createSimulateContract({
-    abi: gatewayAbi,
-    functionName: 'v1_handleUpgrade',
-  })
+  abi: gatewayAbi,
+  functionName: 'v1_handleUpgrade',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link gatewayAbi}__ and `functionName` set to `"v2_createAgent"`
  */
 export const simulateGatewayV2CreateAgent =
   /*#__PURE__*/ createSimulateContract({
-    abi: gatewayAbi,
-    functionName: 'v2_createAgent',
-  })
+  abi: gatewayAbi,
+  functionName: 'v2_createAgent',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link gatewayAbi}__ and `functionName` set to `"v2_handleCallContract"`
  */
 export const simulateGatewayV2HandleCallContract =
   /*#__PURE__*/ createSimulateContract({
-    abi: gatewayAbi,
-    functionName: 'v2_handleCallContract',
-  })
+  abi: gatewayAbi,
+  functionName: 'v2_handleCallContract',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link gatewayAbi}__ and `functionName` set to `"v2_handleMintForeignToken"`
  */
 export const simulateGatewayV2HandleMintForeignToken =
   /*#__PURE__*/ createSimulateContract({
-    abi: gatewayAbi,
-    functionName: 'v2_handleMintForeignToken',
-  })
+  abi: gatewayAbi,
+  functionName: 'v2_handleMintForeignToken',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link gatewayAbi}__ and `functionName` set to `"v2_handleRegisterForeignToken"`
  */
 export const simulateGatewayV2HandleRegisterForeignToken =
   /*#__PURE__*/ createSimulateContract({
-    abi: gatewayAbi,
-    functionName: 'v2_handleRegisterForeignToken',
-  })
+  abi: gatewayAbi,
+  functionName: 'v2_handleRegisterForeignToken',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link gatewayAbi}__ and `functionName` set to `"v2_handleSetOperatingMode"`
  */
 export const simulateGatewayV2HandleSetOperatingMode =
   /*#__PURE__*/ createSimulateContract({
-    abi: gatewayAbi,
-    functionName: 'v2_handleSetOperatingMode',
-  })
+  abi: gatewayAbi,
+  functionName: 'v2_handleSetOperatingMode',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link gatewayAbi}__ and `functionName` set to `"v2_handleUnlockNativeToken"`
  */
 export const simulateGatewayV2HandleUnlockNativeToken =
   /*#__PURE__*/ createSimulateContract({
-    abi: gatewayAbi,
-    functionName: 'v2_handleUnlockNativeToken',
-  })
+  abi: gatewayAbi,
+  functionName: 'v2_handleUnlockNativeToken',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link gatewayAbi}__ and `functionName` set to `"v2_handleUpgrade"`
  */
 export const simulateGatewayV2HandleUpgrade =
   /*#__PURE__*/ createSimulateContract({
-    abi: gatewayAbi,
-    functionName: 'v2_handleUpgrade',
-  })
+  abi: gatewayAbi,
+  functionName: 'v2_handleUpgrade',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link gatewayAbi}__ and `functionName` set to `"v2_registerToken"`
  */
 export const simulateGatewayV2RegisterToken =
   /*#__PURE__*/ createSimulateContract({
-    abi: gatewayAbi,
-    functionName: 'v2_registerToken',
-  })
+  abi: gatewayAbi,
+  functionName: 'v2_registerToken',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link gatewayAbi}__ and `functionName` set to `"v2_sendMessage"`
  */
 export const simulateGatewayV2SendMessage =
   /*#__PURE__*/ createSimulateContract({
-    abi: gatewayAbi,
-    functionName: 'v2_sendMessage',
-  })
+  abi: gatewayAbi,
+  functionName: 'v2_sendMessage',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link gatewayAbi}__ and `functionName` set to `"v2_submit"`
@@ -13642,108 +13756,108 @@ export const watchGatewayEvent = /*#__PURE__*/ createWatchContractEvent({
  */
 export const watchGatewayAgentCreatedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: gatewayAbi,
-    eventName: 'AgentCreated',
-  })
+  abi: gatewayAbi,
+  eventName: 'AgentCreated',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link gatewayAbi}__ and `eventName` set to `"AgentFundsWithdrawn"`
  */
 export const watchGatewayAgentFundsWithdrawnEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: gatewayAbi,
-    eventName: 'AgentFundsWithdrawn',
-  })
+  abi: gatewayAbi,
+  eventName: 'AgentFundsWithdrawn',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link gatewayAbi}__ and `eventName` set to `"CommandFailed"`
  */
 export const watchGatewayCommandFailedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: gatewayAbi,
-    eventName: 'CommandFailed',
-  })
+  abi: gatewayAbi,
+  eventName: 'CommandFailed',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link gatewayAbi}__ and `eventName` set to `"Deposited"`
  */
 export const watchGatewayDepositedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: gatewayAbi,
-    eventName: 'Deposited',
-  })
+  abi: gatewayAbi,
+  eventName: 'Deposited',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link gatewayAbi}__ and `eventName` set to `"ForeignTokenRegistered"`
  */
 export const watchGatewayForeignTokenRegisteredEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: gatewayAbi,
-    eventName: 'ForeignTokenRegistered',
-  })
+  abi: gatewayAbi,
+  eventName: 'ForeignTokenRegistered',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link gatewayAbi}__ and `eventName` set to `"InboundMessageDispatched"`
  */
 export const watchGatewayInboundMessageDispatchedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: gatewayAbi,
-    eventName: 'InboundMessageDispatched',
-  })
+  abi: gatewayAbi,
+  eventName: 'InboundMessageDispatched',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link gatewayAbi}__ and `eventName` set to `"OperatingModeChanged"`
  */
 export const watchGatewayOperatingModeChangedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: gatewayAbi,
-    eventName: 'OperatingModeChanged',
-  })
+  abi: gatewayAbi,
+  eventName: 'OperatingModeChanged',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link gatewayAbi}__ and `eventName` set to `"OutboundMessageAccepted"`
  */
 export const watchGatewayOutboundMessageAcceptedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: gatewayAbi,
-    eventName: 'OutboundMessageAccepted',
-  })
+  abi: gatewayAbi,
+  eventName: 'OutboundMessageAccepted',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link gatewayAbi}__ and `eventName` set to `"PricingParametersChanged"`
  */
 export const watchGatewayPricingParametersChangedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: gatewayAbi,
-    eventName: 'PricingParametersChanged',
-  })
+  abi: gatewayAbi,
+  eventName: 'PricingParametersChanged',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link gatewayAbi}__ and `eventName` set to `"TokenRegistrationSent"`
  */
 export const watchGatewayTokenRegistrationSentEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: gatewayAbi,
-    eventName: 'TokenRegistrationSent',
-  })
+  abi: gatewayAbi,
+  eventName: 'TokenRegistrationSent',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link gatewayAbi}__ and `eventName` set to `"TokenSent"`
  */
 export const watchGatewayTokenSentEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: gatewayAbi,
-    eventName: 'TokenSent',
-  })
+  abi: gatewayAbi,
+  eventName: 'TokenSent',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link gatewayAbi}__ and `eventName` set to `"TokenTransferFeesChanged"`
  */
 export const watchGatewayTokenTransferFeesChangedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: gatewayAbi,
-    eventName: 'TokenTransferFeesChanged',
-  })
+  abi: gatewayAbi,
+  eventName: 'TokenTransferFeesChanged',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link gatewayAbi}__ and `eventName` set to `"Upgraded"`
@@ -13764,18 +13878,18 @@ export const readIethposDeposit = /*#__PURE__*/ createReadContract({
  */
 export const readIethposDepositGetDepositCount =
   /*#__PURE__*/ createReadContract({
-    abi: iethposDepositAbi,
-    functionName: 'get_deposit_count',
-  })
+  abi: iethposDepositAbi,
+  functionName: 'get_deposit_count',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link iethposDepositAbi}__ and `functionName` set to `"get_deposit_root"`
  */
 export const readIethposDepositGetDepositRoot =
   /*#__PURE__*/ createReadContract({
-    abi: iethposDepositAbi,
-    functionName: 'get_deposit_root',
-  })
+  abi: iethposDepositAbi,
+  functionName: 'get_deposit_root',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link iethposDepositAbi}__
@@ -13804,9 +13918,9 @@ export const simulateIethposDeposit = /*#__PURE__*/ createSimulateContract({
  */
 export const simulateIethposDepositDeposit =
   /*#__PURE__*/ createSimulateContract({
-    abi: iethposDepositAbi,
-    functionName: 'deposit',
-  })
+  abi: iethposDepositAbi,
+  functionName: 'deposit',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link iethposDepositAbi}__
@@ -13820,9 +13934,9 @@ export const watchIethposDepositEvent = /*#__PURE__*/ createWatchContractEvent({
  */
 export const watchIethposDepositDepositEventEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: iethposDepositAbi,
-    eventName: 'DepositEvent',
-  })
+  abi: iethposDepositAbi,
+  eventName: 'DepositEvent',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link iTransparentUpgradeableProxyAbi}__
@@ -13835,18 +13949,18 @@ export const readITransparentUpgradeableProxy =
  */
 export const readITransparentUpgradeableProxyAdmin =
   /*#__PURE__*/ createReadContract({
-    abi: iTransparentUpgradeableProxyAbi,
-    functionName: 'admin',
-  })
+  abi: iTransparentUpgradeableProxyAbi,
+  functionName: 'admin',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link iTransparentUpgradeableProxyAbi}__ and `functionName` set to `"implementation"`
  */
 export const readITransparentUpgradeableProxyImplementation =
   /*#__PURE__*/ createReadContract({
-    abi: iTransparentUpgradeableProxyAbi,
-    functionName: 'implementation',
-  })
+  abi: iTransparentUpgradeableProxyAbi,
+  functionName: 'implementation',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link iTransparentUpgradeableProxyAbi}__
@@ -13859,27 +13973,27 @@ export const writeITransparentUpgradeableProxy =
  */
 export const writeITransparentUpgradeableProxyChangeAdmin =
   /*#__PURE__*/ createWriteContract({
-    abi: iTransparentUpgradeableProxyAbi,
-    functionName: 'changeAdmin',
-  })
+  abi: iTransparentUpgradeableProxyAbi,
+  functionName: 'changeAdmin',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link iTransparentUpgradeableProxyAbi}__ and `functionName` set to `"upgradeTo"`
  */
 export const writeITransparentUpgradeableProxyUpgradeTo =
   /*#__PURE__*/ createWriteContract({
-    abi: iTransparentUpgradeableProxyAbi,
-    functionName: 'upgradeTo',
-  })
+  abi: iTransparentUpgradeableProxyAbi,
+  functionName: 'upgradeTo',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link iTransparentUpgradeableProxyAbi}__ and `functionName` set to `"upgradeToAndCall"`
  */
 export const writeITransparentUpgradeableProxyUpgradeToAndCall =
   /*#__PURE__*/ createWriteContract({
-    abi: iTransparentUpgradeableProxyAbi,
-    functionName: 'upgradeToAndCall',
-  })
+  abi: iTransparentUpgradeableProxyAbi,
+  functionName: 'upgradeToAndCall',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link iTransparentUpgradeableProxyAbi}__
@@ -13892,62 +14006,62 @@ export const simulateITransparentUpgradeableProxy =
  */
 export const simulateITransparentUpgradeableProxyChangeAdmin =
   /*#__PURE__*/ createSimulateContract({
-    abi: iTransparentUpgradeableProxyAbi,
-    functionName: 'changeAdmin',
-  })
+  abi: iTransparentUpgradeableProxyAbi,
+  functionName: 'changeAdmin',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link iTransparentUpgradeableProxyAbi}__ and `functionName` set to `"upgradeTo"`
  */
 export const simulateITransparentUpgradeableProxyUpgradeTo =
   /*#__PURE__*/ createSimulateContract({
-    abi: iTransparentUpgradeableProxyAbi,
-    functionName: 'upgradeTo',
-  })
+  abi: iTransparentUpgradeableProxyAbi,
+  functionName: 'upgradeTo',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link iTransparentUpgradeableProxyAbi}__ and `functionName` set to `"upgradeToAndCall"`
  */
 export const simulateITransparentUpgradeableProxyUpgradeToAndCall =
   /*#__PURE__*/ createSimulateContract({
-    abi: iTransparentUpgradeableProxyAbi,
-    functionName: 'upgradeToAndCall',
-  })
+  abi: iTransparentUpgradeableProxyAbi,
+  functionName: 'upgradeToAndCall',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link iTransparentUpgradeableProxyAbi}__
  */
 export const watchITransparentUpgradeableProxyEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: iTransparentUpgradeableProxyAbi,
-  })
+  abi: iTransparentUpgradeableProxyAbi,
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link iTransparentUpgradeableProxyAbi}__ and `eventName` set to `"AdminChanged"`
  */
 export const watchITransparentUpgradeableProxyAdminChangedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: iTransparentUpgradeableProxyAbi,
-    eventName: 'AdminChanged',
-  })
+  abi: iTransparentUpgradeableProxyAbi,
+  eventName: 'AdminChanged',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link iTransparentUpgradeableProxyAbi}__ and `eventName` set to `"BeaconUpgraded"`
  */
 export const watchITransparentUpgradeableProxyBeaconUpgradedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: iTransparentUpgradeableProxyAbi,
-    eventName: 'BeaconUpgraded',
-  })
+  abi: iTransparentUpgradeableProxyAbi,
+  eventName: 'BeaconUpgraded',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link iTransparentUpgradeableProxyAbi}__ and `eventName` set to `"Upgraded"`
  */
 export const watchITransparentUpgradeableProxyUpgradedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: iTransparentUpgradeableProxyAbi,
-    eventName: 'Upgraded',
-  })
+  abi: iTransparentUpgradeableProxyAbi,
+  eventName: 'Upgraded',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link permissionControllerAbi}__
@@ -13968,36 +14082,36 @@ export const readPermissionControllerCanCall = /*#__PURE__*/ createReadContract(
  */
 export const readPermissionControllerGetAdmins =
   /*#__PURE__*/ createReadContract({
-    abi: permissionControllerAbi,
-    functionName: 'getAdmins',
-  })
+  abi: permissionControllerAbi,
+  functionName: 'getAdmins',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link permissionControllerAbi}__ and `functionName` set to `"getAppointeePermissions"`
  */
 export const readPermissionControllerGetAppointeePermissions =
   /*#__PURE__*/ createReadContract({
-    abi: permissionControllerAbi,
-    functionName: 'getAppointeePermissions',
-  })
+  abi: permissionControllerAbi,
+  functionName: 'getAppointeePermissions',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link permissionControllerAbi}__ and `functionName` set to `"getAppointees"`
  */
 export const readPermissionControllerGetAppointees =
   /*#__PURE__*/ createReadContract({
-    abi: permissionControllerAbi,
-    functionName: 'getAppointees',
-  })
+  abi: permissionControllerAbi,
+  functionName: 'getAppointees',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link permissionControllerAbi}__ and `functionName` set to `"getPendingAdmins"`
  */
 export const readPermissionControllerGetPendingAdmins =
   /*#__PURE__*/ createReadContract({
-    abi: permissionControllerAbi,
-    functionName: 'getPendingAdmins',
-  })
+  abi: permissionControllerAbi,
+  functionName: 'getPendingAdmins',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link permissionControllerAbi}__ and `functionName` set to `"isAdmin"`
@@ -14011,9 +14125,9 @@ export const readPermissionControllerIsAdmin = /*#__PURE__*/ createReadContract(
  */
 export const readPermissionControllerIsPendingAdmin =
   /*#__PURE__*/ createReadContract({
-    abi: permissionControllerAbi,
-    functionName: 'isPendingAdmin',
-  })
+  abi: permissionControllerAbi,
+  functionName: 'isPendingAdmin',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link permissionControllerAbi}__ and `functionName` set to `"version"`
@@ -14034,54 +14148,54 @@ export const writePermissionController = /*#__PURE__*/ createWriteContract({
  */
 export const writePermissionControllerAcceptAdmin =
   /*#__PURE__*/ createWriteContract({
-    abi: permissionControllerAbi,
-    functionName: 'acceptAdmin',
-  })
+  abi: permissionControllerAbi,
+  functionName: 'acceptAdmin',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link permissionControllerAbi}__ and `functionName` set to `"addPendingAdmin"`
  */
 export const writePermissionControllerAddPendingAdmin =
   /*#__PURE__*/ createWriteContract({
-    abi: permissionControllerAbi,
-    functionName: 'addPendingAdmin',
-  })
+  abi: permissionControllerAbi,
+  functionName: 'addPendingAdmin',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link permissionControllerAbi}__ and `functionName` set to `"removeAdmin"`
  */
 export const writePermissionControllerRemoveAdmin =
   /*#__PURE__*/ createWriteContract({
-    abi: permissionControllerAbi,
-    functionName: 'removeAdmin',
-  })
+  abi: permissionControllerAbi,
+  functionName: 'removeAdmin',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link permissionControllerAbi}__ and `functionName` set to `"removeAppointee"`
  */
 export const writePermissionControllerRemoveAppointee =
   /*#__PURE__*/ createWriteContract({
-    abi: permissionControllerAbi,
-    functionName: 'removeAppointee',
-  })
+  abi: permissionControllerAbi,
+  functionName: 'removeAppointee',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link permissionControllerAbi}__ and `functionName` set to `"removePendingAdmin"`
  */
 export const writePermissionControllerRemovePendingAdmin =
   /*#__PURE__*/ createWriteContract({
-    abi: permissionControllerAbi,
-    functionName: 'removePendingAdmin',
-  })
+  abi: permissionControllerAbi,
+  functionName: 'removePendingAdmin',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link permissionControllerAbi}__ and `functionName` set to `"setAppointee"`
  */
 export const writePermissionControllerSetAppointee =
   /*#__PURE__*/ createWriteContract({
-    abi: permissionControllerAbi,
-    functionName: 'setAppointee',
-  })
+  abi: permissionControllerAbi,
+  functionName: 'setAppointee',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link permissionControllerAbi}__
@@ -14094,54 +14208,54 @@ export const simulatePermissionController =
  */
 export const simulatePermissionControllerAcceptAdmin =
   /*#__PURE__*/ createSimulateContract({
-    abi: permissionControllerAbi,
-    functionName: 'acceptAdmin',
-  })
+  abi: permissionControllerAbi,
+  functionName: 'acceptAdmin',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link permissionControllerAbi}__ and `functionName` set to `"addPendingAdmin"`
  */
 export const simulatePermissionControllerAddPendingAdmin =
   /*#__PURE__*/ createSimulateContract({
-    abi: permissionControllerAbi,
-    functionName: 'addPendingAdmin',
-  })
+  abi: permissionControllerAbi,
+  functionName: 'addPendingAdmin',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link permissionControllerAbi}__ and `functionName` set to `"removeAdmin"`
  */
 export const simulatePermissionControllerRemoveAdmin =
   /*#__PURE__*/ createSimulateContract({
-    abi: permissionControllerAbi,
-    functionName: 'removeAdmin',
-  })
+  abi: permissionControllerAbi,
+  functionName: 'removeAdmin',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link permissionControllerAbi}__ and `functionName` set to `"removeAppointee"`
  */
 export const simulatePermissionControllerRemoveAppointee =
   /*#__PURE__*/ createSimulateContract({
-    abi: permissionControllerAbi,
-    functionName: 'removeAppointee',
-  })
+  abi: permissionControllerAbi,
+  functionName: 'removeAppointee',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link permissionControllerAbi}__ and `functionName` set to `"removePendingAdmin"`
  */
 export const simulatePermissionControllerRemovePendingAdmin =
   /*#__PURE__*/ createSimulateContract({
-    abi: permissionControllerAbi,
-    functionName: 'removePendingAdmin',
-  })
+  abi: permissionControllerAbi,
+  functionName: 'removePendingAdmin',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link permissionControllerAbi}__ and `functionName` set to `"setAppointee"`
  */
 export const simulatePermissionControllerSetAppointee =
   /*#__PURE__*/ createSimulateContract({
-    abi: permissionControllerAbi,
-    functionName: 'setAppointee',
-  })
+  abi: permissionControllerAbi,
+  functionName: 'setAppointee',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link permissionControllerAbi}__
@@ -14154,63 +14268,63 @@ export const watchPermissionControllerEvent =
  */
 export const watchPermissionControllerAdminRemovedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: permissionControllerAbi,
-    eventName: 'AdminRemoved',
-  })
+  abi: permissionControllerAbi,
+  eventName: 'AdminRemoved',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link permissionControllerAbi}__ and `eventName` set to `"AdminSet"`
  */
 export const watchPermissionControllerAdminSetEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: permissionControllerAbi,
-    eventName: 'AdminSet',
-  })
+  abi: permissionControllerAbi,
+  eventName: 'AdminSet',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link permissionControllerAbi}__ and `eventName` set to `"AppointeeRemoved"`
  */
 export const watchPermissionControllerAppointeeRemovedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: permissionControllerAbi,
-    eventName: 'AppointeeRemoved',
-  })
+  abi: permissionControllerAbi,
+  eventName: 'AppointeeRemoved',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link permissionControllerAbi}__ and `eventName` set to `"AppointeeSet"`
  */
 export const watchPermissionControllerAppointeeSetEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: permissionControllerAbi,
-    eventName: 'AppointeeSet',
-  })
+  abi: permissionControllerAbi,
+  eventName: 'AppointeeSet',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link permissionControllerAbi}__ and `eventName` set to `"Initialized"`
  */
 export const watchPermissionControllerInitializedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: permissionControllerAbi,
-    eventName: 'Initialized',
-  })
+  abi: permissionControllerAbi,
+  eventName: 'Initialized',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link permissionControllerAbi}__ and `eventName` set to `"PendingAdminAdded"`
  */
 export const watchPermissionControllerPendingAdminAddedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: permissionControllerAbi,
-    eventName: 'PendingAdminAdded',
-  })
+  abi: permissionControllerAbi,
+  eventName: 'PendingAdminAdded',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link permissionControllerAbi}__ and `eventName` set to `"PendingAdminRemoved"`
  */
 export const watchPermissionControllerPendingAdminRemovedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: permissionControllerAbi,
-    eventName: 'PendingAdminRemoved',
-  })
+  abi: permissionControllerAbi,
+  eventName: 'PendingAdminRemoved',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link rewardsCoordinatorAbi}__
@@ -14224,270 +14338,270 @@ export const readRewardsCoordinator = /*#__PURE__*/ createReadContract({
  */
 export const readRewardsCoordinatorCalculationIntervalSeconds =
   /*#__PURE__*/ createReadContract({
-    abi: rewardsCoordinatorAbi,
-    functionName: 'CALCULATION_INTERVAL_SECONDS',
-  })
+  abi: rewardsCoordinatorAbi,
+  functionName: 'CALCULATION_INTERVAL_SECONDS',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `functionName` set to `"GENESIS_REWARDS_TIMESTAMP"`
  */
 export const readRewardsCoordinatorGenesisRewardsTimestamp =
   /*#__PURE__*/ createReadContract({
-    abi: rewardsCoordinatorAbi,
-    functionName: 'GENESIS_REWARDS_TIMESTAMP',
-  })
+  abi: rewardsCoordinatorAbi,
+  functionName: 'GENESIS_REWARDS_TIMESTAMP',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `functionName` set to `"MAX_FUTURE_LENGTH"`
  */
 export const readRewardsCoordinatorMaxFutureLength =
   /*#__PURE__*/ createReadContract({
-    abi: rewardsCoordinatorAbi,
-    functionName: 'MAX_FUTURE_LENGTH',
-  })
+  abi: rewardsCoordinatorAbi,
+  functionName: 'MAX_FUTURE_LENGTH',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `functionName` set to `"MAX_RETROACTIVE_LENGTH"`
  */
 export const readRewardsCoordinatorMaxRetroactiveLength =
   /*#__PURE__*/ createReadContract({
-    abi: rewardsCoordinatorAbi,
-    functionName: 'MAX_RETROACTIVE_LENGTH',
-  })
+  abi: rewardsCoordinatorAbi,
+  functionName: 'MAX_RETROACTIVE_LENGTH',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `functionName` set to `"MAX_REWARDS_DURATION"`
  */
 export const readRewardsCoordinatorMaxRewardsDuration =
   /*#__PURE__*/ createReadContract({
-    abi: rewardsCoordinatorAbi,
-    functionName: 'MAX_REWARDS_DURATION',
-  })
+  abi: rewardsCoordinatorAbi,
+  functionName: 'MAX_REWARDS_DURATION',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `functionName` set to `"activationDelay"`
  */
 export const readRewardsCoordinatorActivationDelay =
   /*#__PURE__*/ createReadContract({
-    abi: rewardsCoordinatorAbi,
-    functionName: 'activationDelay',
-  })
+  abi: rewardsCoordinatorAbi,
+  functionName: 'activationDelay',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `functionName` set to `"allocationManager"`
  */
 export const readRewardsCoordinatorAllocationManager =
   /*#__PURE__*/ createReadContract({
-    abi: rewardsCoordinatorAbi,
-    functionName: 'allocationManager',
-  })
+  abi: rewardsCoordinatorAbi,
+  functionName: 'allocationManager',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `functionName` set to `"beaconChainETHStrategy"`
  */
 export const readRewardsCoordinatorBeaconChainEthStrategy =
   /*#__PURE__*/ createReadContract({
-    abi: rewardsCoordinatorAbi,
-    functionName: 'beaconChainETHStrategy',
-  })
+  abi: rewardsCoordinatorAbi,
+  functionName: 'beaconChainETHStrategy',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `functionName` set to `"calculateEarnerLeafHash"`
  */
 export const readRewardsCoordinatorCalculateEarnerLeafHash =
   /*#__PURE__*/ createReadContract({
-    abi: rewardsCoordinatorAbi,
-    functionName: 'calculateEarnerLeafHash',
-  })
+  abi: rewardsCoordinatorAbi,
+  functionName: 'calculateEarnerLeafHash',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `functionName` set to `"calculateTokenLeafHash"`
  */
 export const readRewardsCoordinatorCalculateTokenLeafHash =
   /*#__PURE__*/ createReadContract({
-    abi: rewardsCoordinatorAbi,
-    functionName: 'calculateTokenLeafHash',
-  })
+  abi: rewardsCoordinatorAbi,
+  functionName: 'calculateTokenLeafHash',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `functionName` set to `"checkClaim"`
  */
 export const readRewardsCoordinatorCheckClaim =
   /*#__PURE__*/ createReadContract({
-    abi: rewardsCoordinatorAbi,
-    functionName: 'checkClaim',
-  })
+  abi: rewardsCoordinatorAbi,
+  functionName: 'checkClaim',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `functionName` set to `"claimerFor"`
  */
 export const readRewardsCoordinatorClaimerFor =
   /*#__PURE__*/ createReadContract({
-    abi: rewardsCoordinatorAbi,
-    functionName: 'claimerFor',
-  })
+  abi: rewardsCoordinatorAbi,
+  functionName: 'claimerFor',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `functionName` set to `"cumulativeClaimed"`
  */
 export const readRewardsCoordinatorCumulativeClaimed =
   /*#__PURE__*/ createReadContract({
-    abi: rewardsCoordinatorAbi,
-    functionName: 'cumulativeClaimed',
-  })
+  abi: rewardsCoordinatorAbi,
+  functionName: 'cumulativeClaimed',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `functionName` set to `"currRewardsCalculationEndTimestamp"`
  */
 export const readRewardsCoordinatorCurrRewardsCalculationEndTimestamp =
   /*#__PURE__*/ createReadContract({
-    abi: rewardsCoordinatorAbi,
-    functionName: 'currRewardsCalculationEndTimestamp',
-  })
+  abi: rewardsCoordinatorAbi,
+  functionName: 'currRewardsCalculationEndTimestamp',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `functionName` set to `"defaultOperatorSplitBips"`
  */
 export const readRewardsCoordinatorDefaultOperatorSplitBips =
   /*#__PURE__*/ createReadContract({
-    abi: rewardsCoordinatorAbi,
-    functionName: 'defaultOperatorSplitBips',
-  })
+  abi: rewardsCoordinatorAbi,
+  functionName: 'defaultOperatorSplitBips',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `functionName` set to `"delegationManager"`
  */
 export const readRewardsCoordinatorDelegationManager =
   /*#__PURE__*/ createReadContract({
-    abi: rewardsCoordinatorAbi,
-    functionName: 'delegationManager',
-  })
+  abi: rewardsCoordinatorAbi,
+  functionName: 'delegationManager',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `functionName` set to `"getCurrentClaimableDistributionRoot"`
  */
 export const readRewardsCoordinatorGetCurrentClaimableDistributionRoot =
   /*#__PURE__*/ createReadContract({
-    abi: rewardsCoordinatorAbi,
-    functionName: 'getCurrentClaimableDistributionRoot',
-  })
+  abi: rewardsCoordinatorAbi,
+  functionName: 'getCurrentClaimableDistributionRoot',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `functionName` set to `"getCurrentDistributionRoot"`
  */
 export const readRewardsCoordinatorGetCurrentDistributionRoot =
   /*#__PURE__*/ createReadContract({
-    abi: rewardsCoordinatorAbi,
-    functionName: 'getCurrentDistributionRoot',
-  })
+  abi: rewardsCoordinatorAbi,
+  functionName: 'getCurrentDistributionRoot',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `functionName` set to `"getDistributionRootAtIndex"`
  */
 export const readRewardsCoordinatorGetDistributionRootAtIndex =
   /*#__PURE__*/ createReadContract({
-    abi: rewardsCoordinatorAbi,
-    functionName: 'getDistributionRootAtIndex',
-  })
+  abi: rewardsCoordinatorAbi,
+  functionName: 'getDistributionRootAtIndex',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `functionName` set to `"getDistributionRootsLength"`
  */
 export const readRewardsCoordinatorGetDistributionRootsLength =
   /*#__PURE__*/ createReadContract({
-    abi: rewardsCoordinatorAbi,
-    functionName: 'getDistributionRootsLength',
-  })
+  abi: rewardsCoordinatorAbi,
+  functionName: 'getDistributionRootsLength',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `functionName` set to `"getOperatorAVSSplit"`
  */
 export const readRewardsCoordinatorGetOperatorAvsSplit =
   /*#__PURE__*/ createReadContract({
-    abi: rewardsCoordinatorAbi,
-    functionName: 'getOperatorAVSSplit',
-  })
+  abi: rewardsCoordinatorAbi,
+  functionName: 'getOperatorAVSSplit',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `functionName` set to `"getOperatorPISplit"`
  */
 export const readRewardsCoordinatorGetOperatorPiSplit =
   /*#__PURE__*/ createReadContract({
-    abi: rewardsCoordinatorAbi,
-    functionName: 'getOperatorPISplit',
-  })
+  abi: rewardsCoordinatorAbi,
+  functionName: 'getOperatorPISplit',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `functionName` set to `"getOperatorSetSplit"`
  */
 export const readRewardsCoordinatorGetOperatorSetSplit =
   /*#__PURE__*/ createReadContract({
-    abi: rewardsCoordinatorAbi,
-    functionName: 'getOperatorSetSplit',
-  })
+  abi: rewardsCoordinatorAbi,
+  functionName: 'getOperatorSetSplit',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `functionName` set to `"getRootIndexFromHash"`
  */
 export const readRewardsCoordinatorGetRootIndexFromHash =
   /*#__PURE__*/ createReadContract({
-    abi: rewardsCoordinatorAbi,
-    functionName: 'getRootIndexFromHash',
-  })
+  abi: rewardsCoordinatorAbi,
+  functionName: 'getRootIndexFromHash',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `functionName` set to `"isAVSRewardsSubmissionHash"`
  */
 export const readRewardsCoordinatorIsAvsRewardsSubmissionHash =
   /*#__PURE__*/ createReadContract({
-    abi: rewardsCoordinatorAbi,
-    functionName: 'isAVSRewardsSubmissionHash',
-  })
+  abi: rewardsCoordinatorAbi,
+  functionName: 'isAVSRewardsSubmissionHash',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `functionName` set to `"isOperatorDirectedAVSRewardsSubmissionHash"`
  */
 export const readRewardsCoordinatorIsOperatorDirectedAvsRewardsSubmissionHash =
   /*#__PURE__*/ createReadContract({
-    abi: rewardsCoordinatorAbi,
-    functionName: 'isOperatorDirectedAVSRewardsSubmissionHash',
-  })
+  abi: rewardsCoordinatorAbi,
+  functionName: 'isOperatorDirectedAVSRewardsSubmissionHash',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `functionName` set to `"isOperatorDirectedOperatorSetRewardsSubmissionHash"`
  */
 export const readRewardsCoordinatorIsOperatorDirectedOperatorSetRewardsSubmissionHash =
   /*#__PURE__*/ createReadContract({
-    abi: rewardsCoordinatorAbi,
-    functionName: 'isOperatorDirectedOperatorSetRewardsSubmissionHash',
-  })
+  abi: rewardsCoordinatorAbi,
+  functionName: 'isOperatorDirectedOperatorSetRewardsSubmissionHash',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `functionName` set to `"isRewardsForAllSubmitter"`
  */
 export const readRewardsCoordinatorIsRewardsForAllSubmitter =
   /*#__PURE__*/ createReadContract({
-    abi: rewardsCoordinatorAbi,
-    functionName: 'isRewardsForAllSubmitter',
-  })
+  abi: rewardsCoordinatorAbi,
+  functionName: 'isRewardsForAllSubmitter',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `functionName` set to `"isRewardsSubmissionForAllEarnersHash"`
  */
 export const readRewardsCoordinatorIsRewardsSubmissionForAllEarnersHash =
   /*#__PURE__*/ createReadContract({
-    abi: rewardsCoordinatorAbi,
-    functionName: 'isRewardsSubmissionForAllEarnersHash',
-  })
+  abi: rewardsCoordinatorAbi,
+  functionName: 'isRewardsSubmissionForAllEarnersHash',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `functionName` set to `"isRewardsSubmissionForAllHash"`
  */
 export const readRewardsCoordinatorIsRewardsSubmissionForAllHash =
   /*#__PURE__*/ createReadContract({
-    abi: rewardsCoordinatorAbi,
-    functionName: 'isRewardsSubmissionForAllHash',
-  })
+  abi: rewardsCoordinatorAbi,
+  functionName: 'isRewardsSubmissionForAllHash',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `functionName` set to `"owner"`
@@ -14510,45 +14624,45 @@ export const readRewardsCoordinatorPaused = /*#__PURE__*/ createReadContract({
  */
 export const readRewardsCoordinatorPauserRegistry =
   /*#__PURE__*/ createReadContract({
-    abi: rewardsCoordinatorAbi,
-    functionName: 'pauserRegistry',
-  })
+  abi: rewardsCoordinatorAbi,
+  functionName: 'pauserRegistry',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `functionName` set to `"permissionController"`
  */
 export const readRewardsCoordinatorPermissionController =
   /*#__PURE__*/ createReadContract({
-    abi: rewardsCoordinatorAbi,
-    functionName: 'permissionController',
-  })
+  abi: rewardsCoordinatorAbi,
+  functionName: 'permissionController',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `functionName` set to `"rewardsUpdater"`
  */
 export const readRewardsCoordinatorRewardsUpdater =
   /*#__PURE__*/ createReadContract({
-    abi: rewardsCoordinatorAbi,
-    functionName: 'rewardsUpdater',
-  })
+  abi: rewardsCoordinatorAbi,
+  functionName: 'rewardsUpdater',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `functionName` set to `"strategyManager"`
  */
 export const readRewardsCoordinatorStrategyManager =
   /*#__PURE__*/ createReadContract({
-    abi: rewardsCoordinatorAbi,
-    functionName: 'strategyManager',
-  })
+  abi: rewardsCoordinatorAbi,
+  functionName: 'strategyManager',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `functionName` set to `"submissionNonce"`
  */
 export const readRewardsCoordinatorSubmissionNonce =
   /*#__PURE__*/ createReadContract({
-    abi: rewardsCoordinatorAbi,
-    functionName: 'submissionNonce',
-  })
+  abi: rewardsCoordinatorAbi,
+  functionName: 'submissionNonce',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `functionName` set to `"version"`
@@ -14570,63 +14684,63 @@ export const writeRewardsCoordinator = /*#__PURE__*/ createWriteContract({
  */
 export const writeRewardsCoordinatorCreateAvsRewardsSubmission =
   /*#__PURE__*/ createWriteContract({
-    abi: rewardsCoordinatorAbi,
-    functionName: 'createAVSRewardsSubmission',
-  })
+  abi: rewardsCoordinatorAbi,
+  functionName: 'createAVSRewardsSubmission',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `functionName` set to `"createOperatorDirectedAVSRewardsSubmission"`
  */
 export const writeRewardsCoordinatorCreateOperatorDirectedAvsRewardsSubmission =
   /*#__PURE__*/ createWriteContract({
-    abi: rewardsCoordinatorAbi,
-    functionName: 'createOperatorDirectedAVSRewardsSubmission',
-  })
+  abi: rewardsCoordinatorAbi,
+  functionName: 'createOperatorDirectedAVSRewardsSubmission',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `functionName` set to `"createOperatorDirectedOperatorSetRewardsSubmission"`
  */
 export const writeRewardsCoordinatorCreateOperatorDirectedOperatorSetRewardsSubmission =
   /*#__PURE__*/ createWriteContract({
-    abi: rewardsCoordinatorAbi,
-    functionName: 'createOperatorDirectedOperatorSetRewardsSubmission',
-  })
+  abi: rewardsCoordinatorAbi,
+  functionName: 'createOperatorDirectedOperatorSetRewardsSubmission',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `functionName` set to `"createRewardsForAllEarners"`
  */
 export const writeRewardsCoordinatorCreateRewardsForAllEarners =
   /*#__PURE__*/ createWriteContract({
-    abi: rewardsCoordinatorAbi,
-    functionName: 'createRewardsForAllEarners',
-  })
+  abi: rewardsCoordinatorAbi,
+  functionName: 'createRewardsForAllEarners',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `functionName` set to `"createRewardsForAllSubmission"`
  */
 export const writeRewardsCoordinatorCreateRewardsForAllSubmission =
   /*#__PURE__*/ createWriteContract({
-    abi: rewardsCoordinatorAbi,
-    functionName: 'createRewardsForAllSubmission',
-  })
+  abi: rewardsCoordinatorAbi,
+  functionName: 'createRewardsForAllSubmission',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `functionName` set to `"disableRoot"`
  */
 export const writeRewardsCoordinatorDisableRoot =
   /*#__PURE__*/ createWriteContract({
-    abi: rewardsCoordinatorAbi,
-    functionName: 'disableRoot',
-  })
+  abi: rewardsCoordinatorAbi,
+  functionName: 'disableRoot',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `functionName` set to `"initialize"`
  */
 export const writeRewardsCoordinatorInitialize =
   /*#__PURE__*/ createWriteContract({
-    abi: rewardsCoordinatorAbi,
-    functionName: 'initialize',
-  })
+  abi: rewardsCoordinatorAbi,
+  functionName: 'initialize',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `functionName` set to `"pause"`
@@ -14641,126 +14755,126 @@ export const writeRewardsCoordinatorPause = /*#__PURE__*/ createWriteContract({
  */
 export const writeRewardsCoordinatorPauseAll =
   /*#__PURE__*/ createWriteContract({
-    abi: rewardsCoordinatorAbi,
-    functionName: 'pauseAll',
-  })
+  abi: rewardsCoordinatorAbi,
+  functionName: 'pauseAll',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `functionName` set to `"processClaim"`
  */
 export const writeRewardsCoordinatorProcessClaim =
   /*#__PURE__*/ createWriteContract({
-    abi: rewardsCoordinatorAbi,
-    functionName: 'processClaim',
-  })
+  abi: rewardsCoordinatorAbi,
+  functionName: 'processClaim',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `functionName` set to `"processClaims"`
  */
 export const writeRewardsCoordinatorProcessClaims =
   /*#__PURE__*/ createWriteContract({
-    abi: rewardsCoordinatorAbi,
-    functionName: 'processClaims',
-  })
+  abi: rewardsCoordinatorAbi,
+  functionName: 'processClaims',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `functionName` set to `"renounceOwnership"`
  */
 export const writeRewardsCoordinatorRenounceOwnership =
   /*#__PURE__*/ createWriteContract({
-    abi: rewardsCoordinatorAbi,
-    functionName: 'renounceOwnership',
-  })
+  abi: rewardsCoordinatorAbi,
+  functionName: 'renounceOwnership',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `functionName` set to `"setActivationDelay"`
  */
 export const writeRewardsCoordinatorSetActivationDelay =
   /*#__PURE__*/ createWriteContract({
-    abi: rewardsCoordinatorAbi,
-    functionName: 'setActivationDelay',
-  })
+  abi: rewardsCoordinatorAbi,
+  functionName: 'setActivationDelay',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `functionName` set to `"setClaimerFor"`
  */
 export const writeRewardsCoordinatorSetClaimerFor =
   /*#__PURE__*/ createWriteContract({
-    abi: rewardsCoordinatorAbi,
-    functionName: 'setClaimerFor',
-  })
+  abi: rewardsCoordinatorAbi,
+  functionName: 'setClaimerFor',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `functionName` set to `"setDefaultOperatorSplit"`
  */
 export const writeRewardsCoordinatorSetDefaultOperatorSplit =
   /*#__PURE__*/ createWriteContract({
-    abi: rewardsCoordinatorAbi,
-    functionName: 'setDefaultOperatorSplit',
-  })
+  abi: rewardsCoordinatorAbi,
+  functionName: 'setDefaultOperatorSplit',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `functionName` set to `"setOperatorAVSSplit"`
  */
 export const writeRewardsCoordinatorSetOperatorAvsSplit =
   /*#__PURE__*/ createWriteContract({
-    abi: rewardsCoordinatorAbi,
-    functionName: 'setOperatorAVSSplit',
-  })
+  abi: rewardsCoordinatorAbi,
+  functionName: 'setOperatorAVSSplit',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `functionName` set to `"setOperatorPISplit"`
  */
 export const writeRewardsCoordinatorSetOperatorPiSplit =
   /*#__PURE__*/ createWriteContract({
-    abi: rewardsCoordinatorAbi,
-    functionName: 'setOperatorPISplit',
-  })
+  abi: rewardsCoordinatorAbi,
+  functionName: 'setOperatorPISplit',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `functionName` set to `"setOperatorSetSplit"`
  */
 export const writeRewardsCoordinatorSetOperatorSetSplit =
   /*#__PURE__*/ createWriteContract({
-    abi: rewardsCoordinatorAbi,
-    functionName: 'setOperatorSetSplit',
-  })
+  abi: rewardsCoordinatorAbi,
+  functionName: 'setOperatorSetSplit',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `functionName` set to `"setRewardsForAllSubmitter"`
  */
 export const writeRewardsCoordinatorSetRewardsForAllSubmitter =
   /*#__PURE__*/ createWriteContract({
-    abi: rewardsCoordinatorAbi,
-    functionName: 'setRewardsForAllSubmitter',
-  })
+  abi: rewardsCoordinatorAbi,
+  functionName: 'setRewardsForAllSubmitter',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `functionName` set to `"setRewardsUpdater"`
  */
 export const writeRewardsCoordinatorSetRewardsUpdater =
   /*#__PURE__*/ createWriteContract({
-    abi: rewardsCoordinatorAbi,
-    functionName: 'setRewardsUpdater',
-  })
+  abi: rewardsCoordinatorAbi,
+  functionName: 'setRewardsUpdater',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `functionName` set to `"submitRoot"`
  */
 export const writeRewardsCoordinatorSubmitRoot =
   /*#__PURE__*/ createWriteContract({
-    abi: rewardsCoordinatorAbi,
-    functionName: 'submitRoot',
-  })
+  abi: rewardsCoordinatorAbi,
+  functionName: 'submitRoot',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `functionName` set to `"transferOwnership"`
  */
 export const writeRewardsCoordinatorTransferOwnership =
   /*#__PURE__*/ createWriteContract({
-    abi: rewardsCoordinatorAbi,
-    functionName: 'transferOwnership',
-  })
+  abi: rewardsCoordinatorAbi,
+  functionName: 'transferOwnership',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `functionName` set to `"unpause"`
@@ -14781,207 +14895,207 @@ export const simulateRewardsCoordinator = /*#__PURE__*/ createSimulateContract({
  */
 export const simulateRewardsCoordinatorCreateAvsRewardsSubmission =
   /*#__PURE__*/ createSimulateContract({
-    abi: rewardsCoordinatorAbi,
-    functionName: 'createAVSRewardsSubmission',
-  })
+  abi: rewardsCoordinatorAbi,
+  functionName: 'createAVSRewardsSubmission',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `functionName` set to `"createOperatorDirectedAVSRewardsSubmission"`
  */
 export const simulateRewardsCoordinatorCreateOperatorDirectedAvsRewardsSubmission =
   /*#__PURE__*/ createSimulateContract({
-    abi: rewardsCoordinatorAbi,
-    functionName: 'createOperatorDirectedAVSRewardsSubmission',
-  })
+  abi: rewardsCoordinatorAbi,
+  functionName: 'createOperatorDirectedAVSRewardsSubmission',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `functionName` set to `"createOperatorDirectedOperatorSetRewardsSubmission"`
  */
 export const simulateRewardsCoordinatorCreateOperatorDirectedOperatorSetRewardsSubmission =
   /*#__PURE__*/ createSimulateContract({
-    abi: rewardsCoordinatorAbi,
-    functionName: 'createOperatorDirectedOperatorSetRewardsSubmission',
-  })
+  abi: rewardsCoordinatorAbi,
+  functionName: 'createOperatorDirectedOperatorSetRewardsSubmission',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `functionName` set to `"createRewardsForAllEarners"`
  */
 export const simulateRewardsCoordinatorCreateRewardsForAllEarners =
   /*#__PURE__*/ createSimulateContract({
-    abi: rewardsCoordinatorAbi,
-    functionName: 'createRewardsForAllEarners',
-  })
+  abi: rewardsCoordinatorAbi,
+  functionName: 'createRewardsForAllEarners',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `functionName` set to `"createRewardsForAllSubmission"`
  */
 export const simulateRewardsCoordinatorCreateRewardsForAllSubmission =
   /*#__PURE__*/ createSimulateContract({
-    abi: rewardsCoordinatorAbi,
-    functionName: 'createRewardsForAllSubmission',
-  })
+  abi: rewardsCoordinatorAbi,
+  functionName: 'createRewardsForAllSubmission',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `functionName` set to `"disableRoot"`
  */
 export const simulateRewardsCoordinatorDisableRoot =
   /*#__PURE__*/ createSimulateContract({
-    abi: rewardsCoordinatorAbi,
-    functionName: 'disableRoot',
-  })
+  abi: rewardsCoordinatorAbi,
+  functionName: 'disableRoot',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `functionName` set to `"initialize"`
  */
 export const simulateRewardsCoordinatorInitialize =
   /*#__PURE__*/ createSimulateContract({
-    abi: rewardsCoordinatorAbi,
-    functionName: 'initialize',
-  })
+  abi: rewardsCoordinatorAbi,
+  functionName: 'initialize',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `functionName` set to `"pause"`
  */
 export const simulateRewardsCoordinatorPause =
   /*#__PURE__*/ createSimulateContract({
-    abi: rewardsCoordinatorAbi,
-    functionName: 'pause',
-  })
+  abi: rewardsCoordinatorAbi,
+  functionName: 'pause',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `functionName` set to `"pauseAll"`
  */
 export const simulateRewardsCoordinatorPauseAll =
   /*#__PURE__*/ createSimulateContract({
-    abi: rewardsCoordinatorAbi,
-    functionName: 'pauseAll',
-  })
+  abi: rewardsCoordinatorAbi,
+  functionName: 'pauseAll',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `functionName` set to `"processClaim"`
  */
 export const simulateRewardsCoordinatorProcessClaim =
   /*#__PURE__*/ createSimulateContract({
-    abi: rewardsCoordinatorAbi,
-    functionName: 'processClaim',
-  })
+  abi: rewardsCoordinatorAbi,
+  functionName: 'processClaim',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `functionName` set to `"processClaims"`
  */
 export const simulateRewardsCoordinatorProcessClaims =
   /*#__PURE__*/ createSimulateContract({
-    abi: rewardsCoordinatorAbi,
-    functionName: 'processClaims',
-  })
+  abi: rewardsCoordinatorAbi,
+  functionName: 'processClaims',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `functionName` set to `"renounceOwnership"`
  */
 export const simulateRewardsCoordinatorRenounceOwnership =
   /*#__PURE__*/ createSimulateContract({
-    abi: rewardsCoordinatorAbi,
-    functionName: 'renounceOwnership',
-  })
+  abi: rewardsCoordinatorAbi,
+  functionName: 'renounceOwnership',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `functionName` set to `"setActivationDelay"`
  */
 export const simulateRewardsCoordinatorSetActivationDelay =
   /*#__PURE__*/ createSimulateContract({
-    abi: rewardsCoordinatorAbi,
-    functionName: 'setActivationDelay',
-  })
+  abi: rewardsCoordinatorAbi,
+  functionName: 'setActivationDelay',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `functionName` set to `"setClaimerFor"`
  */
 export const simulateRewardsCoordinatorSetClaimerFor =
   /*#__PURE__*/ createSimulateContract({
-    abi: rewardsCoordinatorAbi,
-    functionName: 'setClaimerFor',
-  })
+  abi: rewardsCoordinatorAbi,
+  functionName: 'setClaimerFor',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `functionName` set to `"setDefaultOperatorSplit"`
  */
 export const simulateRewardsCoordinatorSetDefaultOperatorSplit =
   /*#__PURE__*/ createSimulateContract({
-    abi: rewardsCoordinatorAbi,
-    functionName: 'setDefaultOperatorSplit',
-  })
+  abi: rewardsCoordinatorAbi,
+  functionName: 'setDefaultOperatorSplit',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `functionName` set to `"setOperatorAVSSplit"`
  */
 export const simulateRewardsCoordinatorSetOperatorAvsSplit =
   /*#__PURE__*/ createSimulateContract({
-    abi: rewardsCoordinatorAbi,
-    functionName: 'setOperatorAVSSplit',
-  })
+  abi: rewardsCoordinatorAbi,
+  functionName: 'setOperatorAVSSplit',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `functionName` set to `"setOperatorPISplit"`
  */
 export const simulateRewardsCoordinatorSetOperatorPiSplit =
   /*#__PURE__*/ createSimulateContract({
-    abi: rewardsCoordinatorAbi,
-    functionName: 'setOperatorPISplit',
-  })
+  abi: rewardsCoordinatorAbi,
+  functionName: 'setOperatorPISplit',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `functionName` set to `"setOperatorSetSplit"`
  */
 export const simulateRewardsCoordinatorSetOperatorSetSplit =
   /*#__PURE__*/ createSimulateContract({
-    abi: rewardsCoordinatorAbi,
-    functionName: 'setOperatorSetSplit',
-  })
+  abi: rewardsCoordinatorAbi,
+  functionName: 'setOperatorSetSplit',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `functionName` set to `"setRewardsForAllSubmitter"`
  */
 export const simulateRewardsCoordinatorSetRewardsForAllSubmitter =
   /*#__PURE__*/ createSimulateContract({
-    abi: rewardsCoordinatorAbi,
-    functionName: 'setRewardsForAllSubmitter',
-  })
+  abi: rewardsCoordinatorAbi,
+  functionName: 'setRewardsForAllSubmitter',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `functionName` set to `"setRewardsUpdater"`
  */
 export const simulateRewardsCoordinatorSetRewardsUpdater =
   /*#__PURE__*/ createSimulateContract({
-    abi: rewardsCoordinatorAbi,
-    functionName: 'setRewardsUpdater',
-  })
+  abi: rewardsCoordinatorAbi,
+  functionName: 'setRewardsUpdater',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `functionName` set to `"submitRoot"`
  */
 export const simulateRewardsCoordinatorSubmitRoot =
   /*#__PURE__*/ createSimulateContract({
-    abi: rewardsCoordinatorAbi,
-    functionName: 'submitRoot',
-  })
+  abi: rewardsCoordinatorAbi,
+  functionName: 'submitRoot',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `functionName` set to `"transferOwnership"`
  */
 export const simulateRewardsCoordinatorTransferOwnership =
   /*#__PURE__*/ createSimulateContract({
-    abi: rewardsCoordinatorAbi,
-    functionName: 'transferOwnership',
-  })
+  abi: rewardsCoordinatorAbi,
+  functionName: 'transferOwnership',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `functionName` set to `"unpause"`
  */
 export const simulateRewardsCoordinatorUnpause =
   /*#__PURE__*/ createSimulateContract({
-    abi: rewardsCoordinatorAbi,
-    functionName: 'unpause',
-  })
+  abi: rewardsCoordinatorAbi,
+  functionName: 'unpause',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link rewardsCoordinatorAbi}__
@@ -14994,180 +15108,180 @@ export const watchRewardsCoordinatorEvent =
  */
 export const watchRewardsCoordinatorAvsRewardsSubmissionCreatedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: rewardsCoordinatorAbi,
-    eventName: 'AVSRewardsSubmissionCreated',
-  })
+  abi: rewardsCoordinatorAbi,
+  eventName: 'AVSRewardsSubmissionCreated',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `eventName` set to `"ActivationDelaySet"`
  */
 export const watchRewardsCoordinatorActivationDelaySetEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: rewardsCoordinatorAbi,
-    eventName: 'ActivationDelaySet',
-  })
+  abi: rewardsCoordinatorAbi,
+  eventName: 'ActivationDelaySet',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `eventName` set to `"ClaimerForSet"`
  */
 export const watchRewardsCoordinatorClaimerForSetEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: rewardsCoordinatorAbi,
-    eventName: 'ClaimerForSet',
-  })
+  abi: rewardsCoordinatorAbi,
+  eventName: 'ClaimerForSet',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `eventName` set to `"DefaultOperatorSplitBipsSet"`
  */
 export const watchRewardsCoordinatorDefaultOperatorSplitBipsSetEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: rewardsCoordinatorAbi,
-    eventName: 'DefaultOperatorSplitBipsSet',
-  })
+  abi: rewardsCoordinatorAbi,
+  eventName: 'DefaultOperatorSplitBipsSet',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `eventName` set to `"DistributionRootDisabled"`
  */
 export const watchRewardsCoordinatorDistributionRootDisabledEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: rewardsCoordinatorAbi,
-    eventName: 'DistributionRootDisabled',
-  })
+  abi: rewardsCoordinatorAbi,
+  eventName: 'DistributionRootDisabled',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `eventName` set to `"DistributionRootSubmitted"`
  */
 export const watchRewardsCoordinatorDistributionRootSubmittedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: rewardsCoordinatorAbi,
-    eventName: 'DistributionRootSubmitted',
-  })
+  abi: rewardsCoordinatorAbi,
+  eventName: 'DistributionRootSubmitted',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `eventName` set to `"Initialized"`
  */
 export const watchRewardsCoordinatorInitializedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: rewardsCoordinatorAbi,
-    eventName: 'Initialized',
-  })
+  abi: rewardsCoordinatorAbi,
+  eventName: 'Initialized',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `eventName` set to `"OperatorAVSSplitBipsSet"`
  */
 export const watchRewardsCoordinatorOperatorAvsSplitBipsSetEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: rewardsCoordinatorAbi,
-    eventName: 'OperatorAVSSplitBipsSet',
-  })
+  abi: rewardsCoordinatorAbi,
+  eventName: 'OperatorAVSSplitBipsSet',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `eventName` set to `"OperatorDirectedAVSRewardsSubmissionCreated"`
  */
 export const watchRewardsCoordinatorOperatorDirectedAvsRewardsSubmissionCreatedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: rewardsCoordinatorAbi,
-    eventName: 'OperatorDirectedAVSRewardsSubmissionCreated',
-  })
+  abi: rewardsCoordinatorAbi,
+  eventName: 'OperatorDirectedAVSRewardsSubmissionCreated',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `eventName` set to `"OperatorDirectedOperatorSetRewardsSubmissionCreated"`
  */
 export const watchRewardsCoordinatorOperatorDirectedOperatorSetRewardsSubmissionCreatedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: rewardsCoordinatorAbi,
-    eventName: 'OperatorDirectedOperatorSetRewardsSubmissionCreated',
-  })
+  abi: rewardsCoordinatorAbi,
+  eventName: 'OperatorDirectedOperatorSetRewardsSubmissionCreated',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `eventName` set to `"OperatorPISplitBipsSet"`
  */
 export const watchRewardsCoordinatorOperatorPiSplitBipsSetEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: rewardsCoordinatorAbi,
-    eventName: 'OperatorPISplitBipsSet',
-  })
+  abi: rewardsCoordinatorAbi,
+  eventName: 'OperatorPISplitBipsSet',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `eventName` set to `"OperatorSetSplitBipsSet"`
  */
 export const watchRewardsCoordinatorOperatorSetSplitBipsSetEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: rewardsCoordinatorAbi,
-    eventName: 'OperatorSetSplitBipsSet',
-  })
+  abi: rewardsCoordinatorAbi,
+  eventName: 'OperatorSetSplitBipsSet',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `eventName` set to `"OwnershipTransferred"`
  */
 export const watchRewardsCoordinatorOwnershipTransferredEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: rewardsCoordinatorAbi,
-    eventName: 'OwnershipTransferred',
-  })
+  abi: rewardsCoordinatorAbi,
+  eventName: 'OwnershipTransferred',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `eventName` set to `"Paused"`
  */
 export const watchRewardsCoordinatorPausedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: rewardsCoordinatorAbi,
-    eventName: 'Paused',
-  })
+  abi: rewardsCoordinatorAbi,
+  eventName: 'Paused',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `eventName` set to `"RewardsClaimed"`
  */
 export const watchRewardsCoordinatorRewardsClaimedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: rewardsCoordinatorAbi,
-    eventName: 'RewardsClaimed',
-  })
+  abi: rewardsCoordinatorAbi,
+  eventName: 'RewardsClaimed',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `eventName` set to `"RewardsForAllSubmitterSet"`
  */
 export const watchRewardsCoordinatorRewardsForAllSubmitterSetEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: rewardsCoordinatorAbi,
-    eventName: 'RewardsForAllSubmitterSet',
-  })
+  abi: rewardsCoordinatorAbi,
+  eventName: 'RewardsForAllSubmitterSet',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `eventName` set to `"RewardsSubmissionForAllCreated"`
  */
 export const watchRewardsCoordinatorRewardsSubmissionForAllCreatedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: rewardsCoordinatorAbi,
-    eventName: 'RewardsSubmissionForAllCreated',
-  })
+  abi: rewardsCoordinatorAbi,
+  eventName: 'RewardsSubmissionForAllCreated',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `eventName` set to `"RewardsSubmissionForAllEarnersCreated"`
  */
 export const watchRewardsCoordinatorRewardsSubmissionForAllEarnersCreatedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: rewardsCoordinatorAbi,
-    eventName: 'RewardsSubmissionForAllEarnersCreated',
-  })
+  abi: rewardsCoordinatorAbi,
+  eventName: 'RewardsSubmissionForAllEarnersCreated',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `eventName` set to `"RewardsUpdaterSet"`
  */
 export const watchRewardsCoordinatorRewardsUpdaterSetEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: rewardsCoordinatorAbi,
-    eventName: 'RewardsUpdaterSet',
-  })
+  abi: rewardsCoordinatorAbi,
+  eventName: 'RewardsUpdaterSet',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link rewardsCoordinatorAbi}__ and `eventName` set to `"Unpaused"`
  */
 export const watchRewardsCoordinatorUnpausedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: rewardsCoordinatorAbi,
-    eventName: 'Unpaused',
-  })
+  abi: rewardsCoordinatorAbi,
+  eventName: 'Unpaused',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link strategyBaseTvlLimitsAbi}__
@@ -15181,36 +15295,36 @@ export const readStrategyBaseTvlLimits = /*#__PURE__*/ createReadContract({
  */
 export const readStrategyBaseTvlLimitsExplanation =
   /*#__PURE__*/ createReadContract({
-    abi: strategyBaseTvlLimitsAbi,
-    functionName: 'explanation',
-  })
+  abi: strategyBaseTvlLimitsAbi,
+  functionName: 'explanation',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link strategyBaseTvlLimitsAbi}__ and `functionName` set to `"getTVLLimits"`
  */
 export const readStrategyBaseTvlLimitsGetTvlLimits =
   /*#__PURE__*/ createReadContract({
-    abi: strategyBaseTvlLimitsAbi,
-    functionName: 'getTVLLimits',
-  })
+  abi: strategyBaseTvlLimitsAbi,
+  functionName: 'getTVLLimits',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link strategyBaseTvlLimitsAbi}__ and `functionName` set to `"maxPerDeposit"`
  */
 export const readStrategyBaseTvlLimitsMaxPerDeposit =
   /*#__PURE__*/ createReadContract({
-    abi: strategyBaseTvlLimitsAbi,
-    functionName: 'maxPerDeposit',
-  })
+  abi: strategyBaseTvlLimitsAbi,
+  functionName: 'maxPerDeposit',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link strategyBaseTvlLimitsAbi}__ and `functionName` set to `"maxTotalDeposits"`
  */
 export const readStrategyBaseTvlLimitsMaxTotalDeposits =
   /*#__PURE__*/ createReadContract({
-    abi: strategyBaseTvlLimitsAbi,
-    functionName: 'maxTotalDeposits',
-  })
+  abi: strategyBaseTvlLimitsAbi,
+  functionName: 'maxTotalDeposits',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link strategyBaseTvlLimitsAbi}__ and `functionName` set to `"paused"`
@@ -15224,9 +15338,9 @@ export const readStrategyBaseTvlLimitsPaused = /*#__PURE__*/ createReadContract(
  */
 export const readStrategyBaseTvlLimitsPauserRegistry =
   /*#__PURE__*/ createReadContract({
-    abi: strategyBaseTvlLimitsAbi,
-    functionName: 'pauserRegistry',
-  })
+  abi: strategyBaseTvlLimitsAbi,
+  functionName: 'pauserRegistry',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link strategyBaseTvlLimitsAbi}__ and `functionName` set to `"shares"`
@@ -15240,81 +15354,81 @@ export const readStrategyBaseTvlLimitsShares = /*#__PURE__*/ createReadContract(
  */
 export const readStrategyBaseTvlLimitsSharesToUnderlying =
   /*#__PURE__*/ createReadContract({
-    abi: strategyBaseTvlLimitsAbi,
-    functionName: 'sharesToUnderlying',
-  })
+  abi: strategyBaseTvlLimitsAbi,
+  functionName: 'sharesToUnderlying',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link strategyBaseTvlLimitsAbi}__ and `functionName` set to `"sharesToUnderlyingView"`
  */
 export const readStrategyBaseTvlLimitsSharesToUnderlyingView =
   /*#__PURE__*/ createReadContract({
-    abi: strategyBaseTvlLimitsAbi,
-    functionName: 'sharesToUnderlyingView',
-  })
+  abi: strategyBaseTvlLimitsAbi,
+  functionName: 'sharesToUnderlyingView',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link strategyBaseTvlLimitsAbi}__ and `functionName` set to `"strategyManager"`
  */
 export const readStrategyBaseTvlLimitsStrategyManager =
   /*#__PURE__*/ createReadContract({
-    abi: strategyBaseTvlLimitsAbi,
-    functionName: 'strategyManager',
-  })
+  abi: strategyBaseTvlLimitsAbi,
+  functionName: 'strategyManager',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link strategyBaseTvlLimitsAbi}__ and `functionName` set to `"totalShares"`
  */
 export const readStrategyBaseTvlLimitsTotalShares =
   /*#__PURE__*/ createReadContract({
-    abi: strategyBaseTvlLimitsAbi,
-    functionName: 'totalShares',
-  })
+  abi: strategyBaseTvlLimitsAbi,
+  functionName: 'totalShares',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link strategyBaseTvlLimitsAbi}__ and `functionName` set to `"underlyingToShares"`
  */
 export const readStrategyBaseTvlLimitsUnderlyingToShares =
   /*#__PURE__*/ createReadContract({
-    abi: strategyBaseTvlLimitsAbi,
-    functionName: 'underlyingToShares',
-  })
+  abi: strategyBaseTvlLimitsAbi,
+  functionName: 'underlyingToShares',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link strategyBaseTvlLimitsAbi}__ and `functionName` set to `"underlyingToSharesView"`
  */
 export const readStrategyBaseTvlLimitsUnderlyingToSharesView =
   /*#__PURE__*/ createReadContract({
-    abi: strategyBaseTvlLimitsAbi,
-    functionName: 'underlyingToSharesView',
-  })
+  abi: strategyBaseTvlLimitsAbi,
+  functionName: 'underlyingToSharesView',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link strategyBaseTvlLimitsAbi}__ and `functionName` set to `"underlyingToken"`
  */
 export const readStrategyBaseTvlLimitsUnderlyingToken =
   /*#__PURE__*/ createReadContract({
-    abi: strategyBaseTvlLimitsAbi,
-    functionName: 'underlyingToken',
-  })
+  abi: strategyBaseTvlLimitsAbi,
+  functionName: 'underlyingToken',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link strategyBaseTvlLimitsAbi}__ and `functionName` set to `"userUnderlyingView"`
  */
 export const readStrategyBaseTvlLimitsUserUnderlyingView =
   /*#__PURE__*/ createReadContract({
-    abi: strategyBaseTvlLimitsAbi,
-    functionName: 'userUnderlyingView',
-  })
+  abi: strategyBaseTvlLimitsAbi,
+  functionName: 'userUnderlyingView',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link strategyBaseTvlLimitsAbi}__ and `functionName` set to `"version"`
  */
 export const readStrategyBaseTvlLimitsVersion =
   /*#__PURE__*/ createReadContract({
-    abi: strategyBaseTvlLimitsAbi,
-    functionName: 'version',
-  })
+  abi: strategyBaseTvlLimitsAbi,
+  functionName: 'version',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link strategyBaseTvlLimitsAbi}__
@@ -15328,72 +15442,72 @@ export const writeStrategyBaseTvlLimits = /*#__PURE__*/ createWriteContract({
  */
 export const writeStrategyBaseTvlLimitsDeposit =
   /*#__PURE__*/ createWriteContract({
-    abi: strategyBaseTvlLimitsAbi,
-    functionName: 'deposit',
-  })
+  abi: strategyBaseTvlLimitsAbi,
+  functionName: 'deposit',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link strategyBaseTvlLimitsAbi}__ and `functionName` set to `"initialize"`
  */
 export const writeStrategyBaseTvlLimitsInitialize =
   /*#__PURE__*/ createWriteContract({
-    abi: strategyBaseTvlLimitsAbi,
-    functionName: 'initialize',
-  })
+  abi: strategyBaseTvlLimitsAbi,
+  functionName: 'initialize',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link strategyBaseTvlLimitsAbi}__ and `functionName` set to `"pause"`
  */
 export const writeStrategyBaseTvlLimitsPause =
   /*#__PURE__*/ createWriteContract({
-    abi: strategyBaseTvlLimitsAbi,
-    functionName: 'pause',
-  })
+  abi: strategyBaseTvlLimitsAbi,
+  functionName: 'pause',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link strategyBaseTvlLimitsAbi}__ and `functionName` set to `"pauseAll"`
  */
 export const writeStrategyBaseTvlLimitsPauseAll =
   /*#__PURE__*/ createWriteContract({
-    abi: strategyBaseTvlLimitsAbi,
-    functionName: 'pauseAll',
-  })
+  abi: strategyBaseTvlLimitsAbi,
+  functionName: 'pauseAll',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link strategyBaseTvlLimitsAbi}__ and `functionName` set to `"setTVLLimits"`
  */
 export const writeStrategyBaseTvlLimitsSetTvlLimits =
   /*#__PURE__*/ createWriteContract({
-    abi: strategyBaseTvlLimitsAbi,
-    functionName: 'setTVLLimits',
-  })
+  abi: strategyBaseTvlLimitsAbi,
+  functionName: 'setTVLLimits',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link strategyBaseTvlLimitsAbi}__ and `functionName` set to `"unpause"`
  */
 export const writeStrategyBaseTvlLimitsUnpause =
   /*#__PURE__*/ createWriteContract({
-    abi: strategyBaseTvlLimitsAbi,
-    functionName: 'unpause',
-  })
+  abi: strategyBaseTvlLimitsAbi,
+  functionName: 'unpause',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link strategyBaseTvlLimitsAbi}__ and `functionName` set to `"userUnderlying"`
  */
 export const writeStrategyBaseTvlLimitsUserUnderlying =
   /*#__PURE__*/ createWriteContract({
-    abi: strategyBaseTvlLimitsAbi,
-    functionName: 'userUnderlying',
-  })
+  abi: strategyBaseTvlLimitsAbi,
+  functionName: 'userUnderlying',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link strategyBaseTvlLimitsAbi}__ and `functionName` set to `"withdraw"`
  */
 export const writeStrategyBaseTvlLimitsWithdraw =
   /*#__PURE__*/ createWriteContract({
-    abi: strategyBaseTvlLimitsAbi,
-    functionName: 'withdraw',
-  })
+  abi: strategyBaseTvlLimitsAbi,
+  functionName: 'withdraw',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link strategyBaseTvlLimitsAbi}__
@@ -15406,72 +15520,72 @@ export const simulateStrategyBaseTvlLimits =
  */
 export const simulateStrategyBaseTvlLimitsDeposit =
   /*#__PURE__*/ createSimulateContract({
-    abi: strategyBaseTvlLimitsAbi,
-    functionName: 'deposit',
-  })
+  abi: strategyBaseTvlLimitsAbi,
+  functionName: 'deposit',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link strategyBaseTvlLimitsAbi}__ and `functionName` set to `"initialize"`
  */
 export const simulateStrategyBaseTvlLimitsInitialize =
   /*#__PURE__*/ createSimulateContract({
-    abi: strategyBaseTvlLimitsAbi,
-    functionName: 'initialize',
-  })
+  abi: strategyBaseTvlLimitsAbi,
+  functionName: 'initialize',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link strategyBaseTvlLimitsAbi}__ and `functionName` set to `"pause"`
  */
 export const simulateStrategyBaseTvlLimitsPause =
   /*#__PURE__*/ createSimulateContract({
-    abi: strategyBaseTvlLimitsAbi,
-    functionName: 'pause',
-  })
+  abi: strategyBaseTvlLimitsAbi,
+  functionName: 'pause',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link strategyBaseTvlLimitsAbi}__ and `functionName` set to `"pauseAll"`
  */
 export const simulateStrategyBaseTvlLimitsPauseAll =
   /*#__PURE__*/ createSimulateContract({
-    abi: strategyBaseTvlLimitsAbi,
-    functionName: 'pauseAll',
-  })
+  abi: strategyBaseTvlLimitsAbi,
+  functionName: 'pauseAll',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link strategyBaseTvlLimitsAbi}__ and `functionName` set to `"setTVLLimits"`
  */
 export const simulateStrategyBaseTvlLimitsSetTvlLimits =
   /*#__PURE__*/ createSimulateContract({
-    abi: strategyBaseTvlLimitsAbi,
-    functionName: 'setTVLLimits',
-  })
+  abi: strategyBaseTvlLimitsAbi,
+  functionName: 'setTVLLimits',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link strategyBaseTvlLimitsAbi}__ and `functionName` set to `"unpause"`
  */
 export const simulateStrategyBaseTvlLimitsUnpause =
   /*#__PURE__*/ createSimulateContract({
-    abi: strategyBaseTvlLimitsAbi,
-    functionName: 'unpause',
-  })
+  abi: strategyBaseTvlLimitsAbi,
+  functionName: 'unpause',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link strategyBaseTvlLimitsAbi}__ and `functionName` set to `"userUnderlying"`
  */
 export const simulateStrategyBaseTvlLimitsUserUnderlying =
   /*#__PURE__*/ createSimulateContract({
-    abi: strategyBaseTvlLimitsAbi,
-    functionName: 'userUnderlying',
-  })
+  abi: strategyBaseTvlLimitsAbi,
+  functionName: 'userUnderlying',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link strategyBaseTvlLimitsAbi}__ and `functionName` set to `"withdraw"`
  */
 export const simulateStrategyBaseTvlLimitsWithdraw =
   /*#__PURE__*/ createSimulateContract({
-    abi: strategyBaseTvlLimitsAbi,
-    functionName: 'withdraw',
-  })
+  abi: strategyBaseTvlLimitsAbi,
+  functionName: 'withdraw',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link strategyBaseTvlLimitsAbi}__
@@ -15484,63 +15598,63 @@ export const watchStrategyBaseTvlLimitsEvent =
  */
 export const watchStrategyBaseTvlLimitsExchangeRateEmittedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: strategyBaseTvlLimitsAbi,
-    eventName: 'ExchangeRateEmitted',
-  })
+  abi: strategyBaseTvlLimitsAbi,
+  eventName: 'ExchangeRateEmitted',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link strategyBaseTvlLimitsAbi}__ and `eventName` set to `"Initialized"`
  */
 export const watchStrategyBaseTvlLimitsInitializedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: strategyBaseTvlLimitsAbi,
-    eventName: 'Initialized',
-  })
+  abi: strategyBaseTvlLimitsAbi,
+  eventName: 'Initialized',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link strategyBaseTvlLimitsAbi}__ and `eventName` set to `"MaxPerDepositUpdated"`
  */
 export const watchStrategyBaseTvlLimitsMaxPerDepositUpdatedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: strategyBaseTvlLimitsAbi,
-    eventName: 'MaxPerDepositUpdated',
-  })
+  abi: strategyBaseTvlLimitsAbi,
+  eventName: 'MaxPerDepositUpdated',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link strategyBaseTvlLimitsAbi}__ and `eventName` set to `"MaxTotalDepositsUpdated"`
  */
 export const watchStrategyBaseTvlLimitsMaxTotalDepositsUpdatedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: strategyBaseTvlLimitsAbi,
-    eventName: 'MaxTotalDepositsUpdated',
-  })
+  abi: strategyBaseTvlLimitsAbi,
+  eventName: 'MaxTotalDepositsUpdated',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link strategyBaseTvlLimitsAbi}__ and `eventName` set to `"Paused"`
  */
 export const watchStrategyBaseTvlLimitsPausedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: strategyBaseTvlLimitsAbi,
-    eventName: 'Paused',
-  })
+  abi: strategyBaseTvlLimitsAbi,
+  eventName: 'Paused',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link strategyBaseTvlLimitsAbi}__ and `eventName` set to `"StrategyTokenSet"`
  */
 export const watchStrategyBaseTvlLimitsStrategyTokenSetEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: strategyBaseTvlLimitsAbi,
-    eventName: 'StrategyTokenSet',
-  })
+  abi: strategyBaseTvlLimitsAbi,
+  eventName: 'StrategyTokenSet',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link strategyBaseTvlLimitsAbi}__ and `eventName` set to `"Unpaused"`
  */
 export const watchStrategyBaseTvlLimitsUnpausedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: strategyBaseTvlLimitsAbi,
-    eventName: 'Unpaused',
-  })
+  abi: strategyBaseTvlLimitsAbi,
+  eventName: 'Unpaused',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link strategyManagerAbi}__
@@ -15554,36 +15668,36 @@ export const readStrategyManager = /*#__PURE__*/ createReadContract({
  */
 export const readStrategyManagerDefaultBurnAddress =
   /*#__PURE__*/ createReadContract({
-    abi: strategyManagerAbi,
-    functionName: 'DEFAULT_BURN_ADDRESS',
-  })
+  abi: strategyManagerAbi,
+  functionName: 'DEFAULT_BURN_ADDRESS',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link strategyManagerAbi}__ and `functionName` set to `"DEPOSIT_TYPEHASH"`
  */
 export const readStrategyManagerDepositTypehash =
   /*#__PURE__*/ createReadContract({
-    abi: strategyManagerAbi,
-    functionName: 'DEPOSIT_TYPEHASH',
-  })
+  abi: strategyManagerAbi,
+  functionName: 'DEPOSIT_TYPEHASH',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link strategyManagerAbi}__ and `functionName` set to `"allocationManager"`
  */
 export const readStrategyManagerAllocationManager =
   /*#__PURE__*/ createReadContract({
-    abi: strategyManagerAbi,
-    functionName: 'allocationManager',
-  })
+  abi: strategyManagerAbi,
+  functionName: 'allocationManager',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link strategyManagerAbi}__ and `functionName` set to `"calculateStrategyDepositDigestHash"`
  */
 export const readStrategyManagerCalculateStrategyDepositDigestHash =
   /*#__PURE__*/ createReadContract({
-    abi: strategyManagerAbi,
-    functionName: 'calculateStrategyDepositDigestHash',
-  })
+  abi: strategyManagerAbi,
+  functionName: 'calculateStrategyDepositDigestHash',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link strategyManagerAbi}__ and `functionName` set to `"delegation"`
@@ -15598,36 +15712,36 @@ export const readStrategyManagerDelegation = /*#__PURE__*/ createReadContract({
  */
 export const readStrategyManagerDomainSeparator =
   /*#__PURE__*/ createReadContract({
-    abi: strategyManagerAbi,
-    functionName: 'domainSeparator',
-  })
+  abi: strategyManagerAbi,
+  functionName: 'domainSeparator',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link strategyManagerAbi}__ and `functionName` set to `"getBurnOrRedistributableCount"`
  */
 export const readStrategyManagerGetBurnOrRedistributableCount =
   /*#__PURE__*/ createReadContract({
-    abi: strategyManagerAbi,
-    functionName: 'getBurnOrRedistributableCount',
-  })
+  abi: strategyManagerAbi,
+  functionName: 'getBurnOrRedistributableCount',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link strategyManagerAbi}__ and `functionName` set to `"getBurnOrRedistributableShares"`
  */
 export const readStrategyManagerGetBurnOrRedistributableShares =
   /*#__PURE__*/ createReadContract({
-    abi: strategyManagerAbi,
-    functionName: 'getBurnOrRedistributableShares',
-  })
+  abi: strategyManagerAbi,
+  functionName: 'getBurnOrRedistributableShares',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link strategyManagerAbi}__ and `functionName` set to `"getBurnableShares"`
  */
 export const readStrategyManagerGetBurnableShares =
   /*#__PURE__*/ createReadContract({
-    abi: strategyManagerAbi,
-    functionName: 'getBurnableShares',
-  })
+  abi: strategyManagerAbi,
+  functionName: 'getBurnableShares',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link strategyManagerAbi}__ and `functionName` set to `"getDeposits"`
@@ -15642,36 +15756,36 @@ export const readStrategyManagerGetDeposits = /*#__PURE__*/ createReadContract({
  */
 export const readStrategyManagerGetPendingOperatorSets =
   /*#__PURE__*/ createReadContract({
-    abi: strategyManagerAbi,
-    functionName: 'getPendingOperatorSets',
-  })
+  abi: strategyManagerAbi,
+  functionName: 'getPendingOperatorSets',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link strategyManagerAbi}__ and `functionName` set to `"getPendingSlashIds"`
  */
 export const readStrategyManagerGetPendingSlashIds =
   /*#__PURE__*/ createReadContract({
-    abi: strategyManagerAbi,
-    functionName: 'getPendingSlashIds',
-  })
+  abi: strategyManagerAbi,
+  functionName: 'getPendingSlashIds',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link strategyManagerAbi}__ and `functionName` set to `"getStakerStrategyList"`
  */
 export const readStrategyManagerGetStakerStrategyList =
   /*#__PURE__*/ createReadContract({
-    abi: strategyManagerAbi,
-    functionName: 'getStakerStrategyList',
-  })
+  abi: strategyManagerAbi,
+  functionName: 'getStakerStrategyList',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link strategyManagerAbi}__ and `functionName` set to `"getStrategiesWithBurnableShares"`
  */
 export const readStrategyManagerGetStrategiesWithBurnableShares =
   /*#__PURE__*/ createReadContract({
-    abi: strategyManagerAbi,
-    functionName: 'getStrategiesWithBurnableShares',
-  })
+  abi: strategyManagerAbi,
+  functionName: 'getStrategiesWithBurnableShares',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link strategyManagerAbi}__ and `functionName` set to `"nonces"`
@@ -15702,54 +15816,54 @@ export const readStrategyManagerPaused = /*#__PURE__*/ createReadContract({
  */
 export const readStrategyManagerPauserRegistry =
   /*#__PURE__*/ createReadContract({
-    abi: strategyManagerAbi,
-    functionName: 'pauserRegistry',
-  })
+  abi: strategyManagerAbi,
+  functionName: 'pauserRegistry',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link strategyManagerAbi}__ and `functionName` set to `"stakerDepositShares"`
  */
 export const readStrategyManagerStakerDepositShares =
   /*#__PURE__*/ createReadContract({
-    abi: strategyManagerAbi,
-    functionName: 'stakerDepositShares',
-  })
+  abi: strategyManagerAbi,
+  functionName: 'stakerDepositShares',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link strategyManagerAbi}__ and `functionName` set to `"stakerStrategyList"`
  */
 export const readStrategyManagerStakerStrategyList =
   /*#__PURE__*/ createReadContract({
-    abi: strategyManagerAbi,
-    functionName: 'stakerStrategyList',
-  })
+  abi: strategyManagerAbi,
+  functionName: 'stakerStrategyList',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link strategyManagerAbi}__ and `functionName` set to `"stakerStrategyListLength"`
  */
 export const readStrategyManagerStakerStrategyListLength =
   /*#__PURE__*/ createReadContract({
-    abi: strategyManagerAbi,
-    functionName: 'stakerStrategyListLength',
-  })
+  abi: strategyManagerAbi,
+  functionName: 'stakerStrategyListLength',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link strategyManagerAbi}__ and `functionName` set to `"strategyIsWhitelistedForDeposit"`
  */
 export const readStrategyManagerStrategyIsWhitelistedForDeposit =
   /*#__PURE__*/ createReadContract({
-    abi: strategyManagerAbi,
-    functionName: 'strategyIsWhitelistedForDeposit',
-  })
+  abi: strategyManagerAbi,
+  functionName: 'strategyIsWhitelistedForDeposit',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link strategyManagerAbi}__ and `functionName` set to `"strategyWhitelister"`
  */
 export const readStrategyManagerStrategyWhitelister =
   /*#__PURE__*/ createReadContract({
-    abi: strategyManagerAbi,
-    functionName: 'strategyWhitelister',
-  })
+  abi: strategyManagerAbi,
+  functionName: 'strategyWhitelister',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link strategyManagerAbi}__ and `functionName` set to `"version"`
@@ -15779,9 +15893,9 @@ export const writeStrategyManagerAddShares = /*#__PURE__*/ createWriteContract({
  */
 export const writeStrategyManagerAddStrategiesToDepositWhitelist =
   /*#__PURE__*/ createWriteContract({
-    abi: strategyManagerAbi,
-    functionName: 'addStrategiesToDepositWhitelist',
-  })
+  abi: strategyManagerAbi,
+  functionName: 'addStrategiesToDepositWhitelist',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link strategyManagerAbi}__ and `functionName` set to `"burnShares"`
@@ -15795,45 +15909,45 @@ export const writeStrategyManagerBurnShares = /*#__PURE__*/ createWriteContract(
  */
 export const writeStrategyManagerClearBurnOrRedistributableShares =
   /*#__PURE__*/ createWriteContract({
-    abi: strategyManagerAbi,
-    functionName: 'clearBurnOrRedistributableShares',
-  })
+  abi: strategyManagerAbi,
+  functionName: 'clearBurnOrRedistributableShares',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link strategyManagerAbi}__ and `functionName` set to `"clearBurnOrRedistributableSharesByStrategy"`
  */
 export const writeStrategyManagerClearBurnOrRedistributableSharesByStrategy =
   /*#__PURE__*/ createWriteContract({
-    abi: strategyManagerAbi,
-    functionName: 'clearBurnOrRedistributableSharesByStrategy',
-  })
+  abi: strategyManagerAbi,
+  functionName: 'clearBurnOrRedistributableSharesByStrategy',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link strategyManagerAbi}__ and `functionName` set to `"depositIntoStrategy"`
  */
 export const writeStrategyManagerDepositIntoStrategy =
   /*#__PURE__*/ createWriteContract({
-    abi: strategyManagerAbi,
-    functionName: 'depositIntoStrategy',
-  })
+  abi: strategyManagerAbi,
+  functionName: 'depositIntoStrategy',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link strategyManagerAbi}__ and `functionName` set to `"depositIntoStrategyWithSignature"`
  */
 export const writeStrategyManagerDepositIntoStrategyWithSignature =
   /*#__PURE__*/ createWriteContract({
-    abi: strategyManagerAbi,
-    functionName: 'depositIntoStrategyWithSignature',
-  })
+  abi: strategyManagerAbi,
+  functionName: 'depositIntoStrategyWithSignature',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link strategyManagerAbi}__ and `functionName` set to `"increaseBurnOrRedistributableShares"`
  */
 export const writeStrategyManagerIncreaseBurnOrRedistributableShares =
   /*#__PURE__*/ createWriteContract({
-    abi: strategyManagerAbi,
-    functionName: 'increaseBurnOrRedistributableShares',
-  })
+  abi: strategyManagerAbi,
+  functionName: 'increaseBurnOrRedistributableShares',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link strategyManagerAbi}__ and `functionName` set to `"initialize"`
@@ -15863,45 +15977,45 @@ export const writeStrategyManagerPauseAll = /*#__PURE__*/ createWriteContract({
  */
 export const writeStrategyManagerRemoveDepositShares =
   /*#__PURE__*/ createWriteContract({
-    abi: strategyManagerAbi,
-    functionName: 'removeDepositShares',
-  })
+  abi: strategyManagerAbi,
+  functionName: 'removeDepositShares',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link strategyManagerAbi}__ and `functionName` set to `"removeStrategiesFromDepositWhitelist"`
  */
 export const writeStrategyManagerRemoveStrategiesFromDepositWhitelist =
   /*#__PURE__*/ createWriteContract({
-    abi: strategyManagerAbi,
-    functionName: 'removeStrategiesFromDepositWhitelist',
-  })
+  abi: strategyManagerAbi,
+  functionName: 'removeStrategiesFromDepositWhitelist',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link strategyManagerAbi}__ and `functionName` set to `"renounceOwnership"`
  */
 export const writeStrategyManagerRenounceOwnership =
   /*#__PURE__*/ createWriteContract({
-    abi: strategyManagerAbi,
-    functionName: 'renounceOwnership',
-  })
+  abi: strategyManagerAbi,
+  functionName: 'renounceOwnership',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link strategyManagerAbi}__ and `functionName` set to `"setStrategyWhitelister"`
  */
 export const writeStrategyManagerSetStrategyWhitelister =
   /*#__PURE__*/ createWriteContract({
-    abi: strategyManagerAbi,
-    functionName: 'setStrategyWhitelister',
-  })
+  abi: strategyManagerAbi,
+  functionName: 'setStrategyWhitelister',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link strategyManagerAbi}__ and `functionName` set to `"transferOwnership"`
  */
 export const writeStrategyManagerTransferOwnership =
   /*#__PURE__*/ createWriteContract({
-    abi: strategyManagerAbi,
-    functionName: 'transferOwnership',
-  })
+  abi: strategyManagerAbi,
+  functionName: 'transferOwnership',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link strategyManagerAbi}__ and `functionName` set to `"unpause"`
@@ -15916,9 +16030,9 @@ export const writeStrategyManagerUnpause = /*#__PURE__*/ createWriteContract({
  */
 export const writeStrategyManagerWithdrawSharesAsTokens =
   /*#__PURE__*/ createWriteContract({
-    abi: strategyManagerAbi,
-    functionName: 'withdrawSharesAsTokens',
-  })
+  abi: strategyManagerAbi,
+  functionName: 'withdrawSharesAsTokens',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link strategyManagerAbi}__
@@ -15932,162 +16046,162 @@ export const simulateStrategyManager = /*#__PURE__*/ createSimulateContract({
  */
 export const simulateStrategyManagerAddShares =
   /*#__PURE__*/ createSimulateContract({
-    abi: strategyManagerAbi,
-    functionName: 'addShares',
-  })
+  abi: strategyManagerAbi,
+  functionName: 'addShares',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link strategyManagerAbi}__ and `functionName` set to `"addStrategiesToDepositWhitelist"`
  */
 export const simulateStrategyManagerAddStrategiesToDepositWhitelist =
   /*#__PURE__*/ createSimulateContract({
-    abi: strategyManagerAbi,
-    functionName: 'addStrategiesToDepositWhitelist',
-  })
+  abi: strategyManagerAbi,
+  functionName: 'addStrategiesToDepositWhitelist',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link strategyManagerAbi}__ and `functionName` set to `"burnShares"`
  */
 export const simulateStrategyManagerBurnShares =
   /*#__PURE__*/ createSimulateContract({
-    abi: strategyManagerAbi,
-    functionName: 'burnShares',
-  })
+  abi: strategyManagerAbi,
+  functionName: 'burnShares',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link strategyManagerAbi}__ and `functionName` set to `"clearBurnOrRedistributableShares"`
  */
 export const simulateStrategyManagerClearBurnOrRedistributableShares =
   /*#__PURE__*/ createSimulateContract({
-    abi: strategyManagerAbi,
-    functionName: 'clearBurnOrRedistributableShares',
-  })
+  abi: strategyManagerAbi,
+  functionName: 'clearBurnOrRedistributableShares',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link strategyManagerAbi}__ and `functionName` set to `"clearBurnOrRedistributableSharesByStrategy"`
  */
 export const simulateStrategyManagerClearBurnOrRedistributableSharesByStrategy =
   /*#__PURE__*/ createSimulateContract({
-    abi: strategyManagerAbi,
-    functionName: 'clearBurnOrRedistributableSharesByStrategy',
-  })
+  abi: strategyManagerAbi,
+  functionName: 'clearBurnOrRedistributableSharesByStrategy',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link strategyManagerAbi}__ and `functionName` set to `"depositIntoStrategy"`
  */
 export const simulateStrategyManagerDepositIntoStrategy =
   /*#__PURE__*/ createSimulateContract({
-    abi: strategyManagerAbi,
-    functionName: 'depositIntoStrategy',
-  })
+  abi: strategyManagerAbi,
+  functionName: 'depositIntoStrategy',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link strategyManagerAbi}__ and `functionName` set to `"depositIntoStrategyWithSignature"`
  */
 export const simulateStrategyManagerDepositIntoStrategyWithSignature =
   /*#__PURE__*/ createSimulateContract({
-    abi: strategyManagerAbi,
-    functionName: 'depositIntoStrategyWithSignature',
-  })
+  abi: strategyManagerAbi,
+  functionName: 'depositIntoStrategyWithSignature',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link strategyManagerAbi}__ and `functionName` set to `"increaseBurnOrRedistributableShares"`
  */
 export const simulateStrategyManagerIncreaseBurnOrRedistributableShares =
   /*#__PURE__*/ createSimulateContract({
-    abi: strategyManagerAbi,
-    functionName: 'increaseBurnOrRedistributableShares',
-  })
+  abi: strategyManagerAbi,
+  functionName: 'increaseBurnOrRedistributableShares',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link strategyManagerAbi}__ and `functionName` set to `"initialize"`
  */
 export const simulateStrategyManagerInitialize =
   /*#__PURE__*/ createSimulateContract({
-    abi: strategyManagerAbi,
-    functionName: 'initialize',
-  })
+  abi: strategyManagerAbi,
+  functionName: 'initialize',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link strategyManagerAbi}__ and `functionName` set to `"pause"`
  */
 export const simulateStrategyManagerPause =
   /*#__PURE__*/ createSimulateContract({
-    abi: strategyManagerAbi,
-    functionName: 'pause',
-  })
+  abi: strategyManagerAbi,
+  functionName: 'pause',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link strategyManagerAbi}__ and `functionName` set to `"pauseAll"`
  */
 export const simulateStrategyManagerPauseAll =
   /*#__PURE__*/ createSimulateContract({
-    abi: strategyManagerAbi,
-    functionName: 'pauseAll',
-  })
+  abi: strategyManagerAbi,
+  functionName: 'pauseAll',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link strategyManagerAbi}__ and `functionName` set to `"removeDepositShares"`
  */
 export const simulateStrategyManagerRemoveDepositShares =
   /*#__PURE__*/ createSimulateContract({
-    abi: strategyManagerAbi,
-    functionName: 'removeDepositShares',
-  })
+  abi: strategyManagerAbi,
+  functionName: 'removeDepositShares',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link strategyManagerAbi}__ and `functionName` set to `"removeStrategiesFromDepositWhitelist"`
  */
 export const simulateStrategyManagerRemoveStrategiesFromDepositWhitelist =
   /*#__PURE__*/ createSimulateContract({
-    abi: strategyManagerAbi,
-    functionName: 'removeStrategiesFromDepositWhitelist',
-  })
+  abi: strategyManagerAbi,
+  functionName: 'removeStrategiesFromDepositWhitelist',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link strategyManagerAbi}__ and `functionName` set to `"renounceOwnership"`
  */
 export const simulateStrategyManagerRenounceOwnership =
   /*#__PURE__*/ createSimulateContract({
-    abi: strategyManagerAbi,
-    functionName: 'renounceOwnership',
-  })
+  abi: strategyManagerAbi,
+  functionName: 'renounceOwnership',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link strategyManagerAbi}__ and `functionName` set to `"setStrategyWhitelister"`
  */
 export const simulateStrategyManagerSetStrategyWhitelister =
   /*#__PURE__*/ createSimulateContract({
-    abi: strategyManagerAbi,
-    functionName: 'setStrategyWhitelister',
-  })
+  abi: strategyManagerAbi,
+  functionName: 'setStrategyWhitelister',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link strategyManagerAbi}__ and `functionName` set to `"transferOwnership"`
  */
 export const simulateStrategyManagerTransferOwnership =
   /*#__PURE__*/ createSimulateContract({
-    abi: strategyManagerAbi,
-    functionName: 'transferOwnership',
-  })
+  abi: strategyManagerAbi,
+  functionName: 'transferOwnership',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link strategyManagerAbi}__ and `functionName` set to `"unpause"`
  */
 export const simulateStrategyManagerUnpause =
   /*#__PURE__*/ createSimulateContract({
-    abi: strategyManagerAbi,
-    functionName: 'unpause',
-  })
+  abi: strategyManagerAbi,
+  functionName: 'unpause',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link strategyManagerAbi}__ and `functionName` set to `"withdrawSharesAsTokens"`
  */
 export const simulateStrategyManagerWithdrawSharesAsTokens =
   /*#__PURE__*/ createSimulateContract({
-    abi: strategyManagerAbi,
-    functionName: 'withdrawSharesAsTokens',
-  })
+  abi: strategyManagerAbi,
+  functionName: 'withdrawSharesAsTokens',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link strategyManagerAbi}__
@@ -16101,134 +16215,134 @@ export const watchStrategyManagerEvent = /*#__PURE__*/ createWatchContractEvent(
  */
 export const watchStrategyManagerBurnOrRedistributableSharesDecreasedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: strategyManagerAbi,
-    eventName: 'BurnOrRedistributableSharesDecreased',
-  })
+  abi: strategyManagerAbi,
+  eventName: 'BurnOrRedistributableSharesDecreased',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link strategyManagerAbi}__ and `eventName` set to `"BurnOrRedistributableSharesIncreased"`
  */
 export const watchStrategyManagerBurnOrRedistributableSharesIncreasedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: strategyManagerAbi,
-    eventName: 'BurnOrRedistributableSharesIncreased',
-  })
+  abi: strategyManagerAbi,
+  eventName: 'BurnOrRedistributableSharesIncreased',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link strategyManagerAbi}__ and `eventName` set to `"BurnableSharesDecreased"`
  */
 export const watchStrategyManagerBurnableSharesDecreasedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: strategyManagerAbi,
-    eventName: 'BurnableSharesDecreased',
-  })
+  abi: strategyManagerAbi,
+  eventName: 'BurnableSharesDecreased',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link strategyManagerAbi}__ and `eventName` set to `"Deposit"`
  */
 export const watchStrategyManagerDepositEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: strategyManagerAbi,
-    eventName: 'Deposit',
-  })
+  abi: strategyManagerAbi,
+  eventName: 'Deposit',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link strategyManagerAbi}__ and `eventName` set to `"Initialized"`
  */
 export const watchStrategyManagerInitializedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: strategyManagerAbi,
-    eventName: 'Initialized',
-  })
+  abi: strategyManagerAbi,
+  eventName: 'Initialized',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link strategyManagerAbi}__ and `eventName` set to `"OwnershipTransferred"`
  */
 export const watchStrategyManagerOwnershipTransferredEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: strategyManagerAbi,
-    eventName: 'OwnershipTransferred',
-  })
+  abi: strategyManagerAbi,
+  eventName: 'OwnershipTransferred',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link strategyManagerAbi}__ and `eventName` set to `"Paused"`
  */
 export const watchStrategyManagerPausedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: strategyManagerAbi,
-    eventName: 'Paused',
-  })
+  abi: strategyManagerAbi,
+  eventName: 'Paused',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link strategyManagerAbi}__ and `eventName` set to `"StrategyAddedToDepositWhitelist"`
  */
 export const watchStrategyManagerStrategyAddedToDepositWhitelistEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: strategyManagerAbi,
-    eventName: 'StrategyAddedToDepositWhitelist',
-  })
+  abi: strategyManagerAbi,
+  eventName: 'StrategyAddedToDepositWhitelist',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link strategyManagerAbi}__ and `eventName` set to `"StrategyRemovedFromDepositWhitelist"`
  */
 export const watchStrategyManagerStrategyRemovedFromDepositWhitelistEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: strategyManagerAbi,
-    eventName: 'StrategyRemovedFromDepositWhitelist',
-  })
+  abi: strategyManagerAbi,
+  eventName: 'StrategyRemovedFromDepositWhitelist',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link strategyManagerAbi}__ and `eventName` set to `"StrategyWhitelisterChanged"`
  */
 export const watchStrategyManagerStrategyWhitelisterChangedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: strategyManagerAbi,
-    eventName: 'StrategyWhitelisterChanged',
-  })
+  abi: strategyManagerAbi,
+  eventName: 'StrategyWhitelisterChanged',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link strategyManagerAbi}__ and `eventName` set to `"Unpaused"`
  */
 export const watchStrategyManagerUnpausedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: strategyManagerAbi,
-    eventName: 'Unpaused',
-  })
+  abi: strategyManagerAbi,
+  eventName: 'Unpaused',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link transparentUpgradeableProxyAbi}__
  */
 export const watchTransparentUpgradeableProxyEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: transparentUpgradeableProxyAbi,
-  })
+  abi: transparentUpgradeableProxyAbi,
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link transparentUpgradeableProxyAbi}__ and `eventName` set to `"AdminChanged"`
  */
 export const watchTransparentUpgradeableProxyAdminChangedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: transparentUpgradeableProxyAbi,
-    eventName: 'AdminChanged',
-  })
+  abi: transparentUpgradeableProxyAbi,
+  eventName: 'AdminChanged',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link transparentUpgradeableProxyAbi}__ and `eventName` set to `"BeaconUpgraded"`
  */
 export const watchTransparentUpgradeableProxyBeaconUpgradedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: transparentUpgradeableProxyAbi,
-    eventName: 'BeaconUpgraded',
-  })
+  abi: transparentUpgradeableProxyAbi,
+  eventName: 'BeaconUpgraded',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link transparentUpgradeableProxyAbi}__ and `eventName` set to `"Upgraded"`
  */
 export const watchTransparentUpgradeableProxyUpgradedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: transparentUpgradeableProxyAbi,
-    eventName: 'Upgraded',
-  })
+  abi: transparentUpgradeableProxyAbi,
+  eventName: 'Upgraded',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link upgradeableBeaconAbi}__
@@ -16242,9 +16356,9 @@ export const readUpgradeableBeacon = /*#__PURE__*/ createReadContract({
  */
 export const readUpgradeableBeaconImplementation =
   /*#__PURE__*/ createReadContract({
-    abi: upgradeableBeaconAbi,
-    functionName: 'implementation',
-  })
+  abi: upgradeableBeaconAbi,
+  functionName: 'implementation',
+})
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link upgradeableBeaconAbi}__ and `functionName` set to `"owner"`
@@ -16266,27 +16380,27 @@ export const writeUpgradeableBeacon = /*#__PURE__*/ createWriteContract({
  */
 export const writeUpgradeableBeaconRenounceOwnership =
   /*#__PURE__*/ createWriteContract({
-    abi: upgradeableBeaconAbi,
-    functionName: 'renounceOwnership',
-  })
+  abi: upgradeableBeaconAbi,
+  functionName: 'renounceOwnership',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link upgradeableBeaconAbi}__ and `functionName` set to `"transferOwnership"`
  */
 export const writeUpgradeableBeaconTransferOwnership =
   /*#__PURE__*/ createWriteContract({
-    abi: upgradeableBeaconAbi,
-    functionName: 'transferOwnership',
-  })
+  abi: upgradeableBeaconAbi,
+  functionName: 'transferOwnership',
+})
 
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link upgradeableBeaconAbi}__ and `functionName` set to `"upgradeTo"`
  */
 export const writeUpgradeableBeaconUpgradeTo =
   /*#__PURE__*/ createWriteContract({
-    abi: upgradeableBeaconAbi,
-    functionName: 'upgradeTo',
-  })
+  abi: upgradeableBeaconAbi,
+  functionName: 'upgradeTo',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link upgradeableBeaconAbi}__
@@ -16300,27 +16414,27 @@ export const simulateUpgradeableBeacon = /*#__PURE__*/ createSimulateContract({
  */
 export const simulateUpgradeableBeaconRenounceOwnership =
   /*#__PURE__*/ createSimulateContract({
-    abi: upgradeableBeaconAbi,
-    functionName: 'renounceOwnership',
-  })
+  abi: upgradeableBeaconAbi,
+  functionName: 'renounceOwnership',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link upgradeableBeaconAbi}__ and `functionName` set to `"transferOwnership"`
  */
 export const simulateUpgradeableBeaconTransferOwnership =
   /*#__PURE__*/ createSimulateContract({
-    abi: upgradeableBeaconAbi,
-    functionName: 'transferOwnership',
-  })
+  abi: upgradeableBeaconAbi,
+  functionName: 'transferOwnership',
+})
 
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link upgradeableBeaconAbi}__ and `functionName` set to `"upgradeTo"`
  */
 export const simulateUpgradeableBeaconUpgradeTo =
   /*#__PURE__*/ createSimulateContract({
-    abi: upgradeableBeaconAbi,
-    functionName: 'upgradeTo',
-  })
+  abi: upgradeableBeaconAbi,
+  functionName: 'upgradeTo',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link upgradeableBeaconAbi}__
@@ -16333,15 +16447,15 @@ export const watchUpgradeableBeaconEvent =
  */
 export const watchUpgradeableBeaconOwnershipTransferredEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: upgradeableBeaconAbi,
-    eventName: 'OwnershipTransferred',
-  })
+  abi: upgradeableBeaconAbi,
+  eventName: 'OwnershipTransferred',
+})
 
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link upgradeableBeaconAbi}__ and `eventName` set to `"Upgraded"`
  */
 export const watchUpgradeableBeaconUpgradedEvent =
   /*#__PURE__*/ createWatchContractEvent({
-    abi: upgradeableBeaconAbi,
-    eventName: 'Upgraded',
-  })
+  abi: upgradeableBeaconAbi,
+  eventName: 'Upgraded',
+})

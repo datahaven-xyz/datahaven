@@ -75,10 +75,30 @@ export const performValidatorOperations = async (
  * @returns Promise resolving when the operation is complete
  */
 export const performValidatorSetUpdate = async (
+  options: LaunchOptions,
   networkRpcUrl: string,
   contractsDeployed: boolean
 ) => {
   printHeader("Updating DataHaven Validator Set");
+
+  let shouldUpdateValidatorSet = options.updateValidatorSet;
+  if (shouldUpdateValidatorSet === undefined) {
+    shouldUpdateValidatorSet = await confirmWithTimeout(
+      "Do you want to update the validator set?",
+      true,
+      10
+    );
+  } else {
+    logger.info(
+      `🏳️ Using flag option: ${shouldUpdateValidatorSet ? "will update" : "will not update"} validator set`
+    );
+  }
+
+  if (!shouldUpdateValidatorSet) {
+    logger.info("👍 Skipping validator set update");
+    printDivider();
+    return;
+  }
 
   if (!contractsDeployed) {
     logger.warn(

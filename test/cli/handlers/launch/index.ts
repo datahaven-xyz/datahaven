@@ -13,7 +13,7 @@ import { setParametersFromCollection } from "./parameters";
 import { launchRelayers } from "./relayer";
 import { launchStorageHubComponents } from "./storagehub";
 import { performSummaryOperations } from "./summary";
-import { performValidatorOperations } from "./validator";
+import { performValidatorOperations, performValidatorSetUpdate } from "./validator";
 
 export const NETWORK_ID = "cli-launch";
 
@@ -43,6 +43,7 @@ export interface LaunchOptions {
   deployContracts?: boolean;
   fundValidators?: boolean;
   setupValidators?: boolean;
+  updateValidatorSet?: boolean;
   setParameters?: boolean;
   relayer?: boolean;
   relayerImageTag: string;
@@ -84,8 +85,9 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
   }
 
   // skip deploying contracts if we have injected it
+  let contractsDeployed = false;
   if (options.deployContracts && !options.injectContracts) {
-    const contractsDeployed = await deployContracts({
+    contractsDeployed = await deployContracts({
       rpcUrl: launchedNetwork.elRpcUrl,
       verified: options.verified,
       blockscoutBackendUrl,
@@ -106,6 +108,8 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
   });
 
   await launchRelayers(options, launchedNetwork);
+
+  await performValidatorSetUpdate(options, launchedNetwork.elRpcUrl, contractsDeployed);
 
   await launchStorageHubComponents(options, launchedNetwork);
 

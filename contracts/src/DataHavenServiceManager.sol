@@ -71,6 +71,9 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
     mapping(IStrategy => uint96) public strategiesAndMultipliers;
     mapping(address => address) public validatorSolochainAddressToEthAddress;
 
+    /// @inheritdoc IDataHavenServiceManager
+    address public validatorSetSubmitter;
+
     /// @notice Storage gap for upgradeability (must be at end of state variables)
     // solhint-disable-next-line var-name-mixedcase
     uint256[44] private __GAP;
@@ -95,6 +98,12 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         _;
     }
 
+    /// @notice Restricts function to the validator set submitter
+    modifier onlyValidatorSetSubmitter() {
+        _checkValidatorSetSubmitter();
+        _;
+    }
+
     function _checkRewardsInitiator() internal view {
         require(msg.sender == rewardsInitiator, OnlyRewardsInitiator());
     }
@@ -109,6 +118,10 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
 
     function _checkAllocationManager() internal view {
         require(msg.sender == address(_ALLOCATION_MANAGER), OnlyAllocationManager());
+    }
+
+    function _checkValidatorSetSubmitter() internal view {
+        require(msg.sender == validatorSetSubmitter, OnlyValidatorSetSubmitter());
     }
 
     // ============ Constructor ============
@@ -130,7 +143,8 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         address initialOwner,
         address _rewardsInitiator,
         IStrategy[] memory validatorsStrategies,
-        address _snowbridgeGatewayAddress
+        address _snowbridgeGatewayAddress,
+        address _validatorSetSubmitter
     ) public virtual initializer {
         require(initialOwner != address(0), ZeroAddress());
         require(_rewardsInitiator != address(0), ZeroAddress());
@@ -154,21 +168,41 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
 
         // Set the Snowbridge Gateway address.
         _snowbridgeGateway = IGatewayV2(_snowbridgeGatewayAddress);
+
+        // Set the validator set submitter if provided.
+        if (_validatorSetSubmitter != address(0)) {
+            validatorSetSubmitter = _validatorSetSubmitter;
+            emit ValidatorSetSubmitterUpdated(address(0), _validatorSetSubmitter);
+        }
     }
 
     /// @inheritdoc IDataHavenServiceManager
-    function sendNewValidatorSet(
+    function setValidatorSetSubmitter(
+        address newSubmitter
+    ) external onlyOwner {
+        require(newSubmitter != address(0), ZeroAddress());
+        address oldSubmitter = validatorSetSubmitter;
+        validatorSetSubmitter = newSubmitter;
+        emit ValidatorSetSubmitterUpdated(oldSubmitter, newSubmitter);
+    }
+
+    /// @inheritdoc IDataHavenServiceManager
+    function sendNewValidatorSetForEra(
+        uint64 targetEra,
         uint128 executionFee,
         uint128 relayerFee
-    ) external payable onlyOwner {
-        bytes memory message = buildNewValidatorSetMessage();
+    ) external payable onlyValidatorSetSubmitter {
+        bytes memory message = buildNewValidatorSetMessageForEra(targetEra);
         _snowbridgeGateway.v2_sendMessage{value: msg.value}(
             message, new bytes[](0), bytes(""), executionFee, relayerFee
         );
+        emit ValidatorSetMessageSubmitted(targetEra, keccak256(message), msg.sender);
     }
 
     /// @inheritdoc IDataHavenServiceManager
-    function buildNewValidatorSetMessage() public view returns (bytes memory) {
+    function buildNewValidatorSetMessageForEra(
+        uint64 targetEra
+    ) public view returns (bytes memory) {
         OperatorSet memory operatorSet = OperatorSet({avs: address(this), id: VALIDATORS_SET_ID});
         address[] memory operators = _ALLOCATION_MANAGER.getMembers(operatorSet);
         IStrategy[] memory strategies = _ALLOCATION_MANAGER.getStrategiesInOperatorSet(operatorSet);
@@ -239,7 +273,9 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         }
 
         return DataHavenSnowbridgeMessages.scaleEncodeNewValidatorSetMessagePayload(
-            DataHavenSnowbridgeMessages.NewValidatorSetPayload({validators: newValidatorSet})
+            DataHavenSnowbridgeMessages.NewValidatorSetPayload({
+                validators: newValidatorSet, externalIndex: targetEra
+            })
         );
     }
 

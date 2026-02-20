@@ -1841,7 +1841,7 @@ mod tests {
             message_id: EL_MESSAGE_ID,
             message: BridgeMessage::V1(InboundCommand::ReceiveValidators {
                 validators: Vec::new(),
-                external_index: 0,
+                external_index: 1,
             }),
         };
 

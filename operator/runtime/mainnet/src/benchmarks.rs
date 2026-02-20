@@ -22,7 +22,7 @@ frame_benchmarking::define_benchmarks!(
     [pallet_mmr, Mmr]
     [pallet_beefy_mmr, BeefyMmrLeaf]
     [pallet_babe, Babe]
-    [pallet_grandpa, Grandpa]
+    [pallet_grandpa, pallet_grandpa_benchmarking::Pallet::<Runtime>]
     [pallet_randomness, Randomness]
 
     // Substrate pallets

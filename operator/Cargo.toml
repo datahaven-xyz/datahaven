@@ -44,6 +44,7 @@ pallet-external-validators = { path = "./pallets/external-validators", default-f
 pallet-external-validators-rewards = { path = "./pallets/external-validators-rewards", default-features = false }
 pallet-outbound-commitment-store = { path = "./pallets/outbound-commitment-store", default-features = false }
 pallet-proxy-genesis-companion = { path = "./pallets/proxy-genesis-companion", default-features = false }
+pallet-grandpa-benchmarking = { path = "./pallets/grandpa-benchmarking", default-features = false }
 pallet-session-benchmarking = { path = "./pallets/session-benchmarking", default-features = false }
 
 # Crates.io (wasm)

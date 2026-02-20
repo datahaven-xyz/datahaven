@@ -2669,6 +2669,7 @@ dependencies = [
  "pallet-file-system",
  "pallet-file-system-runtime-api",
  "pallet-grandpa",
+ "pallet-grandpa-benchmarking",
  "pallet-identity",
  "pallet-im-online",
  "pallet-message-queue",
@@ -2972,6 +2973,7 @@ dependencies = [
  "pallet-file-system",
  "pallet-file-system-runtime-api",
  "pallet-grandpa",
+ "pallet-grandpa-benchmarking",
  "pallet-identity",
  "pallet-im-online",
  "pallet-message-queue",
@@ -3128,6 +3130,7 @@ dependencies = [
  "pallet-file-system",
  "pallet-file-system-runtime-api",
  "pallet-grandpa",
+ "pallet-grandpa-benchmarking",
  "pallet-identity",
  "pallet-im-online",
  "pallet-message-queue",
@@ -9280,6 +9283,25 @@ dependencies = [
  "sp-runtime",
  "sp-session",
  "sp-staking",
+]
+
+[[package]]
+name = "pallet-grandpa-benchmarking"
+version = "0.24.0"
+dependencies = [
+ "finality-grandpa",
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "pallet-grandpa",
+ "pallet-session",
+ "parity-scale-codec",
+ "sp-application-crypto",
+ "sp-consensus-grandpa",
+ "sp-core",
+ "sp-runtime",
+ "sp-session",
+ "sp-std",
 ]
 
 [[package]]

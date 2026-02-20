@@ -2144,9 +2144,17 @@ export const dataHavenServiceManagerAbi = [
       { name: 'initialOwner', internalType: 'address', type: 'address' },
       { name: '_rewardsInitiator', internalType: 'address', type: 'address' },
       {
-        name: 'validatorsStrategies',
-        internalType: 'contract IStrategy[]',
-        type: 'address[]',
+        name: 'validatorsStrategiesAndMultipliers',
+        internalType: 'struct IRewardsCoordinatorTypes.StrategyAndMultiplier[]',
+        type: 'tuple[]',
+        components: [
+          {
+            name: 'strategy',
+            internalType: 'contract IStrategy',
+            type: 'address',
+          },
+          { name: 'multiplier', internalType: 'uint96', type: 'uint96' },
+        ],
       },
       {
         name: '_snowbridgeGatewayAddress',
@@ -2665,6 +2673,7 @@ export const dataHavenServiceManagerAbi = [
   { type: 'error', inputs: [], name: 'OnlyValidatorSetSubmitter' },
   { type: 'error', inputs: [], name: 'OperatorNotInAllowlist' },
   { type: 'error', inputs: [], name: 'SolochainAddressAlreadyAssigned' },
+  { type: 'error', inputs: [], name: 'StrategyNotInOperatorSet' },
   { type: 'error', inputs: [], name: 'UnknownSolochainAddress' },
   { type: 'error', inputs: [], name: 'ZeroAddress' },
 ] as const

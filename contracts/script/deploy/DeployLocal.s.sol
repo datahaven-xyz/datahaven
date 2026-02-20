@@ -206,7 +206,7 @@ contract DeployLocal is DeployBase {
             DataHavenServiceManager.initialize.selector,
             params.avsOwner,
             params.rewardsInitiator,
-            params.validatorsStrategies,
+            params.validatorsStrategiesAndMultipliers,
             params.gateway,
             params.validatorSetSubmitter
         );
@@ -356,11 +356,15 @@ contract DeployLocal is DeployBase {
     function _prepareStrategiesForServiceManager(
         ServiceManagerInitParams memory params
     ) internal view {
-        if (params.validatorsStrategies.length == 0) {
-            params.validatorsStrategies = new address[](deployedStrategies.length);
+        if (params.validatorsStrategiesAndMultipliers.length == 0) {
+            IRewardsCoordinatorTypes.StrategyAndMultiplier[] memory sm =
+                new IRewardsCoordinatorTypes.StrategyAndMultiplier[](deployedStrategies.length);
             for (uint256 i = 0; i < deployedStrategies.length; i++) {
-                params.validatorsStrategies[i] = deployedStrategies[i].address_;
+                sm[i] = IRewardsCoordinatorTypes.StrategyAndMultiplier({
+                    strategy: IStrategy(deployedStrategies[i].address_), multiplier: 1
+                });
             }
+            params.validatorsStrategiesAndMultipliers = sm;
         }
     }
 

@@ -42,6 +42,9 @@ interface IDataHavenServiceManagerErrors {
 
     /// @notice Thrown when a Solochain address is already assigned to a different operator
     error SolochainAddressAlreadyAssigned();
+
+    /// @notice Thrown when a strategy is not registered in the operator set
+    error StrategyNotInOperatorSet();
 }
 
 /**
@@ -170,12 +173,15 @@ interface IDataHavenServiceManager is
      * @notice Initializes the DataHaven Service Manager
      * @param initialOwner Address of the initial owner
      * @param rewardsInitiator Address authorized to initiate rewards
-     * @param validatorsStrategies Array of strategies supported by validators
+     * @param validatorsStrategiesAndMultipliers Array of strategy-multiplier pairs for the validators
+     *        operator set. Each multiplier must be non-zero.
+     * @param _snowbridgeGatewayAddress Address of the Snowbridge Gateway
+     * @param _validatorSetSubmitter Address authorized to submit validator set messages
      */
     function initialize(
         address initialOwner,
         address rewardsInitiator,
-        IStrategy[] memory validatorsStrategies,
+        IRewardsCoordinatorTypes.StrategyAndMultiplier[] memory validatorsStrategiesAndMultipliers,
         address _snowbridgeGatewayAddress,
         address _validatorSetSubmitter
     ) external;

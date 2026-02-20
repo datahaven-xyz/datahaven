@@ -67,12 +67,13 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
     /// @inheritdoc IDataHavenServiceManager
     mapping(address => address) public validatorEthAddressToSolochainAddress;
 
-    /// @inheritdoc IDataHavenServiceManager
-    mapping(IStrategy => uint96) public strategiesAndMultipliers;
     mapping(address => address) public validatorSolochainAddressToEthAddress;
 
     /// @inheritdoc IDataHavenServiceManager
     address public validatorSetSubmitter;
+
+    /// @inheritdoc IDataHavenServiceManager
+    mapping(IStrategy => uint96) public strategiesAndMultipliers;
 
     /// @notice Storage gap for upgradeability (must be at end of state variables)
     // solhint-disable-next-line var-name-mixedcase
@@ -142,7 +143,7 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
     function initialize(
         address initialOwner,
         address _rewardsInitiator,
-        IStrategy[] memory validatorsStrategies,
+        IRewardsCoordinatorTypes.StrategyAndMultiplier[] memory validatorsStrategiesAndMultipliers,
         address _snowbridgeGatewayAddress,
         address _validatorSetSubmitter
     ) public virtual initializer {
@@ -158,11 +159,20 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         // Register the DataHaven service in the AllocationManager.
         _ALLOCATION_MANAGER.updateAVSMetadataURI(address(this), DATAHAVEN_AVS_METADATA);
 
+        // Build the strategies array and populate multipliers atomically so that
+        // getStrategiesInOperatorSet and strategiesAndMultipliers are always consistent.
+        IStrategy[] memory strategies = new IStrategy[](validatorsStrategiesAndMultipliers.length);
+        for (uint256 i = 0; i < validatorsStrategiesAndMultipliers.length; i++) {
+            strategies[i] = validatorsStrategiesAndMultipliers[i].strategy;
+            strategiesAndMultipliers[validatorsStrategiesAndMultipliers[i].strategy] =
+            validatorsStrategiesAndMultipliers[i].multiplier;
+        }
+
         // Create the operator set for the DataHaven service.
         IAllocationManagerTypes.CreateSetParams[] memory operatorSets =
             new IAllocationManagerTypes.CreateSetParams[](1);
         operatorSets[0] = IAllocationManagerTypes.CreateSetParams({
-            operatorSetId: VALIDATORS_SET_ID, strategies: validatorsStrategies
+            operatorSetId: VALIDATORS_SET_ID, strategies: strategies
         });
         _ALLOCATION_MANAGER.createOperatorSets(address(this), operatorSets);
 
@@ -431,7 +441,19 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
     function setStrategiesAndMultipliers(
         IRewardsCoordinatorTypes.StrategyAndMultiplier[] calldata _strategyMultipliers
     ) external onlyOwner {
+        OperatorSet memory operatorSet = OperatorSet({avs: address(this), id: VALIDATORS_SET_ID});
+        IStrategy[] memory registered = _ALLOCATION_MANAGER.getStrategiesInOperatorSet(operatorSet);
+
         for (uint256 i = 0; i < _strategyMultipliers.length; i++) {
+            bool found = false;
+            for (uint256 j = 0; j < registered.length; j++) {
+                if (registered[j] == _strategyMultipliers[i].strategy) {
+                    found = true;
+                    break;
+                }
+            }
+            require(found, StrategyNotInOperatorSet());
+
             strategiesAndMultipliers[_strategyMultipliers[i].strategy] =
             _strategyMultipliers[i].multiplier;
         }

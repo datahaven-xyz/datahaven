@@ -73,28 +73,28 @@
       "type": "t_mapping(t_address,t_address)"
     },
     {
-      "astId": 23795,
-      "contract": "src/DataHavenServiceManager.sol:DataHavenServiceManager",
-      "label": "strategiesAndMultipliers",
-      "offset": 0,
-      "slot": "105",
-      "type": "t_mapping(t_contract(IStrategy)7361,t_uint96)"
-    },
-    {
-      "astId": 23799,
+      "astId": 23793,
       "contract": "src/DataHavenServiceManager.sol:DataHavenServiceManager",
       "label": "validatorSolochainAddressToEthAddress",
       "offset": 0,
-      "slot": "106",
+      "slot": "105",
       "type": "t_mapping(t_address,t_address)"
+    },
+    {
+      "astId": 23796,
+      "contract": "src/DataHavenServiceManager.sol:DataHavenServiceManager",
+      "label": "validatorSetSubmitter",
+      "offset": 0,
+      "slot": "106",
+      "type": "t_address"
     },
     {
       "astId": 23802,
       "contract": "src/DataHavenServiceManager.sol:DataHavenServiceManager",
-      "label": "validatorSetSubmitter",
+      "label": "strategiesAndMultipliers",
       "offset": 0,
       "slot": "107",
-      "type": "t_address"
+      "type": "t_mapping(t_contract(IStrategy)7361,t_uint96)"
     },
     {
       "astId": 23807,

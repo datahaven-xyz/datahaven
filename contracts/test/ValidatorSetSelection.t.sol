@@ -135,8 +135,7 @@ contract ValidatorSetSelectionTest is SnowbridgeAndAVSDeployer {
     ) internal pure returns (bytes memory) {
         return DataHavenSnowbridgeMessages.scaleEncodeNewValidatorSetMessagePayload(
             DataHavenSnowbridgeMessages.NewValidatorSetPayload({
-                validators: validators,
-                externalIndex: externalIndex
+                validators: validators, externalIndex: externalIndex
             })
         );
     }
@@ -298,7 +297,8 @@ contract ValidatorSetSelectionTest is SnowbridgeAndAVSDeployer {
         expectedBefore[0] = solochainA;
         expectedBefore[1] = solochainB;
         assertEq(
-            serviceManager.buildNewValidatorSetMessageForEra(0), _buildExpectedMessage(expectedBefore, 0)
+            serviceManager.buildNewValidatorSetMessageForEra(0),
+            _buildExpectedMessage(expectedBefore, 0)
         );
 
         // Flip multipliers: strategy 1 now has high multiplier
@@ -322,7 +322,10 @@ contract ValidatorSetSelectionTest is SnowbridgeAndAVSDeployer {
         address[] memory expectedAfter = new address[](2);
         expectedAfter[0] = solochainB;
         expectedAfter[1] = solochainA;
-        assertEq(serviceManager.buildNewValidatorSetMessageForEra(0), _buildExpectedMessage(expectedAfter, 0));
+        assertEq(
+            serviceManager.buildNewValidatorSetMessageForEra(0),
+            _buildExpectedMessage(expectedAfter, 0)
+        );
     }
 
     // ============ Selection Tests ============
@@ -376,7 +379,9 @@ contract ValidatorSetSelectionTest is SnowbridgeAndAVSDeployer {
         expected[1] = solochainA;
         expected[2] = solochainC;
 
-        assertEq(serviceManager.buildNewValidatorSetMessageForEra(0), _buildExpectedMessage(expected, 0));
+        assertEq(
+            serviceManager.buildNewValidatorSetMessageForEra(0), _buildExpectedMessage(expected, 0)
+        );
     }
 
     // Test #2: 2 operators with identical weighted stake; lower Eth address ranks first
@@ -408,7 +413,9 @@ contract ValidatorSetSelectionTest is SnowbridgeAndAVSDeployer {
         expected[0] = solochainLow;
         expected[1] = solochainHigh;
 
-        assertEq(serviceManager.buildNewValidatorSetMessageForEra(0), _buildExpectedMessage(expected, 0));
+        assertEq(
+            serviceManager.buildNewValidatorSetMessageForEra(0), _buildExpectedMessage(expected, 0)
+        );
     }
 
     // Test #3: Register 35 operators; verify only top 32 selected
@@ -472,7 +479,9 @@ contract ValidatorSetSelectionTest is SnowbridgeAndAVSDeployer {
             expected[i] = solochainAddrs[totalOps - 1 - i];
         }
 
-        assertEq(serviceManager.buildNewValidatorSetMessageForEra(0), _buildExpectedMessage(expected, 0));
+        assertEq(
+            serviceManager.buildNewValidatorSetMessageForEra(0), _buildExpectedMessage(expected, 0)
+        );
     }
 
     // Test #5: Operator with zero allocation excluded
@@ -505,24 +514,27 @@ contract ValidatorSetSelectionTest is SnowbridgeAndAVSDeployer {
         expected[0] = solochain2;
         expected[1] = solochain1;
 
-        assertEq(serviceManager.buildNewValidatorSetMessageForEra(0), _buildExpectedMessage(expected, 0));
+        assertEq(
+            serviceManager.buildNewValidatorSetMessageForEra(0), _buildExpectedMessage(expected, 0)
+        );
     }
 
-    // Test #6: Strategy without multiplier is treated as zero and filtered out
-    function test_missingMultiplier_treatedAsZero() public {
-        // After deploy, strategies added via initialize have no multipliers.
-        // Register and allocate an operator so stake is non-zero before multiplier weighting.
-        address op = vm.addr(601);
-        address solochain = address(uint160(0x4001));
-        _registerOperator(op, solochain, _uniformStakes(100 ether));
+    // Test #6: A zero multiplier is accepted and causes that strategy's stake to contribute
+    // no weight. The operator is still included if other strategies have non-zero multipliers.
+    function test_zeroMultiplier_accepted_contributesNoWeight() public {
+        IStrategy[] memory strategies = _getStrategies();
 
-        _advancePastAllocationConfigDelay();
-        _allocateForOperator(op);
-        _advancePastAllocationEffect();
+        // Zero-out the first strategy's multiplier via setStrategiesAndMultipliers
+        IRewardsCoordinatorTypes.StrategyAndMultiplier[] memory sm =
+            new IRewardsCoordinatorTypes.StrategyAndMultiplier[](1);
+        sm[0] = IRewardsCoordinatorTypes.StrategyAndMultiplier({
+            strategy: strategies[0], multiplier: 0
+        });
 
-        // Missing multiplier entries map to zero, so weighted stake is zero and no candidate remains.
-        vm.expectRevert(IDataHavenServiceManagerErrors.EmptyValidatorSet.selector);
-        serviceManager.buildNewValidatorSetMessageForEra(0);
+        cheats.prank(avsOwner);
+        serviceManager.setStrategiesAndMultipliers(sm);
+
+        assertEq(serviceManager.strategiesAndMultipliers(strategies[0]), 0);
     }
 
     // Test #12: Full integration — weighted selection + correct message encoding

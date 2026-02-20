@@ -7,11 +7,13 @@ import { $ } from "bun";
 import {
   allocationManagerAbi,
   dataHavenServiceManagerAbi,
-  delegationManagerAbi
+  delegationManagerAbi,
+  strategyManagerAbi
 } from "contract-bindings";
 import { type Deployments, logger, waitForContainerToStart } from "utils";
 import { DEFAULT_SUBSTRATE_WS_PORT } from "utils/constants";
 import { getPublicPort } from "utils/docker";
+import { erc20Abi } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import validatorSet from "../../configs/validator-set.json";
 import type { LaunchedNetwork } from "../../launcher/types/launchedNetwork";
@@ -120,9 +122,50 @@ export async function registerOperator(
   const { connectors, deployments } = options;
   const validator = getValidator(validatorName);
   const account = privateKeyToAccount(validator.privateKey as `0x${string}`);
+  const { publicClient, walletClient } = connectors;
+
+  // Deposit tokens into deployed strategies
+  const deployedStrategies = deployments.DeployedStrategies ?? [];
+  for (const strategy of deployedStrategies) {
+    const balance = await publicClient.readContract({
+      address: strategy.underlyingToken as `0x${string}`,
+      abi: erc20Abi,
+      functionName: "balanceOf",
+      args: [account.address]
+    });
+
+    if (balance > 0n) {
+      const depositAmount = balance / 10n;
+
+      const approveHash = await walletClient.writeContract({
+        address: strategy.underlyingToken as `0x${string}`,
+        abi: erc20Abi,
+        functionName: "approve",
+        args: [deployments.StrategyManager, depositAmount],
+        account,
+        chain: null
+      });
+      await publicClient.waitForTransactionReceipt({ hash: approveHash });
+
+      const depositHash = await walletClient.writeContract({
+        address: deployments.StrategyManager,
+        abi: strategyManagerAbi,
+        functionName: "depositIntoStrategy",
+        args: [
+          strategy.address as `0x${string}`,
+          strategy.underlyingToken as `0x${string}`,
+          depositAmount
+        ],
+        account,
+        chain: null
+      });
+      await publicClient.waitForTransactionReceipt({ hash: depositHash });
+      logger.debug(`Deposited ${depositAmount} tokens into strategy ${strategy.address}`);
+    }
+  }
 
   // Register as EigenLayer operator
-  const operatorHash = await connectors.walletClient.writeContract({
+  const operatorHash = await walletClient.writeContract({
     address: deployments.DelegationManager as `0x${string}`,
     abi: delegationManagerAbi,
     functionName: "registerAsOperator",
@@ -131,7 +174,7 @@ export async function registerOperator(
     chain: null
   });
 
-  const operatorReceipt = await connectors.publicClient.waitForTransactionReceipt({
+  const operatorReceipt = await publicClient.waitForTransactionReceipt({
     hash: operatorHash
   });
   if (operatorReceipt.status !== "success") {
@@ -139,7 +182,7 @@ export async function registerOperator(
   }
 
   // Register for operator sets
-  const hash = await connectors.walletClient.writeContract({
+  const registerHash = await walletClient.writeContract({
     address: deployments.AllocationManager as `0x${string}`,
     abi: allocationManagerAbi,
     functionName: "registerForOperatorSets",
@@ -155,10 +198,40 @@ export async function registerOperator(
     chain: null
   });
 
-  const receipt = await connectors.publicClient.waitForTransactionReceipt({ hash });
-  if (receipt.status !== "success") {
-    throw new Error(`Operator set registration failed: ${receipt.status}`);
+  const registerReceipt = await publicClient.waitForTransactionReceipt({ hash: registerHash });
+  if (registerReceipt.status !== "success") {
+    throw new Error(`Operator set registration failed: ${registerReceipt.status}`);
   }
 
-  logger.debug(`Registered ${validatorName} as operator (gas: ${receipt.gasUsed})`);
+  // Allocate full magnitude to the validator operator set
+  const strategyAddresses = deployedStrategies.map((s) => s.address as `0x${string}`);
+  const newMagnitudes = strategyAddresses.map(() => BigInt(1e18));
+
+  const allocateHash = await walletClient.writeContract({
+    address: deployments.AllocationManager as `0x${string}`,
+    abi: allocationManagerAbi,
+    functionName: "modifyAllocations",
+    args: [
+      account.address,
+      [
+        {
+          operatorSet: {
+            avs: deployments.ServiceManager as `0x${string}`,
+            id: 0
+          },
+          strategies: strategyAddresses,
+          newMagnitudes
+        }
+      ]
+    ],
+    account,
+    chain: null
+  });
+
+  const allocateReceipt = await publicClient.waitForTransactionReceipt({ hash: allocateHash });
+  if (allocateReceipt.status !== "success") {
+    throw new Error(`Magnitude allocation failed: ${allocateReceipt.status}`);
+  }
+
+  logger.debug(`Registered ${validatorName} as operator (gas: ${registerReceipt.gasUsed})`);
 }

@@ -201,12 +201,22 @@ describe("Validator Set Update", () => {
         chain: null
       });
       const receipt = await publicClient.waitForTransactionReceipt({ hash });
+      logger.info(
+        `sendNewValidatorSet tx status: ${receipt.status}, block: ${receipt.blockNumber}`
+      );
       expect(receipt.status).toBe("success");
 
       // Verify OutboundMessageAccepted event was emitted
       const hasOutboundAccepted = (receipt.logs ?? []).some((log: any) => {
         try {
-          const decoded = decodeEventLog({ abi: gatewayAbi, data: log.data, topics: log.topics });
+          const decoded = decodeEventLog({
+            abi: gatewayAbi,
+            data: log.data,
+            topics: log.topics
+          });
+          if (decoded.eventName === "OutboundMessageAccepted") {
+            logger.info(`OutboundMessageAccepted event: nonce=${(decoded.args as any)?.nonce}`);
+          }
           return decoded.eventName === "OutboundMessageAccepted";
         } catch {
           return false;
@@ -214,6 +224,7 @@ describe("Validator Set Update", () => {
       });
       expect(hasOutboundAccepted).toBe(true);
 
+      logger.info("Waiting for ExternalValidators.ExternalValidatorsSet event on DataHaven...");
       // Wait for the validator set to be updated on Substrate
       await waitForDataHavenEvent({
         api: dhApi,

@@ -238,14 +238,6 @@ contract AVSDeployer is Test {
         serviceManagerImplementation =
             new DataHavenServiceManager(rewardsCoordinator, allocationManager);
 
-        // Create array for validators strategies required by DataHavenServiceManager
-        IStrategy[] memory validatorsStrategies = new IStrategy[](deployedStrategies.length);
-
-        // For testing purposes, we'll use the deployed strategies for validators
-        for (uint256 i = 0; i < deployedStrategies.length; i++) {
-            validatorsStrategies[i] = deployedStrategies[i];
-        }
-
         serviceManager = DataHavenServiceManager(
             address(
                 new TransparentUpgradeableProxy(
@@ -255,7 +247,7 @@ contract AVSDeployer is Test {
                         DataHavenServiceManager.initialize.selector,
                         avsOwner,
                         rewardsInitiator,
-                        validatorsStrategies,
+                        defaultStrategyAndMultipliers,
                         address(snowbridgeGatewayMock),
                         avsOwner
                     )

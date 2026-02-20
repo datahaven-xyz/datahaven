@@ -33,8 +33,8 @@ normalize_json() {
         | .storage
         | map(
             del(.astId, .contract)
-            # Remove unstable AST ID suffixes from type strings (e.g., t_contract(IGatewayV2)12345)
-            | .type |= sub("\\)[0-9]+$"; ")")
+            # Remove unstable AST IDs from type strings (e.g., t_contract(IGatewayV2)12345, nested mappings)
+            | .type |= gsub("\\)[0-9]+"; ")")
           )
         | sort_by(.slot | tonumber)' "$1"
 }

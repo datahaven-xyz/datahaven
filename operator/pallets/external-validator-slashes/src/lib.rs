@@ -31,7 +31,7 @@ extern crate alloc;
 use pallet_external_validators::apply;
 use snowbridge_outbound_queue_primitives::SendError;
 use {
-    alloc::{collections::vec_deque::VecDeque, vec, vec::Vec},
+    alloc::{collections::vec_deque::VecDeque, string::String, vec, vec::Vec},
     frame_support::{pallet_prelude::*, traits::DefensiveSaturating},
     frame_system::pallet_prelude::*,
     log::log,
@@ -46,7 +46,7 @@ use {
         DispatchResult, Perbill,
     },
     sp_staking::{
-        offence::{OffenceDetails, OnOffenceHandler},
+        offence::{Offence, OffenceDetails, OffenceError, OnOffenceHandler, ReportOffence},
         EraIndex, SessionIndex,
     },
 };
@@ -63,10 +63,51 @@ mod tests;
 mod benchmarking;
 pub mod weights;
 
+/// Identifies the type of consensus offence for EigenLayer slash reporting.
+#[derive(
+    Encode,
+    Decode,
+    DecodeWithMemTracking,
+    RuntimeDebug,
+    TypeInfo,
+    Clone,
+    PartialEq,
+    Eq,
+    MaxEncodedLen,
+)]
+pub enum OffenceKind {
+    /// Liveness offence (i.e. Unresponsiveness)
+    LivenessOffence,
+    BabeEquivocation,
+    GrandpaEquivocation,
+    BeefyEquivocation,
+    Custom(BoundedVec<u8, ConstU32<256>>),
+}
+
+impl Default for OffenceKind {
+    fn default() -> Self {
+        Self::LivenessOffence
+    }
+}
+
+impl OffenceKind {
+    pub fn to_description(&self) -> String {
+        match self {
+            Self::LivenessOffence => "Liveness offence".into(),
+            Self::BabeEquivocation => "BABE equivocation".into(),
+            Self::GrandpaEquivocation => "GRANDPA equivocation".into(),
+            Self::BeefyEquivocation => "BEEFY equivocation".into(),
+            Self::Custom(desc) => String::from_utf8(desc.to_vec())
+                .unwrap_or_else(|e| String::from_utf8_lossy(e.as_bytes()).into_owned()),
+        }
+    }
+}
+
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct SlashData<AccountId> {
     pub validator: AccountId,
     pub wad_to_slash: u128,
+    pub description: String,
 }
 
 // FIXME (nice to have): Merge with SendMessage trait from pallet external-validator-reward (similar trait)
@@ -153,6 +194,11 @@ pub mod pallet {
         /// Provider to retrieve the current external index of validators
         type ExternalIndexProvider: ExternalIndexProvider;
 
+        /// Maximum WAD value for EigenLayer slashing. Maps Perbill(100%) to this value.
+        /// Default: 5e16 = 5% in WAD format (1e18 = 100%).
+        #[pallet::constant]
+        type MaxSlashWad: Get<u128>;
+
         /// How many queued slashes are being processed per block.
         #[pallet::constant]
         type QueuedSlashesProcessedPerBlock: Get<u32>;
@@ -237,6 +283,21 @@ pub mod pallet {
     #[pallet::storage]
     pub type SlashingMode<T: Config> = StorageValue<_, SlashingModeOption, ValueQuery>;
 
+    /// Temporarily stores the offence kind per (session, offender), set by
+    /// `EquivocationReportWrapper` before `on_offence` is called synchronously within
+    /// the same block. Keyed by session index and validator ID so that offences from
+    /// different sessions or for different validators cannot interfere with each other.
+    #[pallet::storage]
+    pub type PendingOffenceKind<T: Config> = StorageDoubleMap<
+        _,
+        Twox64Concat,
+        SessionIndex,
+        Twox64Concat,
+        T::ValidatorId,
+        OffenceKind,
+        OptionQuery,
+    >;
+
     #[pallet::genesis_config]
     #[derive(frame_support::DefaultNoBound)]
     pub struct GenesisConfig<T: Config> {
@@ -305,6 +366,7 @@ pub mod pallet {
             era: EraIndex,
             validator: T::AccountId,
             percentage: Perbill,
+            offence_kind: OffenceKind,
         ) -> DispatchResult {
             ensure_root(origin)?;
             let active_era = T::EraIndexProvider::active_era().index;
@@ -324,6 +386,7 @@ pub mod pallet {
                 era,
                 validator,
                 slash_defer_duration,
+                offence_kind,
             )
             .ok_or(Error::<T>::ErrorComputingSlash)?;
 
@@ -374,7 +437,8 @@ pub mod pallet {
     }
 }
 
-/// This is intended to be used with `FilterHistoricalOffences`.
+/// This is intended to be used with `EquivocationReportWrapper`, which filters
+/// out historical offences (before the bonding period) and tags the offence kind.
 impl<T: Config>
     OnOffenceHandler<T::AccountId, pallet_session::historical::IdentificationTuple<T>, Weight>
     for Pallet<T>
@@ -453,6 +517,12 @@ where
         for (details, slash_fraction) in offenders.iter().zip(slash_fraction) {
             let (stash, _) = &details.offender;
 
+            // Read the per-(session, offender) offence kind set by EquivocationReportWrapper.
+            // This is set synchronously before on_offence is called, so take() clears it.
+            let offence_kind =
+                pallet::PendingOffenceKind::<T>::take(slash_session, stash).unwrap_or_default();
+            add_db_reads_writes(1, 1);
+
             // Skip if the validator is invulnerable.
             if invulnerables.contains(stash) {
                 continue;
@@ -477,6 +547,7 @@ where
                 slash_era,
                 stash.clone(),
                 slash_defer_duration,
+                offence_kind.clone(),
             );
 
             if let Some(mut slash) = slash {
@@ -594,9 +665,18 @@ impl<T: Config> Pallet<T> {
                     break;
                 };
 
+                // Convert Perbill to EigenLayer WAD format with linear mapping.
+                // Perbill(100%) → MaxSlashWad (e.g. 5% WAD = 5e16).
+                // Formula: perbill_inner * MaxSlashWad / 1e9
+                let wad_to_slash = (slash.percentage.deconstruct() as u128)
+                    .saturating_mul(T::MaxSlashWad::get())
+                    .checked_div(1_000_000_000u128)
+                    .unwrap_or(0);
+
                 slashes_to_send.push(SlashData {
                     validator: slash.validator,
-                    wad_to_slash: u128::from_str_radix("10000000000000000", 10).unwrap(), // TODO: need to compute how much we slash (for now it is 1e16)
+                    wad_to_slash,
+                    description: slash.offence_kind.to_description(),
                 });
             }
         });
@@ -655,6 +735,8 @@ pub struct Slash<AccountId, SlashId> {
     pub percentage: Perbill,
     // Whether the slash is confirmed or still needs to go through deferred period
     pub confirmed: bool,
+    /// The type of consensus offence (relayed to EigenLayer as a description string).
+    pub offence_kind: OffenceKind,
 }
 
 impl<AccountId, SlashId: One> Slash<AccountId, SlashId> {
@@ -664,8 +746,9 @@ impl<AccountId, SlashId: One> Slash<AccountId, SlashId> {
             validator,
             reporters: vec![],
             slash_id: One::one(),
-            percentage: Perbill::from_percent(50),
+            percentage: Perbill::from_percent(1),
             confirmed: false,
+            offence_kind: OffenceKind::default(),
         }
     }
 }
@@ -682,6 +765,7 @@ pub(crate) fn compute_slash<T: Config>(
     slash_era: EraIndex,
     stash: T::AccountId,
     slash_defer_duration: EraIndex,
+    offence_kind: OffenceKind,
 ) -> Option<Slash<T::AccountId, T::SlashId>> {
     let prior_slash_p = ValidatorSlashInEra::<T>::get(slash_era, &stash).unwrap_or(Zero::zero());
 
@@ -707,10 +791,110 @@ pub(crate) fn compute_slash<T: Config>(
         slash_id,
         reporters: Vec::new(),
         confirmed,
+        offence_kind,
     })
 }
 
 /// Check that list is sorted and has no duplicates.
 fn is_sorted_and_unique(list: &[u32]) -> bool {
     list.windows(2).all(|w| w[0] < w[1])
+}
+
+/// Trait for associating an `OffenceKind` with a reporter type.
+pub trait OffenceKindProvider {
+    fn kind() -> OffenceKind;
+}
+
+/// Extracts the validator (account) ID from an offender identification tuple.
+pub trait HasValidatorId<ValidatorId> {
+    fn validator_id(&self) -> &ValidatorId;
+}
+
+impl<V, F> HasValidatorId<V> for (V, F) {
+    fn validator_id(&self) -> &V {
+        &self.0
+    }
+}
+
+/// Wraps a `ReportOffence` implementation to:
+/// 1. **Filter historical offences**: discard reports whose session predates the bonding
+///    period (similar to `FilterHistoricalOffences` in `pallet_staking`, but using this
+///    pallet's own `BondedEras` storage instead of staking eras).
+/// 2. **Tag offence kind**: store the `OffenceKind` per offender in `PendingOffenceKind`
+///    before delegating to the inner reporter, so that `on_offence` can read it via
+///    `PendingOffenceKind::take()`.
+///
+/// If the inner `report_offence` fails (e.g. duplicate report), stale `PendingOffenceKind`
+/// entries are cleaned up to prevent leaking into unrelated future offences.
+pub struct EquivocationReportWrapper<T, Inner, Kind>(PhantomData<(T, Inner, Kind)>);
+
+impl<T, Inner, Kind, R, O, Id> ReportOffence<R, Id, O> for EquivocationReportWrapper<T, Inner, Kind>
+where
+    T: Config,
+    Inner: ReportOffence<R, Id, O>,
+    O: Offence<Id>,
+    Kind: OffenceKindProvider,
+    Id: HasValidatorId<T::ValidatorId>,
+{
+    fn report_offence(reporters: Vec<R>, offence: O) -> Result<(), OffenceError> {
+        // Discard offences from before the bonding period.
+        let offence_session = offence.session_index();
+        let bonded_eras = pallet::BondedEras::<T>::get();
+        if bonded_eras
+            .first()
+            .filter(|(_, start, _)| offence_session >= *start)
+            .is_none()
+        {
+            // Too old to be slashable — silently discard.
+            return Ok(());
+        }
+
+        let offenders = offence.offenders();
+        for offender in &offenders {
+            pallet::PendingOffenceKind::<T>::insert(
+                offence_session,
+                offender.validator_id(),
+                Kind::kind(),
+            );
+        }
+        let result = Inner::report_offence(reporters, offence);
+        if result.is_err() {
+            for offender in &offenders {
+                pallet::PendingOffenceKind::<T>::remove(offence_session, offender.validator_id());
+            }
+        }
+        result
+    }
+
+    fn is_known_offence(offenders: &[Id], time_slot: &O::TimeSlot) -> bool {
+        Inner::is_known_offence(offenders, time_slot)
+    }
+}
+
+pub struct BabeEquivocation;
+impl OffenceKindProvider for BabeEquivocation {
+    fn kind() -> OffenceKind {
+        OffenceKind::BabeEquivocation
+    }
+}
+
+pub struct GrandpaEquivocation;
+impl OffenceKindProvider for GrandpaEquivocation {
+    fn kind() -> OffenceKind {
+        OffenceKind::GrandpaEquivocation
+    }
+}
+
+pub struct BeefyEquivocation;
+impl OffenceKindProvider for BeefyEquivocation {
+    fn kind() -> OffenceKind {
+        OffenceKind::BeefyEquivocation
+    }
+}
+
+pub struct ImOnlineUnresponsive;
+impl OffenceKindProvider for ImOnlineUnresponsive {
+    fn kind() -> OffenceKind {
+        OffenceKind::LivenessOffence
+    }
 }

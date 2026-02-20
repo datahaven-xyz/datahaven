@@ -1,0 +1,11 @@
+{
+  "lib/eigenlayer-contracts": {
+    "rev": "7ecc83c7b180850531bc5b8b953a7340adeecd43"
+  },
+  "lib/forge-std": {
+    "rev": "9530d9ec702df1b27b7f8f50c0a63a11b1b5fba9"
+  },
+  "lib/snowbridge": {
+    "rev": "13263fefa29a3f4af50e5650dcd93fe3afac44db"
+  }
+}

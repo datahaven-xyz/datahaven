@@ -43,6 +43,7 @@
     "cli/**/*.ts",
     "wagmi.config.ts",
     "contract-bindings/*.ts",
-    "launcher/**/*.ts"
+    "launcher/**/*.ts",
+    "tools/**/*.ts"
   ]
 }

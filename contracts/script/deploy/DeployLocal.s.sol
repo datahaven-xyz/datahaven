@@ -207,7 +207,8 @@ contract DeployLocal is DeployBase {
             params.avsOwner,
             params.rewardsInitiator,
             params.validatorsStrategies,
-            params.gateway
+            params.gateway,
+            params.validatorSetSubmitter
         );
 
         TransparentUpgradeableProxy proxy =

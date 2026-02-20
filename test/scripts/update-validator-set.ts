@@ -7,6 +7,7 @@ import { logger } from "../utils/index";
 
 interface UpdateValidatorSetOptions {
   rpcUrl: string;
+  targetEra?: bigint;
 }
 
 /**
@@ -49,8 +50,15 @@ export const updateValidatorSet = async (options: UpdateValidatorSetOptions): Pr
   const executionFee = "100000000000000000"; // 0.1 ETH
   const relayerFee = "200000000000000000"; // 0.2 ETH
   const value = "300000000000000000"; // 0.3 ETH (sum of fees)
+  const targetEra = options.targetEra ?? 1n;
 
-  const sendCommand = `${castExecutable} send --private-key ${ownerPrivateKey} --value ${value} ${serviceManagerAddress} "sendNewValidatorSet(uint128,uint128)" ${executionFee} ${relayerFee} --rpc-url ${rpcUrl}`;
+  if (options.targetEra === undefined) {
+    logger.warn(
+      "No target era specified; defaulting to era 1. Use --target-era for already-running networks."
+    );
+  }
+
+  const sendCommand = `${castExecutable} send --private-key ${ownerPrivateKey} --value ${value} ${serviceManagerAddress} "sendNewValidatorSetForEra(uint64,uint128,uint128)" ${targetEra} ${executionFee} ${relayerFee} --rpc-url ${rpcUrl}`;
 
   logger.debug(`Running command: ${sendCommand}`);
 
@@ -89,12 +97,19 @@ if (import.meta.main) {
   const args = process.argv.slice(2);
   const options: {
     rpcUrl?: string;
+    targetEra?: bigint;
   } = {};
 
   // Extract RPC URL
   const rpcUrlIndex = args.indexOf("--rpc-url");
   if (rpcUrlIndex !== -1 && rpcUrlIndex + 1 < args.length) {
     options.rpcUrl = args[rpcUrlIndex + 1];
+  }
+
+  // Extract target era
+  const targetEraIndex = args.indexOf("--target-era");
+  if (targetEraIndex !== -1 && targetEraIndex + 1 < args.length) {
+    options.targetEra = BigInt(args[targetEraIndex + 1]);
   }
 
   // Check required parameters
@@ -105,7 +120,8 @@ if (import.meta.main) {
 
   // Run update
   updateValidatorSet({
-    rpcUrl: options.rpcUrl
+    rpcUrl: options.rpcUrl,
+    targetEra: options.targetEra
   }).catch((error) => {
     console.error("Validator set update failed:", error);
     process.exit(1);

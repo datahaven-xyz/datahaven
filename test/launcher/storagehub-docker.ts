@@ -124,7 +124,7 @@ export const injectStorageHubKey = async (
   // Use Bun's $ directly with docker exec (no sh -c wrapper needed)
   // This properly handles the spaces in the seed phrase
   try {
-    await $`docker exec ${containerName} datahaven-node key insert --base-path /data --key-type bcsv --scheme ecdsa --suri ${secretKey}`;
+    await $`docker exec ${containerName} datahaven-node key insert --chain local --key-type bcsv --scheme ecdsa --suri ${secretKey}`;
     logger.success("Key injected successfully");
   } catch (error) {
     logger.error(`Failed to inject key : ${error}`);
@@ -141,7 +141,7 @@ export const injectStorageHubKey = async (
 export const launchMspNode = async (
   options: DataHavenOptions,
   launchedNetwork: LaunchedNetwork
-): Promise<void> => {
+): Promise<string> => {
   logger.info("🚀 Launching StorageHub MSP node...");
 
   const containerName = `storagehub-msp-${options.networkId}`;
@@ -217,6 +217,8 @@ export const launchMspNode = async (
   launchedNetwork.addContainer(containerName, { ws: wsPort }, { ws: DEFAULT_SUBSTRATE_WS_PORT });
 
   logger.success(`MSP node started on port ${wsPort}`);
+
+  return `ws://127.0.0.1:${wsPort}`;
 };
 
 /**

@@ -139,7 +139,7 @@ jobs:
           echo "tags=${DOCKER_IMAGE}:${TAG}" >> $GITHUB_OUTPUT
           echo "created=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_OUTPUT
       - name: Cargo build
-        uses: ./.github/workflow-templates/publish-docker
+        uses: ./.github/workflows/actions/publish-docker
         with:
           dockerfile: ./operator/Dockerfile
           context: .

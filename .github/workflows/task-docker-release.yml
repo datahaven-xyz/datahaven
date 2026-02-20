@@ -115,7 +115,7 @@ jobs:
 
       # --- Build and push Docker image ---
       - name: Build and push Docker image
-        uses: ./.github/workflow-templates/publish-docker
+        uses: ./.github/workflows/actions/publish-docker
         with:
           dockerfile: ./docker/datahaven-build.Dockerfile
           context: ./operator

@@ -7,7 +7,7 @@
     "cli": "bun run cli/index.ts",
     "fmt": "biome check .",
     "fmt:fix": "biome check --write .",
-    "build:docker:operator": "docker build --no-cache --platform linux/amd64 -t datahavenxyz/datahaven:local -f ../docker/datahaven-dev.Dockerfile ../.",
+    "build:docker:operator": "docker build --no-cache --platform linux/amd64 -t datahavenxyz/datahaven:local -f ../operator/Dockerfile ../operator",
     "generate:wagmi": "wagmi generate",
     "generate:snowbridge-cfgs": "bun -e \"import {generateSnowbridgeConfigs} from './scripts/gen-snowbridge-cfgs.ts'; await generateSnowbridgeConfigs()\"",
     "generate:contracts": "bun -e \"import {generateContracts} from './scripts/generate-contracts.ts'; await generateContracts()\"",

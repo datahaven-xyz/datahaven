@@ -70,11 +70,12 @@ jobs:
           echo "image-name=ghcr.io/datahaven-xyz/datahaven/datahaven:$TAG_ONLY" >> $GITHUB_OUTPUT
 
       - name: Build and push Docker image
-        uses: ./.github/workflow-templates/publish-docker
+        uses: ./.github/workflows/actions/publish-docker
         with:
           dockerfile: ./operator/Dockerfile
           context: .
           registry: ghcr.io
+          build_args: ./build/datahaven-node
           registry_username: ${{ github.actor }}
           registry_password: ${{ secrets.GITHUB_TOKEN }}
           image_tags: ${{ steps.meta.outputs.tags }}

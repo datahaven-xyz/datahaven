@@ -1,5 +1,5 @@
-import { $ } from "bun";
 import { beforeAll, describe, expect, it } from "bun:test";
+import { $ } from "bun";
 import { Binary, FixedSizeBinary } from "polkadot-api";
 import { CROSS_CHAIN_TIMEOUTS, getPapiSigner, logger } from "utils";
 import type { Address } from "viem";

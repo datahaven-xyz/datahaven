@@ -1,7 +1,7 @@
 import { $ } from "bun";
 import { beforeAll, describe, expect, it } from "bun:test";
 import { Binary, FixedSizeBinary } from "polkadot-api";
-import { CROSS_CHAIN_TIMEOUTS, getPapiSigner, logger, waitForContainerToStart } from "utils";
+import { CROSS_CHAIN_TIMEOUTS, getPapiSigner, logger } from "utils";
 import type { Address } from "viem";
 import { getContractInstance, parseDeploymentsFile } from "../../utils/contracts";
 import { waitForDataHavenEvent } from "../../utils/events";
@@ -179,23 +179,25 @@ describe("Should slash an operator", () => {
     const eraAtStart = activeEra?.index ?? 0;
     logger.info(`Current era at start of liveness test: ${eraAtStart}`);
 
-    // Stop bob to simulate a liveness failure (missed heartbeats)
-    logger.info(`Stopping bob container: ${bobContainer}`);
-    await $`docker stop ${bobContainer}`.quiet();
-    logger.info("Bob container stopped. Waiting for session to end...");
+    // Pause bob to simulate a liveness failure (missed heartbeats).
+    // Using pause/unpause instead of stop/start preserves bob's process
+    // state (GRANDPA voter, peer connections, keystore) so finality can
+    // resume quickly once unpaused.
+    logger.info(`Pausing bob container: ${bobContainer}`);
+    await $`docker pause ${bobContainer}`.quiet();
+    logger.info("Bob container paused. Waiting for session to end...");
 
     // Wait for at least one full session so pallet_im_online detects bob's
     // missing heartbeats at the session boundary.
     // Fast-runtime: 10 blocks/session × 6s/block = 60s per session.
     await Bun.sleep(80_000);
 
-    // Restart bob to restore GRANDPA finality (needs 2/2 validators).
-    // Once bob syncs alice's blocks, GRANDPA will finalize the pending chain
-    // including the session-boundary block where the slash was created.
-    logger.info("Restarting bob container...");
-    await $`docker start ${bobContainer}`.quiet();
-    await waitForContainerToStart(bobContainer, { timeoutSeconds: 60 });
-    logger.info("Bob restarted. Waiting for finality and slash detection...");
+    // Unpause bob to restore GRANDPA finality (needs 2/2 validators).
+    // Bob's process resumes immediately with full state, so he can vote
+    // on the pending blocks that alice produced while he was paused.
+    logger.info("Unpausing bob container...");
+    await $`docker unpause ${bobContainer}`.quiet();
+    logger.info("Bob unpaused. Waiting for finality and slash detection...");
 
     // Poll for a LivenessOffence slash to appear.
     // The slash may land in the current era or a subsequent one depending
@@ -215,7 +217,7 @@ describe("Should slash an operator", () => {
       },
       iterations: 60,
       delay: 5000,
-      errorMessage: "LivenessOffence slash not found after stopping bob"
+      errorMessage: "LivenessOffence slash not found after pausing bob"
     });
 
     expect(livenessSlash).toBeDefined();

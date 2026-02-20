@@ -438,6 +438,98 @@ fn test_on_offence_defer_period_0_messages_get_queued() {
 }
 
 #[test]
+fn slashes_queue_is_not_drained_if_deliver_fails() {
+    new_test_ext().execute_with(|| {
+        crate::mock::DeferPeriodGetter::with_defer_period(0);
+        start_era(0, 0, 0);
+        start_era(1, 1, 1);
+
+        // Inject a few slashes which will be scheduled for era 2 (active_era + 1 when defer=0).
+        for i in 0..3 {
+            Pallet::<Test>::on_offence(
+                &[OffenceDetails {
+                    // 1 and 2 are invulnerables
+                    offender: (3 + i, ()),
+                    reporters: vec![],
+                }],
+                &[Perbill::from_percent(75)],
+                0,
+            );
+        }
+
+        start_era(2, 2, 2);
+        assert_eq!(UnreportedSlashesQueue::<Test>::get().len(), 3);
+
+        // Force bridge delivery failure and ensure we don't lose slashes.
+        crate::mock::MockOkOutboundQueue::set_fail_deliver(true);
+        run_block();
+        assert_eq!(UnreportedSlashesQueue::<Test>::get().len(), 3);
+        // The queue should rotate (a,b,c -> b,c,a) instead of stalling on the first slash.
+        let rotated_validators: Vec<u64> = UnreportedSlashesQueue::<Test>::get()
+            .iter()
+            .map(|s| s.validator)
+            .collect();
+        assert_eq!(rotated_validators, vec![4, 5, 3]);
+        // No event should be emitted since `deliver` failed and the send transaction rolled back.
+        assert!(
+            !System::events().iter().any(|r| matches!(
+                r.event,
+                RuntimeEvent::ExternalValidatorSlashes(crate::Event::SlashesMessageSent { .. })
+            )),
+            "SlashesMessageSent event should not be emitted on delivery failure"
+        );
+
+        // Re-enable delivery and ensure the queue drains.
+        crate::mock::MockOkOutboundQueue::set_fail_deliver(false);
+        run_block();
+        assert_eq!(UnreportedSlashesQueue::<Test>::get().len(), 0);
+    });
+}
+
+#[test]
+fn deliver_side_effects_are_rolled_back_when_delivery_fails() {
+    new_test_ext().execute_with(|| {
+        crate::mock::DeferPeriodGetter::with_defer_period(0);
+        crate::mock::MockOkOutboundQueue::set_write_deliver_side_effect(true);
+
+        start_era(0, 0, 0);
+        start_era(1, 1, 1);
+
+        Pallet::<Test>::on_offence(
+            &[OffenceDetails {
+                // 1 and 2 are invulnerables
+                offender: (3, ()),
+                reporters: vec![],
+            }],
+            &[Perbill::from_percent(75)],
+            0,
+        );
+
+        start_era(2, 2, 2);
+        assert_eq!(UnreportedSlashesQueue::<Test>::get().len(), 1);
+
+        // Ensure the side effect key starts unset.
+        assert!(sp_io::storage::get(b"ext_validators_slashes::mock_deliver_side_effect").is_none());
+
+        // When delivery fails, any storage writes performed inside `deliver` should be rolled back.
+        crate::mock::MockOkOutboundQueue::set_fail_deliver(true);
+        run_block();
+        assert!(
+            sp_io::storage::get(b"ext_validators_slashes::mock_deliver_side_effect").is_none(),
+            "deliver() storage side effects must be rolled back on failure"
+        );
+
+        // When delivery succeeds, the side effect should commit.
+        crate::mock::MockOkOutboundQueue::set_fail_deliver(false);
+        run_block();
+        assert!(
+            sp_io::storage::get(b"ext_validators_slashes::mock_deliver_side_effect").is_some(),
+            "deliver() storage side effects must commit on success"
+        );
+    });
+}
+
+#[test]
 fn test_account_id_encoding() {
     new_test_ext().execute_with(|| {
         use fp_account::AccountId20;

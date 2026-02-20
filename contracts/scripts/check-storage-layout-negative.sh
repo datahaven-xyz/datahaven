@@ -20,7 +20,7 @@ if [ "$EXIT_CODE" -eq 0 ]; then
     exit 1
 fi
 
-if ! printf '%s\n' "$OUTPUT" | grep -q "ERROR: Storage layout has changed!"; then
+if ! printf '%s\n' "$OUTPUT" | grep -qE "ERROR: (Storage layout has changed!|__GAP invariant violated!)"; then
     echo "ERROR: Storage layout check failed, but not for the expected reason."
     echo ""
     echo "Output:"

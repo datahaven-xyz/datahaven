@@ -1,7 +1,7 @@
 {
   "storage": [
     {
-      "astId": 152,
+      "astId": 138,
       "contract": "src/DataHavenServiceManager.sol:DataHavenServiceManager",
       "label": "_initialized",
       "offset": 0,
@@ -9,7 +9,7 @@
       "type": "t_uint8"
     },
     {
-      "astId": 155,
+      "astId": 141,
       "contract": "src/DataHavenServiceManager.sol:DataHavenServiceManager",
       "label": "_initializing",
       "offset": 1,
@@ -17,7 +17,7 @@
       "type": "t_bool"
     },
     {
-      "astId": 769,
+      "astId": 671,
       "contract": "src/DataHavenServiceManager.sol:DataHavenServiceManager",
       "label": "__gap",
       "offset": 0,
@@ -41,7 +41,7 @@
       "type": "t_array(t_uint256)49_storage"
     },
     {
-      "astId": 102752,
+      "astId": 23775,
       "contract": "src/DataHavenServiceManager.sol:DataHavenServiceManager",
       "label": "rewardsInitiator",
       "offset": 0,
@@ -49,7 +49,7 @@
       "type": "t_address"
     },
     {
-      "astId": 102757,
+      "astId": 23780,
       "contract": "src/DataHavenServiceManager.sol:DataHavenServiceManager",
       "label": "validatorsAllowlist",
       "offset": 0,
@@ -57,15 +57,15 @@
       "type": "t_mapping(t_address,t_bool)"
     },
     {
-      "astId": 102761,
+      "astId": 23784,
       "contract": "src/DataHavenServiceManager.sol:DataHavenServiceManager",
       "label": "_snowbridgeGateway",
       "offset": 0,
       "slot": "103",
-      "type": "t_contract(IGatewayV2)95551"
+      "type": "t_contract(IGatewayV2)23481"
     },
     {
-      "astId": 102766,
+      "astId": 23789,
       "contract": "src/DataHavenServiceManager.sol:DataHavenServiceManager",
       "label": "validatorEthAddressToSolochainAddress",
       "offset": 0,
@@ -73,15 +73,15 @@
       "type": "t_mapping(t_address,t_address)"
     },
     {
-      "astId": 102772,
+      "astId": 23795,
       "contract": "src/DataHavenServiceManager.sol:DataHavenServiceManager",
       "label": "strategiesAndMultipliers",
       "offset": 0,
       "slot": "105",
-      "type": "t_mapping(t_contract(IStrategy)26468,t_uint96)"
+      "type": "t_mapping(t_contract(IStrategy)7361,t_uint96)"
     },
     {
-      "astId": 102776,
+      "astId": 23799,
       "contract": "src/DataHavenServiceManager.sol:DataHavenServiceManager",
       "label": "validatorSolochainAddressToEthAddress",
       "offset": 0,
@@ -89,20 +89,20 @@
       "type": "t_mapping(t_address,t_address)"
     },
     {
-      "astId": 23793,
+      "astId": 23802,
       "contract": "src/DataHavenServiceManager.sol:DataHavenServiceManager",
       "label": "validatorSetSubmitter",
       "offset": 0,
-      "slot": "106",
+      "slot": "107",
       "type": "t_address"
     },
     {
-      "astId": 23798,
+      "astId": 23807,
       "contract": "src/DataHavenServiceManager.sol:DataHavenServiceManager",
       "label": "__GAP",
       "offset": 0,
-      "slot": "107",
-      "type": "t_array(t_uint256)44_storage"
+      "slot": "108",
+      "type": "t_array(t_uint256)43_storage"
     }
   ],
   "types": {
@@ -111,10 +111,10 @@
       "label": "address",
       "numberOfBytes": "20"
     },
-    "t_array(t_uint256)44_storage": {
+    "t_array(t_uint256)43_storage": {
       "encoding": "inplace",
-      "label": "uint256[44]",
-      "numberOfBytes": "1408",
+      "label": "uint256[43]",
+      "numberOfBytes": "1376",
       "base": "t_uint256"
     },
     "t_array(t_uint256)49_storage": {
@@ -134,12 +134,12 @@
       "label": "bool",
       "numberOfBytes": "1"
     },
-    "t_contract(IGatewayV2)95551": {
+    "t_contract(IGatewayV2)23481": {
       "encoding": "inplace",
       "label": "contract IGatewayV2",
       "numberOfBytes": "20"
     },
-    "t_contract(IStrategy)26468": {
+    "t_contract(IStrategy)7361": {
       "encoding": "inplace",
       "label": "contract IStrategy",
       "numberOfBytes": "20"
@@ -158,9 +158,9 @@
       "numberOfBytes": "32",
       "value": "t_bool"
     },
-    "t_mapping(t_contract(IStrategy)26468,t_uint96)": {
+    "t_mapping(t_contract(IStrategy)7361,t_uint96)": {
       "encoding": "mapping",
-      "key": "t_contract(IStrategy)26468",
+      "key": "t_contract(IStrategy)7361",
       "label": "mapping(contract IStrategy => uint96)",
       "numberOfBytes": "32",
       "value": "t_uint96"

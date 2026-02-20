@@ -76,7 +76,7 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
 
     /// @notice Storage gap for upgradeability (must be at end of state variables)
     // solhint-disable-next-line var-name-mixedcase
-    uint256[44] private __GAP;
+    uint256[43] private __GAP;
 
     // ============ Modifiers ============
 

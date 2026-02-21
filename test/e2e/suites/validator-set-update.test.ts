@@ -69,6 +69,20 @@ describe("Validator Set Update", () => {
   beforeAll(async () => {
     deployments = await parseDeploymentsFile();
     connectors = suite.getTestConnectors();
+
+    // Pause era rotation early so the active era stabilizes during tests 1-3 (~28s),
+    // avoiding the ~80s wait inside the cross-chain test.
+    // Tests 1-3 only touch Ethereum contracts and don't depend on era rotation.
+    const { dhApi } = connectors;
+    const pauseTx = dhApi.tx.Sudo.sudo({
+      call: dhApi.tx.ExternalValidators.force_era({
+        mode: { type: "ForceNone", value: undefined }
+      }).decodedCall
+    });
+    const pauseResult = await pauseTx.signAndSubmit(getPapiSigner("ALITH"));
+    if (!pauseResult.ok) {
+      throw new Error("Failed to pause era rotation");
+    }
   });
 
   it("should verify test environment", async () => {
@@ -161,31 +175,18 @@ describe("Validator Set Update", () => {
     async () => {
       const { publicClient, walletClient, dhApi } = connectors;
 
-      // Pause era rotation so the active era doesn't advance while
-      // Snowbridge relays the message (relay latency > era duration with fast-runtime).
-      // DatahavenServiceManagerAddress is set during infrastructure setup by set-datahaven-parameters.
-      const setupTx = dhApi.tx.Sudo.sudo({
-        call: dhApi.tx.ExternalValidators.force_era({
-          mode: { type: "ForceNone", value: undefined }
-        }).decodedCall
-      });
-      const setupResult = await setupTx.signAndSubmit(getPapiSigner("ALITH"));
-      if (!setupResult.ok) {
-        throw new Error("Failed to pause era rotation");
-      }
-      // Wait for the active era to stabilize: ForceNone prevents new eras but
-      // an already-triggered era may still be pending activation at the next session boundary.
-      // Poll until CurrentEra == ActiveEra, meaning no pending era transition remains.
+      // Era rotation was paused in beforeAll. Wait for any pending transition to settle
+      // (ForceNone prevents new eras, but an in-progress one must finish first).
       let stableEraIndex: number;
       // eslint-disable-next-line no-constant-condition
       while (true) {
-        await new Promise((r) => setTimeout(r, 12_000)); // ~2 substrate blocks
         const activeEra = (await dhApi.query.ExternalValidators.ActiveEra.getValue())?.index ?? 0;
         const currentEra = (await dhApi.query.ExternalValidators.CurrentEra.getValue()) ?? 0;
         if (currentEra === activeEra) {
           stableEraIndex = activeEra;
           break;
         }
+        await new Promise((r) => setTimeout(r, 6_000)); // ~1 substrate block
       }
 
       const targetEra = BigInt(stableEraIndex + 1);

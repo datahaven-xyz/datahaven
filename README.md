@@ -336,3 +336,6 @@ GPL-3.0 - See LICENSE file for details
 - [Snowbridge Documentation](https://docs.snowbridge.network/)
 - [Foundry Book](https://book.getfoundry.sh/)
 - [Polkadot-API Documentation](https://papi.how/)
+- ---
+## Contributors from Africa
+DataHaven welcomes contributors from Lagos, Nigeria and across the continent! 🇳🇬

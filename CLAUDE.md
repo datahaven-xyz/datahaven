@@ -51,7 +51,7 @@ bun stop:eth                      # Stop Ethereum network only
 
 # Testing
 bun test:e2e                      # Run all E2E test suites
-bun test:e2e:parallel             # Run tests with limited       
+bun test:e2e:parallel             # Run tests with limited concurrenncy       
 ```
 
 ### Rust/Operator Development

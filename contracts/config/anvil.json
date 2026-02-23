@@ -27,6 +27,7 @@
   "avs": {
     "avsOwner": "0x976EA74026E726554dB657fA54763abd0C3a0aa9",
     "rewardsInitiator": "0x14dC79964da2C08b23698B3D3cc7Ca32193d9955",
+    "validatorSetSubmitter": "0x976EA74026E726554dB657fA54763abd0C3a0aa9",
     "validatorsStrategies": [
       "0xbeaC0eeEeeeeEEeEeEEEEeeEEeEeeeEeeEEBEaC0"
     ]

@@ -182,13 +182,15 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 #[test]
 /// To ensure voters are always locked into their vote
 fn vote_locking_always_longer_than_enactment_period() {
-    for (_, track) in TRACKS_DATA {
+    for track in TRACKS_DATA {
+        let track_name = from_utf8(&track.info.name).unwrap();
+        let track_name = track_name.trim_end_matches('\0');
         assert!(
             <Runtime as pallet_conviction_voting::Config>::VoteLockingPeriod::get()
-                >= track.min_enactment_period,
+                >= track.info.min_enactment_period,
             "Track {} has enactment period {} < vote locking period {}",
-            track.name,
-            track.min_enactment_period,
+            track_name,
+            track.info.min_enactment_period,
             <Runtime as pallet_conviction_voting::Config>::VoteLockingPeriod::get(),
         );
     }
@@ -196,10 +198,12 @@ fn vote_locking_always_longer_than_enactment_period() {
 
 #[test]
 fn all_tracks_have_origins() {
-    for (_, track) in TRACKS_DATA {
+    for track in TRACKS_DATA {
+        let track_name = from_utf8(&track.info.name).unwrap();
+        let track_name = track_name.trim_end_matches('\0');
         // check name.into() is successful either converts into "root" or custom origin
-        let track_is_root = track.name == "root";
-        let track_has_custom_origin = custom_origins::Origin::from_str(track.name).is_ok();
+        let track_is_root = track_name == "root";
+        let track_has_custom_origin = custom_origins::Origin::from_str(track_name).is_ok();
         assert!(track_is_root || track_has_custom_origin);
     }
 }

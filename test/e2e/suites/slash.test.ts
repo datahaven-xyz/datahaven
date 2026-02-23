@@ -174,10 +174,13 @@ describe("Should slash an operator", () => {
     const networkId = suite.getNetworkId();
     const bobContainer = `datahaven-bob-${networkId}`;
 
-    // Record the current era to know where to look for the slash
-    const activeEra = await dhApi.query.ExternalValidators.ActiveEra.getValue();
+    // Drain any prior SlashReported events so we only see events from this test.
+    await dhApi.event.ExternalValidatorsSlashes.SlashReported.pull();
+
+    const activeEra = await dhApi.query.ExternalValidators.ActiveEra.getValue({ at: "best" });
     const eraAtStart = activeEra?.index ?? 0;
-    logger.info(`Current era at start of liveness test: ${eraAtStart}`);
+    const sessionAtStart = await dhApi.query.Session.CurrentIndex.getValue({ at: "best" });
+    logger.info(`Liveness test start — era: ${eraAtStart}, session: ${sessionAtStart}`);
 
     // Pause bob to simulate a liveness failure (missed heartbeats).
     // Using pause/unpause instead of stop/start preserves bob's process
@@ -185,46 +188,87 @@ describe("Should slash an operator", () => {
     // resume quickly once unpaused.
     logger.info(`Pausing bob container: ${bobContainer}`);
     await $`docker pause ${bobContainer}`.quiet();
-    logger.info("Bob container paused. Waiting for session to end...");
+    logger.info("Bob container paused. Waiting for sessions to elapse...");
 
-    // Wait for at least one full session so pallet_im_online detects bob's
-    // missing heartbeats at the session boundary.
-    // Fast-runtime: 10 blocks/session × 6s/block = 60s per session.
-    await Bun.sleep(80_000);
+    let slashReportedEvent: any;
+    try {
+      // Wait for at least TWO full sessions so pallet_im_online detects bob's
+      // missing heartbeats at a session boundary.
+      //
+      // Why two sessions:
+      //   1. Bob may have already sent his heartbeat for the current session
+      //      before being paused, so the first session boundary won't report him.
+      //   2. The NEXT full session (where bob is offline from start to finish)
+      //      will trigger the unresponsiveness report at its boundary.
+      //
+      // Timing with BABE c=(1,4) and PrimaryAndSecondaryVRFSlots:
+      //   - Alice alone produces ~62.5% of blocks → ~9.6s per block on average.
+      //   - 10 blocks/session → ~96s per session with alice only.
+      //   - 2 sessions = ~192s. We use 200s for margin.
+      await Bun.sleep(200_000);
 
-    // Unpause bob to restore GRANDPA finality (needs 2/2 validators).
-    // Bob's process resumes immediately with full state, so he can vote
-    // on the pending blocks that alice produced while he was paused.
-    logger.info("Unpausing bob container...");
-    await $`docker unpause ${bobContainer}`.quiet();
-    logger.info("Bob unpaused. Waiting for finality and slash detection...");
+      // Unpause bob to restore GRANDPA finality (needs 2/2 validators).
+      // Bob's process resumes immediately with full state, so he can vote
+      // on the pending blocks that alice produced while he was paused.
+      logger.info("Unpausing bob container...");
+      await $`docker unpause ${bobContainer}`.quiet();
+      logger.info("Bob unpaused. Waiting for finality and SlashReported event...");
 
-    // Poll for a LivenessOffence slash to appear.
-    // The slash may land in the current era or a subsequent one depending
-    // on exactly when the session boundary was crossed.
-    let livenessSlash: { slash: any; era: number } | undefined;
-    await waitFor({
-      lambda: async () => {
-        for (let era = eraAtStart; era <= eraAtStart + 3; era++) {
-          const slashes = await dhApi.query.ExternalValidatorsSlashes.Slashes.getValue(era);
-          const found = slashes?.find((s: any) => s.offence_kind?.type === "LivenessOffence");
-          if (found) {
-            livenessSlash = { slash: found, era };
+      // Poll for a SlashReported event from the ExternalValidatorsSlashes pallet.
+      //
+      // Why SlashReported instead of Slashes storage:
+      //   pallet_im_online's UnresponsivenessOffence::slash_fraction() formula
+      //   gives 0% for small validator sets (1 out of 2 offline is below the
+      //   10%+1 threshold). With 0% fraction, compute_slash returns None and
+      //   no Slashes entry is created. However, on_offence still emits the
+      //   SlashReported event, which proves the full detection pipeline works:
+      //   pallet_im_online → EquivocationReportWrapper → pallet_offences → on_offence.
+      //
+      // After unpausing bob, GRANDPA finality catches up and the events from
+      // alice's blocks (produced during the pause) become finalized and visible
+      // to the PAPI event subscription.
+      let pollCount = 0;
+      const collectedEvents: any[] = [];
+      await waitFor({
+        lambda: async () => {
+          pollCount++;
+          const events = await dhApi.event.ExternalValidatorsSlashes.SlashReported.pull();
+          for (const event of events) {
+            const payload = (event as any)?.payload ?? event;
+            collectedEvents.push(payload);
+            logger.info(
+              `[poll ${pollCount}] SlashReported event: validator=${payload?.validator}, ` +
+                `fraction=${JSON.stringify(payload?.fraction)}, slash_era=${payload?.slash_era}`
+            );
+          }
+          if (collectedEvents.length > 0) {
+            slashReportedEvent = collectedEvents[0];
             return true;
           }
-        }
-        return false;
-      },
-      iterations: 60,
-      delay: 5000,
-      errorMessage: "LivenessOffence slash not found after pausing bob"
-    });
+          if (pollCount % 10 === 0) {
+            const curEra = await dhApi.query.ExternalValidators.ActiveEra.getValue({ at: "best" });
+            const curSession = await dhApi.query.Session.CurrentIndex.getValue({ at: "best" });
+            logger.info(
+              `[poll ${pollCount}] era: ${curEra?.index}, session: ${curSession} (started at era=${eraAtStart}, session=${sessionAtStart})`
+            );
+          }
+          return false;
+        },
+        iterations: 60,
+        delay: 5000,
+        errorMessage: "SlashReported event not found after pausing bob for liveness detection"
+      });
+    } finally {
+      // Ensure bob is always unpaused so the network stays healthy for teardown
+      await $`docker unpause ${bobContainer}`.nothrow().quiet();
+    }
 
-    expect(livenessSlash).toBeDefined();
+    expect(slashReportedEvent).toBeDefined();
     logger.info(
-      `Liveness slash confirmed in era ${livenessSlash!.era}: ` +
-        `validator=${livenessSlash!.slash.validator}, ` +
-        `percentage=${livenessSlash!.slash.percentage}`
+      "Liveness offence confirmed via SlashReported: " +
+        `validator=${slashReportedEvent.validator}, ` +
+        `fraction=${JSON.stringify(slashReportedEvent.fraction)}, ` +
+        `slash_era=${slashReportedEvent.slash_era}`
     );
-  }, 420_000);
+  }, 600_000);
 });

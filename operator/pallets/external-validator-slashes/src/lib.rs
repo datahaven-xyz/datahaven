@@ -287,6 +287,12 @@ pub mod pallet {
     /// `EquivocationReportWrapper` before `on_offence` is called synchronously within
     /// the same block. Keyed by session index and validator ID so that offences from
     /// different sessions or for different validators cannot interfere with each other.
+    ///
+    /// SAFETY: relies on `pallet_offences::report_offence` calling `on_offence`
+    /// synchronously in the same block. Entries are cleaned up via `take()` in
+    /// `on_offence` on success, or explicit `remove()` in the wrapper on error.
+    /// If the offence pipeline ever becomes asynchronous, this storage should be
+    /// replaced with an offence-payload-based approach.
     #[pallet::storage]
     pub type PendingOffenceKind<T: Config> = StorageDoubleMap<
         _,
@@ -519,6 +525,8 @@ where
 
             // Read the per-(session, offender) offence kind set by EquivocationReportWrapper.
             // This is set synchronously before on_offence is called, so take() clears it.
+            // Type safety: `stash` is T::ValidatorId (from IdentificationTuple), matching
+            // the key used by the wrapper. The trait bounds above enforce ValidatorId == AccountId.
             let offence_kind =
                 pallet::PendingOffenceKind::<T>::take(slash_session, stash).unwrap_or_default();
             add_db_reads_writes(1, 1);
@@ -668,10 +676,14 @@ impl<T: Config> Pallet<T> {
                 // Convert Perbill to EigenLayer WAD format with linear mapping.
                 // Perbill(100%) → MaxSlashWad (e.g. 5% WAD = 5e16).
                 // Formula: perbill_inner * MaxSlashWad / 1e9
+                // Clamp to MaxSlashWad to guard against overflow if governance
+                // sets MaxSlashWad high enough for saturating_mul to hit u128::MAX.
+                let max_wad = T::MaxSlashWad::get();
                 let wad_to_slash = (slash.percentage.deconstruct() as u128)
-                    .saturating_mul(T::MaxSlashWad::get())
+                    .saturating_mul(max_wad)
                     .checked_div(1_000_000_000u128)
-                    .unwrap_or(0);
+                    .unwrap_or(0)
+                    .min(max_wad);
 
                 slashes_to_send.push(SlashData {
                     validator: slash.validator,
@@ -845,7 +857,12 @@ where
             .filter(|(_, start, _)| offence_session >= *start)
             .is_none()
         {
-            // Too old to be slashable — silently discard.
+            log!(
+                log::Level::Debug,
+                "discarding offence from session {} — predates bonded eras {:?}",
+                offence_session,
+                bonded_eras.first(),
+            );
             return Ok(());
         }
 

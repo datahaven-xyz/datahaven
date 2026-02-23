@@ -49,13 +49,8 @@ export async function launchSubmitter(options: LaunchSubmitterOptions): Promise<
   containerName: string;
   cleanup: () => Promise<void>;
 }> {
-  const {
-    networkName,
-    networkId,
-    ethereumRpcUrl,
-    datahavenContainerName,
-    serviceManagerAddress
-  } = options;
+  const { networkName, networkId, ethereumRpcUrl, datahavenContainerName, serviceManagerAddress } =
+    options;
 
   const containerName = `submitter-${networkId}`;
 

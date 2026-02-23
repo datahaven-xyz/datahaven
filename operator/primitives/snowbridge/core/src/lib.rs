@@ -23,6 +23,7 @@ pub use polkadot_parachain_primitives::primitives::{
 pub use ringbuffer::{RingBufferMap, RingBufferMapImpl};
 pub use sp_core::U256;
 
+use alloc::vec;
 use alloc::vec::Vec;
 use codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
 use frame_support::{traits::Contains, BoundedVec};

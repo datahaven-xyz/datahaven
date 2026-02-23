@@ -23,8 +23,7 @@ use crate::Pallet as ExternalValidatorsRewards;
 use {
     crate::types::BenchmarkHelper,
     frame_benchmarking::{account, v2::*, BenchmarkError},
-    frame_support::traits::{Currency, EnsureOrigin},
-    sp_std::prelude::*,
+    frame_support::traits::Currency,
 };
 
 const SEED: u32 = 0;

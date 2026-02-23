@@ -78,9 +78,7 @@ impl Default for ProxyType {
         Self::Any
     }
 }
-use core::{
-    convert::{From, Into},
-};
+use core::convert::{From, Into};
 use datahaven_runtime_common::{
     deal_with_fees::{
         DealWithEthereumBaseFees, DealWithEthereumPriorityFees, DealWithSubstrateFeesAndTip,

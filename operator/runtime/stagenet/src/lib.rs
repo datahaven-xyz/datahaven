@@ -31,7 +31,9 @@ pub mod weights;
 pub use configs::governance;
 pub use configs::Precompiles;
 
-// TODO: Temporary workaround before upgrading to latest polkadot-sdk - fix https://github.com/paritytech/polkadot-sdk/pull/6435
+// Aliases required by define_benchmarks! for pallet_collective instances.
+// PR #6435 (in stable2503) fixes the underlying issue, so these can be removed
+// when benchmarks are regenerated and weight files renamed accordingly.
 #[allow(unused_imports)]
 use pallet_collective as pallet_collective_treasury_council;
 #[allow(unused_imports)]
@@ -196,15 +198,9 @@ pub const NORMAL_BLOCK_WEIGHT: Weight = MAXIMUM_BLOCK_WEIGHT.saturating_mul(3).s
 pub const EXTRINSIC_BASE_WEIGHT: Weight = Weight::from_parts(10000 * WEIGHT_PER_GAS, 0);
 
 // Existential deposit.
-#[cfg(not(feature = "runtime-benchmarks"))]
+// PR #7379 (included in stable2503) ensures benchmarks handle ED=0 internally.
 parameter_types! {
     pub const ExistentialDeposit: Balance = 0;
-}
-#[cfg(feature = "runtime-benchmarks")]
-parameter_types! {
-    // TODO: Change ED to 1 after upgrade to Polkadot SDK stable2503
-    // cfr. https://github.com/paritytech/polkadot-sdk/pull/7379
-    pub const ExistentialDeposit: Balance = 1;
 }
 
 /// The version information used to identify this runtime when compiled natively.

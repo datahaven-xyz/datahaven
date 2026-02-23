@@ -24,6 +24,7 @@
 
 use crate::common::*;
 use alloc::vec::Vec;
+use core::str::from_utf8;
 use datahaven_mainnet_runtime::{
     configs::governance::council::{TechnicalMaxMembers, TechnicalMaxProposals},
     governance::TracksInfo,
@@ -443,29 +444,32 @@ fn benchmark_council_maximum_load() {
 #[test]
 fn benchmark_track_operations() {
     ExtBuilder::governance().build().execute_with(|| {
-        let tracks = TracksInfo::tracks();
+        let tracks: Vec<_> = TracksInfo::tracks().collect();
 
         println!("Testing {} governance tracks", tracks.len());
 
-        for (track_id, track_info) in tracks.iter() {
+        for track in tracks.iter() {
+            let track_name = from_utf8(&track.info.name).unwrap();
+            let track_name = track_name.trim_end_matches('\0');
             let start_block = System::block_number();
 
             // Create proposal for this track
             let proposal = RuntimeCall::System(frame_system::Call::set_storage {
                 items: vec![(
-                    format!(":track:{}:{}", track_id, track_info.name).into_bytes(),
+                    format!(":track:{}:{}", track.id, track_name).into_bytes(),
                     b"test".to_vec(),
                 )],
             });
-            let proposal_hash = make_proposal_hash(&proposal);
 
             assert_ok!(Preimage::note_preimage(
                 RuntimeOrigin::signed(alice()),
                 proposal.encode()
             ));
 
+            let bounded_proposal = <Preimage as StorePreimage>::bound(proposal).unwrap();
+
             // Map track to appropriate origin
-            let origin = if *track_id == 0 {
+            let origin = if track.id == 0 {
                 frame_system::RawOrigin::Root.into()
             } else {
                 frame_system::RawOrigin::Signed(alice()).into()
@@ -474,19 +478,19 @@ fn benchmark_track_operations() {
             assert_ok!(Referenda::submit(
                 RuntimeOrigin::signed(alice()),
                 Box::new(origin),
-                DispatchTime::After(track_info.min_enactment_period),
-                Box::new(proposal_hash.into())
+                bounded_proposal,
+                DispatchTime::After(track.info.min_enactment_period),
             ));
 
             assert_ok!(Referenda::place_decision_deposit(
                 RuntimeOrigin::signed(bob()),
-                *track_id as u32
+                track.id as u32
             ));
 
             // Test voting on this track
             assert_ok!(ConvictionVoting::vote(
                 RuntimeOrigin::signed(charlie()),
-                *track_id as u32,
+                track.id as u32,
                 AccountVote::Standard {
                     vote: Vote {
                         aye: true,
@@ -500,11 +504,11 @@ fn benchmark_track_operations() {
 
             println!(
                 "Track {} ({}): processed in {} blocks (max_deciding: {}, decision_deposit: {})",
-                track_id,
-                track_info.name,
+                track.id,
+                track_name,
                 end_block - start_block,
-                track_info.max_deciding,
-                track_info.decision_deposit
+                track.info.max_deciding,
+                track.info.decision_deposit
             );
         }
     });

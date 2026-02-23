@@ -15,6 +15,8 @@ use xcm::prelude::*;
 #[benchmarks]
 mod benchmarks {
     use super::*;
+    use alloc::vec::Vec;
+    use alloc::boxed::Box;
 
     #[benchmark]
     fn upgrade() -> Result<(), BenchmarkError> {

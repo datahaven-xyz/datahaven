@@ -12,7 +12,6 @@ import { ANVIL_FUNDED_ACCOUNTS, logger, waitForContainerToStart } from "utils";
 import { RELAYER_CONFIG_DIR } from "../../launcher/relayers";
 
 const SUBMITTER_IMAGE = "datahavenxyz/validator-set-submitter:local";
-const SUBMITTER_CONFIG_PATH = path.join(RELAYER_CONFIG_DIR, "submitter-config.yml");
 
 /**
  * Builds the validator-set-submitter Docker image from the repo root.
@@ -69,8 +68,9 @@ export async function launchSubmitter(options: LaunchSubmitterOptions): Promise<
     `relayer_fee: "0.2"`
   ].join("\n");
 
+  const configFileName = `submitter-config-${networkId}.yml`;
   await $`mkdir -p ${RELAYER_CONFIG_DIR}`.quiet();
-  const hostConfigPath = path.resolve(SUBMITTER_CONFIG_PATH);
+  const hostConfigPath = path.resolve(path.join(RELAYER_CONFIG_DIR, configFileName));
   await Bun.write(hostConfigPath, configContent);
   logger.debug(`Submitter config written to ${hostConfigPath}`);
 

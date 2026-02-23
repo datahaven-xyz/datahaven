@@ -346,9 +346,95 @@ fn era_hooks() {
 }
 
 #[test]
+fn target_era_validation_accepts_next_era() {
+    new_test_ext().execute_with(|| {
+        // Advance to era 1 (session 6 starts era 1)
+        run_to_session(6);
+
+        // ActiveEra is now 1, so target era 2 (ActiveEra + 1) should succeed
+        assert_ok!(ExternalValidators::set_external_validators_inner(
+            vec![50, 51],
+            2
+        ));
+    });
+}
+
+#[test]
+fn target_era_validation_rejects_old_era() {
+    new_test_ext().execute_with(|| {
+        // Advance to era 1
+        run_to_session(6);
+
+        // target_era = 0 (ActiveEra - 1) should fail
+        assert_noop!(
+            ExternalValidators::set_external_validators_inner(vec![50, 51], 0),
+            Error::<Test>::TargetEraTooOld
+        );
+
+        // target_era = 1 (== ActiveEra) should also fail
+        assert_noop!(
+            ExternalValidators::set_external_validators_inner(vec![50, 51], 1),
+            Error::<Test>::TargetEraTooOld
+        );
+    });
+}
+
+#[test]
+fn target_era_validation_rejects_too_new_era() {
+    new_test_ext().execute_with(|| {
+        // Advance to era 1
+        run_to_session(6);
+
+        // target_era = 3 (ActiveEra + 2) should fail
+        assert_noop!(
+            ExternalValidators::set_external_validators_inner(vec![50, 51], 3),
+            Error::<Test>::TargetEraTooNew
+        );
+    });
+}
+
+#[test]
+fn target_era_validation_rejects_duplicate() {
+    new_test_ext().execute_with(|| {
+        // Advance to era 1
+        run_to_session(6);
+
+        // First submission with target_era = 2 should succeed
+        assert_ok!(ExternalValidators::set_external_validators_inner(
+            vec![50, 51],
+            2
+        ));
+
+        // Second submission with same target_era = 2 should fail (duplicate)
+        assert_noop!(
+            ExternalValidators::set_external_validators_inner(vec![50, 51], 2),
+            Error::<Test>::DuplicateOrStaleTargetEra
+        );
+    });
+}
+
+#[test]
+fn target_era_validation_at_genesis() {
+    new_test_ext().execute_with(|| {
+        // At genesis, ActiveEra = 0, so target_era = 1 (ActiveEra + 1) should succeed
+        assert_ok!(ExternalValidators::set_external_validators_inner(
+            vec![50, 51],
+            1
+        ));
+
+        // target_era = 0 should fail (too old, <= ActiveEra)
+        assert_noop!(
+            ExternalValidators::set_external_validators_inner(vec![50, 51], 0),
+            Error::<Test>::TargetEraTooOld
+        );
+    });
+}
+
+#[test]
 fn era_hooks_with_external_index() {
     new_test_ext().execute_with(|| {
-        let first_external_index = 1000;
+        // ActiveEra starts at 0, so target era 1 (ActiveEra + 1) is valid
+        let first_external_index = 1;
         assert_ok!(ExternalValidators::set_external_validators_inner(
             vec![50, 51],
             first_external_index
@@ -356,7 +442,8 @@ fn era_hooks_with_external_index() {
 
         run_to_session(8);
 
-        let second_external_index = 2000;
+        // ActiveEra is now 1, so target era 2 (ActiveEra + 1) is valid
+        let second_external_index = 2;
 
         assert_ok!(ExternalValidators::set_external_validators_inner(
             vec![50, 51],
@@ -386,5 +473,83 @@ fn era_hooks_with_external_index() {
         ];
 
         assert_eq!(Mock::mock().called_hooks, expected_calls);
+    });
+}
+
+#[test]
+fn set_external_validators_extrinsic_rejects_bad_origin() {
+    new_test_ext().execute_with(|| {
+        // signed by an arbitrary non-root account → BadOrigin
+        assert_noop!(
+            ExternalValidators::set_external_validators(RuntimeOrigin::signed(1), vec![50, 51], 1),
+            BadOrigin
+        );
+
+        // unsigned → BadOrigin
+        assert_noop!(
+            ExternalValidators::set_external_validators(RuntimeOrigin::none(), vec![50, 51], 1),
+            BadOrigin
+        );
+
+        // root origin (requires signed(777) specifically, not sudo root) → BadOrigin
+        assert_noop!(
+            ExternalValidators::set_external_validators(RuntimeOrigin::root(), vec![50, 51], 1),
+            BadOrigin
+        );
+
+        // success with the correct signed origin
+        assert_ok!(ExternalValidators::set_external_validators(
+            RuntimeOrigin::signed(RootAccount::get()),
+            vec![50, 51],
+            1
+        ));
+    });
+}
+
+#[test]
+fn target_era_validation_rejects_u64_max() {
+    new_test_ext().execute_with(|| {
+        // At genesis, active_era = 0; u64::MAX is far above active_era + 1
+        assert_noop!(
+            ExternalValidators::set_external_validators_inner(vec![50, 51], u64::MAX),
+            Error::<Test>::TargetEraTooNew
+        );
+    });
+}
+
+#[test]
+fn era_boundary_race_submit_advance_resubmit() {
+    new_test_ext().execute_with(|| {
+        // At genesis (active_era = 0), submit for era 1
+        assert_ok!(ExternalValidators::set_external_validators_inner(
+            vec![50, 51],
+            1
+        ));
+
+        // Advance to era 1 (session 6 starts era 1)
+        run_to_session(6);
+
+        // Re-submit for era 1 now that active_era = 1 → TargetEraTooOld
+        assert_noop!(
+            ExternalValidators::set_external_validators_inner(vec![50, 51], 1),
+            Error::<Test>::TargetEraTooOld
+        );
+    });
+}
+
+#[test]
+fn era_boundary_race_resubmit_without_advance() {
+    new_test_ext().execute_with(|| {
+        // At genesis (active_era = 0), submit for era 1
+        assert_ok!(ExternalValidators::set_external_validators_inner(
+            vec![50, 51],
+            1
+        ));
+
+        // Immediately re-submit for era 1 without advancing → DuplicateOrStaleTargetEra
+        assert_noop!(
+            ExternalValidators::set_external_validators_inner(vec![50, 51], 1),
+            Error::<Test>::DuplicateOrStaleTargetEra
+        );
     });
 }

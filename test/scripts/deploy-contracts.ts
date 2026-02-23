@@ -123,33 +123,29 @@ export const updateParameters = async (
   parameterCollection: ParameterCollection,
   chain?: string
 ) => {
-  try {
-    const deployments = await parseDeploymentsFile(chain);
-    const gatewayAddress = deployments.Gateway;
-    const serviceManagerAddress = deployments.ServiceManager;
+  const deployments = await parseDeploymentsFile(chain);
+  const gatewayAddress = deployments.Gateway;
+  const serviceManagerAddress = deployments.ServiceManager;
 
-    if (gatewayAddress) {
-      logger.debug(`📝 Adding EthereumGatewayAddress parameter: ${gatewayAddress}`);
+  if (gatewayAddress) {
+    logger.debug(`📝 Adding EthereumGatewayAddress parameter: ${gatewayAddress}`);
 
-      parameterCollection.addParameter({
-        name: "EthereumGatewayAddress",
-        value: gatewayAddress
-      });
-    } else {
-      logger.warn("⚠️ Gateway address not found in deployments file");
-    }
+    parameterCollection.addParameter({
+      name: "EthereumGatewayAddress",
+      value: gatewayAddress
+    });
+  } else {
+    logger.warn("⚠️ Gateway address not found in deployments file");
+  }
 
-    if (serviceManagerAddress) {
-      logger.debug(`📝 Adding DatahavenServiceManagerAddress parameter: ${serviceManagerAddress}`);
-      parameterCollection.addParameter({
-        name: "DatahavenServiceManagerAddress",
-        value: serviceManagerAddress
-      });
-    } else {
-      logger.warn("⚠️ ServiceManager address not found in deployments file");
-    }
-  } catch (error) {
-    logger.error(`Failed to read parameters from deployment: ${error}`);
+  if (serviceManagerAddress) {
+    logger.debug(`📝 Adding DatahavenServiceManagerAddress parameter: ${serviceManagerAddress}`);
+    parameterCollection.addParameter({
+      name: "DatahavenServiceManagerAddress",
+      value: serviceManagerAddress
+    });
+  } else {
+    logger.warn("⚠️ ServiceManager address not found in deployments file");
   }
 };
 

@@ -21,6 +21,7 @@
 
 use crate::common::*;
 use codec::Encode;
+use core::str::from_utf8;
 use datahaven_stagenet_runtime::{
     currency::{HAVE, SUPPLY_FACTOR},
     governance::TracksInfo,
@@ -37,7 +38,6 @@ use pallet_conviction_voting::{AccountVote, Conviction, Event as ConvictionVotin
 use pallet_preimage::Event as PreimageEvent;
 use pallet_referenda::TracksInfo as TracksInfoTrait;
 use pallet_referenda::{Event as ReferendaEvent, ReferendumInfo};
-use core::str::from_utf8;
 
 /// Test tracks info configuration
 #[test]
@@ -49,9 +49,10 @@ fn tracks_info_configured_correctly() {
         assert_eq!(tracks.len(), 6);
 
         // Verify track IDs and names
-        let track_names: Vec<&str> = tracks.iter().map(|track| {
-            from_utf8(&track.info.name).unwrap().trim_end_matches('\0')
-        }).collect();
+        let track_names: Vec<&str> = tracks
+            .iter()
+            .map(|track| from_utf8(&track.info.name).unwrap().trim_end_matches('\0'))
+            .collect();
         assert_eq!(
             track_names,
             vec![
@@ -67,7 +68,10 @@ fn tracks_info_configured_correctly() {
         // Verify root track has strictest requirements
         assert_eq!(tracks[0].id, 0u16);
         assert_eq!(tracks[0].info.max_deciding, 5);
-        assert_eq!(tracks[0].info.decision_deposit, 100000 * HAVE * SUPPLY_FACTOR); // 100 * KILO_HAVE
+        assert_eq!(
+            tracks[0].info.decision_deposit,
+            100000 * HAVE * SUPPLY_FACTOR
+        ); // 100 * KILO_HAVE
 
         // Verify general admin track
         assert_eq!(tracks[2].id, 2u16);

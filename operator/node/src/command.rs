@@ -427,9 +427,7 @@ pub fn run() -> sc_cli::Result<()> {
                 };
 
                 match config.network.network_backend {
-                    // TODO: Litep2p becomes standard with Polkadot SDK stable2412-7 (should move None to other arm)
-                    // cfr. https://github.com/paritytech/polkadot-sdk/releases/tag/polkadot-stable2412-7
-                    Some(sc_network::config::NetworkBackendType::Libp2p) | None => {
+                    sc_network::config::NetworkBackendType::Libp2p => {
                         match config.chain_spec {
                             ref spec if spec.is_mainnet() => {
                                 service::new_full::<
@@ -464,7 +462,7 @@ pub fn run() -> sc_cli::Result<()> {
                         }
                         .map_err(sc_cli::Error::Service)
                     }
-                    Some(sc_network::config::NetworkBackendType::Litep2p) => {
+                    sc_network::config::NetworkBackendType::Litep2p => {
                         match config.chain_spec {
                             ref spec if spec.is_mainnet() => {
                                 service::new_full::<

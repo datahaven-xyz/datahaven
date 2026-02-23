@@ -572,7 +572,7 @@ where
         Vec::default(),
     ));
 
-    let (network, system_rpc_tx, tx_handler_controller, network_starter, sync_service) =
+    let (network, system_rpc_tx, tx_handler_controller, sync_service) =
         sc_service::build_network(sc_service::BuildNetworkParams {
             config: &config,
             net_config,
@@ -698,7 +698,7 @@ where
                 let deps = crate::rpc::FullDeps {
                     client: client.clone(),
                     pool: pool.clone(),
-                    graph: pool.pool().clone(),
+                    graph: pool.clone(),
                     beefy: BeefyDeps::<BeefyId> {
                         beefy_finality_proof_stream: beefy_rpc_links
                             .from_voter_justif_stream
@@ -996,7 +996,6 @@ where
         .await?;
     }
 
-    network_starter.start_network();
     Ok(task_manager)
 }
 
@@ -1332,10 +1331,11 @@ where
             // Set the indexer db pool
             builder.with_indexer_db_pool(Some(db_pool));
 
+            // TODO: restore once PR https://github.com/Moonsong-Labs/storage-hub/pull/671 is merged
             // Configure blockchain service options for the fisherman
-            if let Some(c) = fisherman_options.blockchain_service.clone() {
-                builder.with_blockchain_service_config(c);
-            }
+            // if let Some(c) = fisherman_options.blockchain_service.clone() {
+            //     builder.with_blockchain_service_config(c);
+            // }
 
             // Spawn the fisherman service
             builder

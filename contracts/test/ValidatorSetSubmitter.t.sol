@@ -12,7 +12,9 @@ import {DataHavenServiceManager} from "../src/DataHavenServiceManager.sol";
 import {
     TransparentUpgradeableProxy
 } from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
-import {IStrategy} from "eigenlayer-contracts/src/contracts/interfaces/IStrategy.sol";
+import {
+    IRewardsCoordinatorTypes
+} from "eigenlayer-contracts/src/contracts/interfaces/IRewardsCoordinator.sol";
 
 contract ValidatorSetSubmitterTest is SnowbridgeAndAVSDeployer {
     address public submitterA = address(uint160(uint256(keccak256("submitterA"))));
@@ -35,7 +37,8 @@ contract ValidatorSetSubmitterTest is SnowbridgeAndAVSDeployer {
                     == this.test_buildNewValidatorSetMessageForEra_exactEncoding.selector
         ) {
             beforeTestCalldata = new bytes[](1);
-            beforeTestCalldata[0] = abi.encodeWithSelector(this.setupValidatorsAsOperators.selector);
+            beforeTestCalldata[0] =
+                abi.encodeWithSelector(this.setupValidatorsAsOperatorsWithAllocations.selector);
         }
     }
 
@@ -179,7 +182,8 @@ contract ValidatorSetSubmitterTest is SnowbridgeAndAVSDeployer {
 
     function test_sendNewValidatorSetForEra_revertsWhenSubmitterIsZeroAddress() public {
         // Deploy a fresh proxy with address(0) as the submitter
-        IStrategy[] memory emptyStrategies = new IStrategy[](0);
+        IRewardsCoordinatorTypes.StrategyAndMultiplier[] memory emptyStrategies =
+            new IRewardsCoordinatorTypes.StrategyAndMultiplier[](0);
 
         cheats.startPrank(regularDeployer);
         DataHavenServiceManager zeroSubmitterSM = DataHavenServiceManager(

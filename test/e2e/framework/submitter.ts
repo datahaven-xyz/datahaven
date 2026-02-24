@@ -8,10 +8,13 @@
 
 import path from "node:path";
 import { $ } from "bun";
-import { ANVIL_FUNDED_ACCOUNTS, logger, waitForContainerToStart } from "utils";
+import { ANVIL_FUNDED_ACCOUNTS, logger, waitForContainerToStart, waitForLog } from "utils";
 import { RELAYER_CONFIG_DIR } from "../../launcher/relayers";
 
 const SUBMITTER_IMAGE = "datahavenxyz/validator-set-submitter:local";
+const SUBMITTER_READY_LOG = "Submitter started — watching session changes";
+const SUBMITTER_READY_TIMEOUT_SECONDS = 30;
+const SUBMITTER_LOG_TAIL_LINES = 200;
 
 /**
  * Builds the validator-set-submitter Docker image from the repo root.
@@ -96,6 +99,22 @@ export async function launchSubmitter(options: LaunchSubmitterOptions): Promise<
 
   await $`docker ${args}`.quiet();
   await waitForContainerToStart(containerName);
+  try {
+    await waitForLog({
+      containerName,
+      search: SUBMITTER_READY_LOG,
+      timeoutSeconds: SUBMITTER_READY_TIMEOUT_SECONDS
+    });
+  } catch (error) {
+    const logs =
+      (await $`docker logs --tail ${SUBMITTER_LOG_TAIL_LINES} ${containerName}`.nothrow().text()) ||
+      "<no logs captured>";
+    await stopSubmitter(containerName);
+    throw new Error(
+      `Submitter did not become ready. Expected log "${SUBMITTER_READY_LOG}". Last ${SUBMITTER_LOG_TAIL_LINES} log lines:\n${logs}`,
+      { cause: error }
+    );
+  }
 
   logger.debug(`Submitter container ${containerName} started`);
 

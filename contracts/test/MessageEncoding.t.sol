@@ -15,7 +15,9 @@ contract MessageEncodingTest is Test {
         address[] memory mockValidators = TestUtils.generateMockValidatorsAddresses(3);
 
         DataHavenSnowbridgeMessages.NewValidatorSetPayload memory payload =
-            DataHavenSnowbridgeMessages.NewValidatorSetPayload({validators: mockValidators});
+            DataHavenSnowbridgeMessages.NewValidatorSetPayload({
+                validators: mockValidators, externalIndex: uint64(0)
+            });
 
         bytes memory encodedMessage =
             DataHavenSnowbridgeMessages.scaleEncodeNewValidatorSetMessagePayload(payload);

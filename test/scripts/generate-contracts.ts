@@ -125,7 +125,7 @@ async function formatStateDiff(): Promise<void> {
 
   // Use a higher max size (3MB) to handle the large state-diff.json file
   const result =
-    await $`bun run biome format --files-max-size=3000000 --write ${STATE_DIFF_PATH}`.quiet();
+    await $`bun run biome format --files-max-size=4000000 --write ${STATE_DIFF_PATH}`.quiet();
 
   if (result.exitCode !== 0) {
     logger.warn("⚠️ Biome formatting had issues, but continuing...");

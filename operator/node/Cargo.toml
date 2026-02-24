@@ -35,9 +35,11 @@ serde_json = { workspace = true, default-features = true }
 url = { workspace = true }
 
 #MMR
+mmr-gadget = { workspace = true, default-features = true }
 mmr-rpc = { workspace = true, default-features = true }
 pallet-beefy-mmr = { workspace = true, default-features = true }
 pallet-mmr = { workspace = true, default-features = true }
+sp-mmr-primitives = { workspace = true, default-features = true }
 
 # Polkadot SDK
 frame-benchmarking-cli = { workspace = true, default-features = true, optional = true }
@@ -138,7 +140,6 @@ toml = { workspace = true }
 # Static linking
 #### Needed to build static binaries ####
 pq-sys = { workspace = true, optional = true }
-
 
 [build-dependencies]
 substrate-build-script-utils = { workspace = true, default-features = true }

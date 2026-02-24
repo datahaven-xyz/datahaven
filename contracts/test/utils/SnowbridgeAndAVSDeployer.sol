@@ -16,6 +16,11 @@ import {TestUtils} from "./TestUtils.sol";
 import {
     IAllocationManagerTypes
 } from "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
+import {IStrategy} from "eigenlayer-contracts/src/contracts/interfaces/IStrategy.sol";
+import {
+    IRewardsCoordinatorTypes
+} from "eigenlayer-contracts/src/contracts/interfaces/IRewardsCoordinator.sol";
+import {OperatorSet} from "eigenlayer-contracts/src/contracts/libraries/OperatorSetLib.sol";
 import {ValidatorsUtils} from "../../script/utils/ValidatorsUtils.sol";
 
 import {console} from "forge-std/Test.sol";
@@ -143,6 +148,61 @@ contract SnowbridgeAndAVSDeployer is AVSDeployer {
         // Set the Snowbridge Gateway address in the DataHaven service.
         cheats.prank(avsOwner);
         serviceManager.setSnowbridgeGateway(address(gateway));
+    }
+
+    function setupValidatorsAsOperatorsWithAllocations() public {
+        setupValidatorsAsOperators();
+
+        // Remove strategies added during initialize (without multipliers)
+        // and re-add them with explicit multipliers
+        IStrategy[] memory strategies = new IStrategy[](deployedStrategies.length);
+        for (uint256 i = 0; i < deployedStrategies.length; i++) {
+            strategies[i] = deployedStrategies[i];
+        }
+
+        IRewardsCoordinatorTypes.StrategyAndMultiplier[] memory sm =
+            new IRewardsCoordinatorTypes.StrategyAndMultiplier[](deployedStrategies.length);
+        for (uint256 i = 0; i < deployedStrategies.length; i++) {
+            sm[i] = IRewardsCoordinatorTypes.StrategyAndMultiplier({
+                strategy: strategies[i],
+                multiplier: 1 // 1x multiplier for all strategies
+            });
+        }
+
+        cheats.startPrank(avsOwner);
+        serviceManager.removeStrategiesFromValidatorsSupportedStrategies(strategies);
+        serviceManager.addStrategiesToValidatorsSupportedStrategies(sm);
+        cheats.stopPrank();
+
+        // Advance past ALLOCATION_CONFIGURATION_DELAY (1 day = 86400 blocks in test setup)
+        // so operator allocation delays take effect
+        uint32 allocationConfigDelay = allocationManager.ALLOCATION_CONFIGURATION_DELAY();
+        cheats.roll(block.number + allocationConfigDelay + 1);
+
+        // For each operator, allocate full magnitude to the DataHaven operator set
+        for (uint256 i = 0; i < validatorsAllowlist.length; i++) {
+            IAllocationManagerTypes.AllocateParams[] memory allocParams =
+                new IAllocationManagerTypes.AllocateParams[](1);
+
+            uint64[] memory newMagnitudes = new uint64[](deployedStrategies.length);
+            for (uint256 j = 0; j < deployedStrategies.length; j++) {
+                newMagnitudes[j] = 1e18; // 100% magnitude
+            }
+
+            allocParams[0] = IAllocationManagerTypes.AllocateParams({
+                operatorSet: OperatorSet({
+                    avs: address(serviceManager), id: serviceManager.VALIDATORS_SET_ID()
+                }),
+                strategies: strategies,
+                newMagnitudes: newMagnitudes
+            });
+
+            cheats.prank(validatorsAllowlist[i]);
+            allocationManager.modifyAllocations(validatorsAllowlist[i], allocParams);
+        }
+
+        // Advance past allocation effect delay (operator delay is 0, so just +1 block)
+        cheats.roll(block.number + 1);
     }
 
     function setupValidatorsAsOperators() public {

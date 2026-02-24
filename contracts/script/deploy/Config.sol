@@ -8,7 +8,9 @@ contract Config {
         uint256 randaoCommitExpiration;
         uint256 minNumRequiredSignatures;
         uint64 startBlock;
+        uint128 initialValidatorSetId;
         bytes32[] initialValidatorHashes;
+        uint128 nextValidatorSetId;
         bytes32[] nextValidatorHashes;
         bytes32 rewardsMessageOrigin;
     }
@@ -17,9 +19,8 @@ contract Config {
     struct AVSConfig {
         address avsOwner;
         address rewardsInitiator;
-        address vetoCommitteeMember;
-        uint32 vetoWindowBlocks;
         address[] validatorsStrategies;
+        address validatorSetSubmitter;
     }
 
     // EigenLayer parameters

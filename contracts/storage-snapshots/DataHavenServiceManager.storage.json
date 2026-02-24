@@ -1,0 +1,184 @@
+{
+  "storage": [
+    {
+      "astId": 138,
+      "contract": "src/DataHavenServiceManager.sol:DataHavenServiceManager",
+      "label": "_initialized",
+      "offset": 0,
+      "slot": "0",
+      "type": "t_uint8"
+    },
+    {
+      "astId": 141,
+      "contract": "src/DataHavenServiceManager.sol:DataHavenServiceManager",
+      "label": "_initializing",
+      "offset": 1,
+      "slot": "0",
+      "type": "t_bool"
+    },
+    {
+      "astId": 671,
+      "contract": "src/DataHavenServiceManager.sol:DataHavenServiceManager",
+      "label": "__gap",
+      "offset": 0,
+      "slot": "1",
+      "type": "t_array(t_uint256)50_storage"
+    },
+    {
+      "astId": 10,
+      "contract": "src/DataHavenServiceManager.sol:DataHavenServiceManager",
+      "label": "_owner",
+      "offset": 0,
+      "slot": "51",
+      "type": "t_address"
+    },
+    {
+      "astId": 130,
+      "contract": "src/DataHavenServiceManager.sol:DataHavenServiceManager",
+      "label": "__gap",
+      "offset": 0,
+      "slot": "52",
+      "type": "t_array(t_uint256)49_storage"
+    },
+    {
+      "astId": 23775,
+      "contract": "src/DataHavenServiceManager.sol:DataHavenServiceManager",
+      "label": "rewardsInitiator",
+      "offset": 0,
+      "slot": "101",
+      "type": "t_address"
+    },
+    {
+      "astId": 23780,
+      "contract": "src/DataHavenServiceManager.sol:DataHavenServiceManager",
+      "label": "validatorsAllowlist",
+      "offset": 0,
+      "slot": "102",
+      "type": "t_mapping(t_address,t_bool)"
+    },
+    {
+      "astId": 23784,
+      "contract": "src/DataHavenServiceManager.sol:DataHavenServiceManager",
+      "label": "_snowbridgeGateway",
+      "offset": 0,
+      "slot": "103",
+      "type": "t_contract(IGatewayV2)23481"
+    },
+    {
+      "astId": 23789,
+      "contract": "src/DataHavenServiceManager.sol:DataHavenServiceManager",
+      "label": "validatorEthAddressToSolochainAddress",
+      "offset": 0,
+      "slot": "104",
+      "type": "t_mapping(t_address,t_address)"
+    },
+    {
+      "astId": 23793,
+      "contract": "src/DataHavenServiceManager.sol:DataHavenServiceManager",
+      "label": "validatorSolochainAddressToEthAddress",
+      "offset": 0,
+      "slot": "105",
+      "type": "t_mapping(t_address,t_address)"
+    },
+    {
+      "astId": 23796,
+      "contract": "src/DataHavenServiceManager.sol:DataHavenServiceManager",
+      "label": "validatorSetSubmitter",
+      "offset": 0,
+      "slot": "106",
+      "type": "t_address"
+    },
+    {
+      "astId": 23802,
+      "contract": "src/DataHavenServiceManager.sol:DataHavenServiceManager",
+      "label": "strategiesAndMultipliers",
+      "offset": 0,
+      "slot": "107",
+      "type": "t_mapping(t_contract(IStrategy)7361,t_uint96)"
+    },
+    {
+      "astId": 23807,
+      "contract": "src/DataHavenServiceManager.sol:DataHavenServiceManager",
+      "label": "__GAP",
+      "offset": 0,
+      "slot": "108",
+      "type": "t_array(t_uint256)43_storage"
+    }
+  ],
+  "types": {
+    "t_address": {
+      "encoding": "inplace",
+      "label": "address",
+      "numberOfBytes": "20"
+    },
+    "t_array(t_uint256)43_storage": {
+      "encoding": "inplace",
+      "label": "uint256[43]",
+      "numberOfBytes": "1376",
+      "base": "t_uint256"
+    },
+    "t_array(t_uint256)49_storage": {
+      "encoding": "inplace",
+      "label": "uint256[49]",
+      "numberOfBytes": "1568",
+      "base": "t_uint256"
+    },
+    "t_array(t_uint256)50_storage": {
+      "encoding": "inplace",
+      "label": "uint256[50]",
+      "numberOfBytes": "1600",
+      "base": "t_uint256"
+    },
+    "t_bool": {
+      "encoding": "inplace",
+      "label": "bool",
+      "numberOfBytes": "1"
+    },
+    "t_contract(IGatewayV2)23481": {
+      "encoding": "inplace",
+      "label": "contract IGatewayV2",
+      "numberOfBytes": "20"
+    },
+    "t_contract(IStrategy)7361": {
+      "encoding": "inplace",
+      "label": "contract IStrategy",
+      "numberOfBytes": "20"
+    },
+    "t_mapping(t_address,t_address)": {
+      "encoding": "mapping",
+      "key": "t_address",
+      "label": "mapping(address => address)",
+      "numberOfBytes": "32",
+      "value": "t_address"
+    },
+    "t_mapping(t_address,t_bool)": {
+      "encoding": "mapping",
+      "key": "t_address",
+      "label": "mapping(address => bool)",
+      "numberOfBytes": "32",
+      "value": "t_bool"
+    },
+    "t_mapping(t_contract(IStrategy)7361,t_uint96)": {
+      "encoding": "mapping",
+      "key": "t_contract(IStrategy)7361",
+      "label": "mapping(contract IStrategy => uint96)",
+      "numberOfBytes": "32",
+      "value": "t_uint96"
+    },
+    "t_uint256": {
+      "encoding": "inplace",
+      "label": "uint256",
+      "numberOfBytes": "32"
+    },
+    "t_uint8": {
+      "encoding": "inplace",
+      "label": "uint8",
+      "numberOfBytes": "1"
+    },
+    "t_uint96": {
+      "encoding": "inplace",
+      "label": "uint96",
+      "numberOfBytes": "12"
+    }
+  }
+}

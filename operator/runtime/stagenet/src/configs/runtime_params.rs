@@ -51,10 +51,14 @@ pub mod dynamic_params {
 
         #[codec(index = 3)]
         #[allow(non_upper_case_globals)]
-        /// The RewardsAgentOrigin is the origin of the rewards agent, which is its ID.
-        /// TODO: Decide which agent origin we want to use. Currently for testing it's the zero hash
+        /// The RewardsAgentOrigin is the Agent ID for the rewards pallet's outbound Snowbridge messages.
+        /// Computed as: blake2_256(SCALE_ENCODE("GlobalConsensus", ByGenesis(genesis_hash), interior))
+        /// where interior = SCALE_ENCODE("AccountKey20", ExternalValidatorRewardsAccount)
+        ///
+        /// For stagenet with genesis hash 0x72d0856fd339e09cb21df7bac8ac3120bd871e327ec0e1658395df68acef9bee
+        /// and rewards account 0x6d6f646c64682f65767265770000000000000000 (from PalletId "dh/evrew"):
         pub static RewardsAgentOrigin: H256 = H256::from_slice(&hex!(
-            "0000000000000000000000000000000000000000000000000000000000000000"
+            "56490bd3f367447bfaf57bb18e7a45e1b2db7d538fe42098e87d2aa106c6afdd"
         ));
 
         // Proportion of fees allocated to the Treasury (remainder are burned).
@@ -131,9 +135,9 @@ pub mod dynamic_params {
         ///
         /// [`MaxPrice`] = [`MostlyStablePrice`] + u * e ^ ( 1 - [`SystemUtilisationUpperThresholdPercentage`] )
         ///
-        /// 500 = 50 + u * (e ^ (1 - 0.95) - 1)
-        /// u = (500 - 50) / (e ^ (1 - 0.95) - 1) ≈ 8777
-        pub static UpperExponentFactor: u32 = 8777;
+        /// 500 GIGAWEI = 50 GIGAWEI + u * (e ^ (1 - 0.95) - 1)
+        /// u = (500 GIGAWEI - 50 GIGAWEI) / (e ^ (1 - 0.95) - 1) ≈ 8,776,874,921,880
+        pub static UpperExponentFactor: Balance = 8_776_874_921_880;
 
         #[codec(index = 15)]
         #[allow(non_upper_case_globals)]
@@ -142,9 +146,9 @@ pub mod dynamic_params {
         ///
         /// [`MinPrice`] = [`MostlyStablePrice`] - u * e ^ ( [`SystemUtilisationLowerThresholdPercentage`] - 0 )
         ///
-        /// 10 = 50 - l * (e ^ (0.3 - 0) - 1)
-        /// l = (50 - 10) / (e ^ (0.3 - 0) - 1) ≈ 114
-        pub static LowerExponentFactor: u32 = 114;
+        /// 10 GIGAWEI = 50 GIGAWEI - l * (e ^ (0.3 - 0) - 1)
+        /// l = (50 GIGAWEI - 10 GIGAWEI) / (e ^ (0.3 - 0) - 1) ≈ 114,331,836,540
+        pub static LowerExponentFactor: Balance = 114_331_836_540;
 
         #[codec(index = 16)]
         #[allow(non_upper_case_globals)]

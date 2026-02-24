@@ -31,9 +31,27 @@ contract DeployParams is Script, Config {
         bool isDevMode = keccak256(abi.encodePacked(vm.envOr("DEV_MODE", string("false"))))
             == keccak256(abi.encodePacked("true"));
         if (isDevMode) {
+            config.initialValidatorSetId = 0;
             config.initialValidatorHashes = TestUtils.generateMockValidators(10);
+            config.nextValidatorSetId = 1;
             config.nextValidatorHashes = TestUtils.generateMockValidators(10);
         } else {
+            // Load validator set IDs (default to 0/1 for backwards compatibility)
+            try vm.parseJsonUint(configJson, ".snowbridge.initialValidatorSetId") returns (
+                uint256 val
+            ) {
+                config.initialValidatorSetId = uint128(val);
+            } catch {
+                config.initialValidatorSetId = 0;
+            }
+            try vm.parseJsonUint(configJson, ".snowbridge.nextValidatorSetId") returns (
+                uint256 val
+            ) {
+                config.nextValidatorSetId = uint128(val);
+            } catch {
+                config.nextValidatorSetId = config.initialValidatorSetId + 1;
+            }
+
             config.initialValidatorHashes =
                 _loadValidatorsFromConfig(configJson, ".snowbridge.initialValidatorHashes");
             config.nextValidatorHashes =
@@ -58,10 +76,14 @@ contract DeployParams is Script, Config {
             config.avsOwner = vm.parseJsonAddress(configJson, ".avs.avsOwner");
         }
         config.rewardsInitiator = vm.parseJsonAddress(configJson, ".avs.rewardsInitiator");
-        config.vetoCommitteeMember = vm.parseJsonAddress(configJson, ".avs.vetoCommitteeMember");
-        config.vetoWindowBlocks = vm.parseJsonUint(configJson, ".avs.vetoWindowBlocks").toUint32();
         config.validatorsStrategies =
             vm.parseJsonAddressArray(configJson, ".avs.validatorsStrategies");
+
+        try vm.parseJsonAddress(configJson, ".avs.validatorSetSubmitter") returns (address addr) {
+            config.validatorSetSubmitter = addr;
+        } catch {
+            config.validatorSetSubmitter = address(0);
+        }
 
         return config;
     }

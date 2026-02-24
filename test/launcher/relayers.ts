@@ -441,8 +441,8 @@ export const launchRelayers = async (
   await $`mkdir -p ${RELAYER_CONFIG_DIR}`.quiet();
 
   const datastorePath = "tmp/datastore";
-  logger.debug(`Ensuring datastore directory exists: ${datastorePath}`);
-  await $`mkdir -p ${datastorePath}`.quiet();
+  logger.debug(`Clearing and recreating datastore directory: ${datastorePath}`);
+  await $`rm -rf ${datastorePath} && mkdir -p ${datastorePath}`.quiet();
 
   const ethWsPort = await getPortFromKurtosis("el-1-reth-lodestar", "ws", kurtosisEnclaveName);
   const ethHttpPort = await getPortFromKurtosis("cl-1-lodestar-reth", "http", kurtosisEnclaveName);

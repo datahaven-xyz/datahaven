@@ -44,6 +44,8 @@ jobs:
     uses: ./.github/workflows/task-rust-tests.yml
   contract-tests:
     uses: ./.github/workflows/task-foundry-tests.yml
+  storage-layout:
+    uses: ./.github/workflows/task-storage-layout.yml
   rust-lint:
     needs: [warm-sccache]
     uses: ./.github/workflows/task-rust-lint.yml

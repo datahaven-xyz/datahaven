@@ -5,7 +5,8 @@
  * - Start network and ensure 4 validator nodes are running (Alice, Bob, Charlie, Dave).
  * - Confirm initial mapping exists only for Alice/Bob on `ServiceManager`.
  * - Allowlist and register Charlie/Dave as operators on Ethereum.
- * - Send updated validator set via `ServiceManager.sendNewValidatorSet`, assert Gateway `OutboundMessageAccepted`.
+ * - Send updated validator set via `ServiceManager.sendNewValidatorSetForEra`,
+ *   assert Gateway `OutboundMessageAccepted`.
  * - Observe `ExternalValidators.ExternalValidatorsSet` on DataHaven (substrate), confirming propagation.
  */
 import { beforeAll, describe, expect, it } from "bun:test";
@@ -13,6 +14,7 @@ import { getOwnerAccount } from "launcher/validators";
 import {
   CROSS_CHAIN_TIMEOUTS,
   type Deployments,
+  getPapiSigner,
   logger,
   parseDeploymentsFile,
   ZERO_ADDRESS
@@ -67,6 +69,20 @@ describe("Validator Set Update", () => {
   beforeAll(async () => {
     deployments = await parseDeploymentsFile();
     connectors = suite.getTestConnectors();
+
+    // Pause era rotation early so the active era stabilizes during tests 1-3 (~28s),
+    // avoiding the ~80s wait inside the cross-chain test.
+    // Tests 1-3 only touch Ethereum contracts and don't depend on era rotation.
+    const { dhApi } = connectors;
+    const pauseTx = dhApi.tx.Sudo.sudo({
+      call: dhApi.tx.ExternalValidators.force_era({
+        mode: { type: "ForceNone", value: undefined }
+      }).decodedCall
+    });
+    const pauseResult = await pauseTx.signAndSubmit(getPapiSigner("ALITH"));
+    if (!pauseResult.ok) {
+      throw new Error("Failed to pause era rotation");
+    }
   });
 
   it("should verify test environment", async () => {
@@ -159,25 +175,49 @@ describe("Validator Set Update", () => {
     async () => {
       const { publicClient, walletClient, dhApi } = connectors;
 
+      // Era rotation was paused in beforeAll. Wait for any pending transition to settle
+      // (ForceNone prevents new eras, but an in-progress one must finish first).
+      let stableEraIndex: number;
+      // eslint-disable-next-line no-constant-condition
+      while (true) {
+        const activeEra = (await dhApi.query.ExternalValidators.ActiveEra.getValue())?.index ?? 0;
+        const currentEra = (await dhApi.query.ExternalValidators.CurrentEra.getValue()) ?? 0;
+        if (currentEra === activeEra) {
+          stableEraIndex = activeEra;
+          break;
+        }
+        await new Promise((r) => setTimeout(r, 6_000)); // ~1 substrate block
+      }
+
+      const targetEra = BigInt(stableEraIndex + 1);
+
       // Send the updated validator set via Snowbridge
       const hash = await walletClient.writeContract({
         address: deployments.ServiceManager as `0x${string}`,
         abi: dataHavenServiceManagerAbi,
-        functionName: "sendNewValidatorSet",
-        args: [parseEther("0.1"), parseEther("0.2")],
+        functionName: "sendNewValidatorSetForEra",
+        args: [targetEra, parseEther("0.1"), parseEther("0.2")],
         value: parseEther("0.3"),
-        gas: 1000000n,
         account: getOwnerAccount(),
         chain: null
       });
-
       const receipt = await publicClient.waitForTransactionReceipt({ hash });
+      logger.info(
+        `sendNewValidatorSet tx status: ${receipt.status}, block: ${receipt.blockNumber}`
+      );
       expect(receipt.status).toBe("success");
 
       // Verify OutboundMessageAccepted event was emitted
       const hasOutboundAccepted = (receipt.logs ?? []).some((log: any) => {
         try {
-          const decoded = decodeEventLog({ abi: gatewayAbi, data: log.data, topics: log.topics });
+          const decoded = decodeEventLog({
+            abi: gatewayAbi,
+            data: log.data,
+            topics: log.topics
+          });
+          if (decoded.eventName === "OutboundMessageAccepted") {
+            logger.info(`OutboundMessageAccepted event: nonce=${(decoded.args as any)?.nonce}`);
+          }
           return decoded.eventName === "OutboundMessageAccepted";
         } catch {
           return false;
@@ -185,13 +225,24 @@ describe("Validator Set Update", () => {
       });
       expect(hasOutboundAccepted).toBe(true);
 
+      logger.info("Waiting for ExternalValidators.ExternalValidatorsSet event on DataHaven...");
       // Wait for the validator set to be updated on Substrate
       await waitForDataHavenEvent({
         api: dhApi,
         pallet: "ExternalValidators",
         event: "ExternalValidatorsSet",
+        filter: (event: { external_index: number | bigint }) =>
+          BigInt(event.external_index) === targetEra,
         timeout: CROSS_CHAIN_TIMEOUTS.ETH_TO_DH_MS
       });
+
+      // Resume era rotation
+      const resumeTx = dhApi.tx.Sudo.sudo({
+        call: dhApi.tx.ExternalValidators.force_era({
+          mode: { type: "NotForcing", value: undefined }
+        }).decodedCall
+      });
+      await resumeTx.signAndSubmit(getPapiSigner("ALITH"));
 
       // Verify new validators are in storage
       const validators = await dhApi.query.ExternalValidators.ExternalValidators.getValue();

@@ -31,6 +31,8 @@ COPY test/utils/ ./utils/
 
 ENV NODE_ENV=production
 
+EXPOSE 9090
+
 USER submitter
 
 ENTRYPOINT ["bun", "run", "tools/validator-set-submitter/main.ts", "run"]

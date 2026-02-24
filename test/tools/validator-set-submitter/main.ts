@@ -3,6 +3,7 @@ import { logger } from "utils/logger";
 import { privateKeyToAccount } from "viem/accounts";
 import { getOnChainSubmitter } from "./chain";
 import { loadConfig } from "./config";
+import { createMetricsServer } from "./metrics";
 import { createClients, startSubmitter } from "./submitter";
 
 const program = new Command()
@@ -27,6 +28,10 @@ program
       dryRun: opts.dryRun,
       submitterPrivateKey: opts.submitterPrivateKey
     });
+
+    // Start metrics server early so /healthz is available during init
+    const metricsServer = createMetricsServer(config.metricsPort);
+    logger.info(`Metrics server listening on :${config.metricsPort}`);
 
     logger.info("Validator Set Submitter starting...");
     logger.info(`Ethereum RPC: ${config.ethereumRpcUrl}`);
@@ -84,6 +89,7 @@ program
     try {
       await startSubmitter(clients, config, ac.signal);
     } finally {
+      metricsServer.stop();
       clients.papiClient.destroy();
       logger.info("Submitter stopped, PAPI client destroyed");
     }

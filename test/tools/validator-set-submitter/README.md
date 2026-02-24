@@ -39,6 +39,9 @@ network_id: "anvil"
 # Fees (in ETH, sent as msg.value to cover Snowbridge relay costs)
 execution_fee: "0.1"
 relayer_fee: "0.2"
+
+# Optional metrics port (default: 9090)
+# metrics_port: 9090
 ```
 
 ## Usage
@@ -63,6 +66,24 @@ bun tools/validator-set-submitter/main.ts run --dry-run
 ```
 
 Private key precedence is: `--submitter-private-key` > `SUBMITTER_PRIVATE_KEY` > `submitter_private_key` in config file.
+
+## Observability
+
+The submitter exposes a Prometheus metrics server on `metrics_port` (default `9090`):
+
+- `GET /metrics` — Prometheus metrics
+- `GET /healthz` — liveness
+- `GET /readyz` — readiness (`200` once startup checks pass and watcher is running)
+
+Key metrics:
+
+- `validator_set_submitter_submissions_total{outcome="success|failed|dry_run"}`
+- `validator_set_submitter_ticks_total{result="submitted_success|submitted_failed|skipped_*"}`
+- `validator_set_submitter_errors_total{type="tick_error|subscription_error"}`
+- `validator_set_submitter_missed_eras_total`
+- `validator_set_submitter_consecutive_missed_eras`
+- `validator_set_submitter_up`
+- `validator_set_submitter_ready`
 
 ## Docker
 

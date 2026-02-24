@@ -120,7 +120,7 @@ contract DeployLive is DeployBase {
             DataHavenServiceManager.initialize.selector,
             params.avsOwner,
             params.rewardsInitiator,
-            params.validatorsStrategies,
+            params.validatorsStrategiesAndMultipliers,
             params.gateway,
             params.validatorSetSubmitter
         );

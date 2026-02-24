@@ -197,6 +197,16 @@ describe("Validator Set Update", () => {
       }
 
       const targetEra = BigInt(stableEraIndex + 1);
+      const validatorSetUpdated = waitForDataHavenEvent({
+        api: dhApi,
+        pallet: "ExternalValidators",
+        event: "ExternalValidatorsSet",
+        filter: (event: { external_index: number | bigint }) =>
+          BigInt(event.external_index) === targetEra,
+        timeout: CROSS_CHAIN_TIMEOUTS.ETH_TO_DH_MS
+      });
+      // Prevent unhandled rejection if launchSubmitter fails before we await this promise.
+      void validatorSetUpdated.catch(() => undefined);
 
       // Launch the submitter daemon — it will detect the last-session condition
       // and automatically call sendNewValidatorSetForEra on the ServiceManager.
@@ -212,14 +222,7 @@ describe("Validator Set Update", () => {
       try {
         logger.info("Waiting for ExternalValidators.ExternalValidatorsSet event on DataHaven...");
         // Wait for the validator set to be updated on Substrate
-        await waitForDataHavenEvent({
-          api: dhApi,
-          pallet: "ExternalValidators",
-          event: "ExternalValidatorsSet",
-          filter: (event: { external_index: number | bigint }) =>
-            BigInt(event.external_index) === targetEra,
-          timeout: CROSS_CHAIN_TIMEOUTS.ETH_TO_DH_MS
-        });
+        await validatorSetUpdated;
       } finally {
         await cleanupSubmitter();
       }

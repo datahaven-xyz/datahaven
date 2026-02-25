@@ -1612,7 +1612,7 @@ dependencies = [
  "pallet-message-queue",
  "parity-scale-codec",
  "scale-info",
- "snowbridge-core 0.24.0",
+ "snowbridge-core 0.25.0",
  "sp-core",
  "sp-runtime",
  "staging-xcm",
@@ -1630,7 +1630,7 @@ dependencies = [
  "pallet-message-queue",
  "parity-scale-codec",
  "scale-info",
- "snowbridge-core 0.25.0",
+ "snowbridge-core 0.13.2",
  "sp-core",
  "sp-runtime",
  "sp-std",
@@ -2810,8 +2810,8 @@ dependencies = [
  "snowbridge-beacon-primitives 0.25.0",
  "snowbridge-core 0.25.0",
  "snowbridge-inbound-queue-primitives",
- "snowbridge-merkle-tree 0.24.0",
- "snowbridge-outbound-queue-primitives 0.24.0",
+ "snowbridge-merkle-tree 0.25.0",
+ "snowbridge-outbound-queue-primitives 0.25.0",
  "snowbridge-outbound-queue-v2-runtime-api",
  "snowbridge-pallet-ethereum-client",
  "snowbridge-pallet-ethereum-client-fixtures",
@@ -2820,7 +2820,7 @@ dependencies = [
  "snowbridge-pallet-system",
  "snowbridge-pallet-system-v2",
  "snowbridge-system-v2-runtime-api",
- "snowbridge-verification-primitives 0.24.0",
+ "snowbridge-verification-primitives 0.25.0",
  "sp-api",
  "sp-block-builder",
  "sp-consensus-babe",
@@ -2987,7 +2987,7 @@ dependencies = [
  "polkadot-runtime-common",
  "precompile-utils",
  "scale-info",
- "snowbridge-outbound-queue-primitives 0.24.0",
+ "snowbridge-outbound-queue-primitives 0.25.0",
  "sp-core",
  "sp-io",
  "sp-runtime",
@@ -3112,8 +3112,8 @@ dependencies = [
  "snowbridge-beacon-primitives 0.25.0",
  "snowbridge-core 0.25.0",
  "snowbridge-inbound-queue-primitives",
- "snowbridge-merkle-tree 0.24.0",
- "snowbridge-outbound-queue-primitives 0.24.0",
+ "snowbridge-merkle-tree 0.25.0",
+ "snowbridge-outbound-queue-primitives 0.25.0",
  "snowbridge-outbound-queue-v2-runtime-api",
  "snowbridge-pallet-ethereum-client",
  "snowbridge-pallet-ethereum-client-fixtures",
@@ -3122,7 +3122,7 @@ dependencies = [
  "snowbridge-pallet-system",
  "snowbridge-pallet-system-v2",
  "snowbridge-system-v2-runtime-api",
- "snowbridge-verification-primitives 0.24.0",
+ "snowbridge-verification-primitives 0.25.0",
  "sp-api",
  "sp-block-builder",
  "sp-consensus-babe",
@@ -3268,8 +3268,8 @@ dependencies = [
  "snowbridge-beacon-primitives 0.25.0",
  "snowbridge-core 0.25.0",
  "snowbridge-inbound-queue-primitives",
- "snowbridge-merkle-tree 0.24.0",
- "snowbridge-outbound-queue-primitives 0.24.0",
+ "snowbridge-merkle-tree 0.25.0",
+ "snowbridge-outbound-queue-primitives 0.25.0",
  "snowbridge-outbound-queue-v2-runtime-api",
  "snowbridge-pallet-ethereum-client",
  "snowbridge-pallet-ethereum-client-fixtures",
@@ -3278,7 +3278,7 @@ dependencies = [
  "snowbridge-pallet-system",
  "snowbridge-pallet-system-v2",
  "snowbridge-system-v2-runtime-api",
- "snowbridge-verification-primitives 0.24.0",
+ "snowbridge-verification-primitives 0.25.0",
  "sp-api",
  "sp-block-builder",
  "sp-consensus-babe",
@@ -8613,7 +8613,7 @@ dependencies = [
  "parity-scale-codec",
  "scale-info",
  "snowbridge-core 0.25.0",
- "snowbridge-outbound-queue-primitives",
+ "snowbridge-outbound-queue-primitives 0.25.0",
  "sp-core",
  "sp-io",
  "sp-runtime",
@@ -8855,7 +8855,7 @@ dependencies = [
  "precompile-utils",
  "scale-info",
  "snowbridge-core 0.25.0",
- "snowbridge-outbound-queue-primitives",
+ "snowbridge-outbound-queue-primitives 0.25.0",
  "sp-core",
  "sp-io",
  "sp-runtime",
@@ -9023,7 +9023,7 @@ dependencies = [
  "scale-info",
  "serde",
  "snowbridge-core 0.25.0",
- "snowbridge-outbound-queue-primitives",
+ "snowbridge-outbound-queue-primitives 0.25.0",
  "sp-core",
  "sp-io",
  "sp-runtime",
@@ -9046,7 +9046,7 @@ dependencies = [
  "parity-scale-codec",
  "rand 0.8.5",
  "scale-info",
- "snowbridge-outbound-queue-primitives 0.24.0",
+ "snowbridge-outbound-queue-primitives 0.25.0",
  "sp-core",
  "sp-io",
  "sp-runtime",
@@ -9069,7 +9069,7 @@ dependencies = [
  "parity-scale-codec",
  "scale-info",
  "snowbridge-core 0.25.0",
- "snowbridge-outbound-queue-primitives",
+ "snowbridge-outbound-queue-primitives 0.25.0",
  "sp-core",
  "sp-io",
  "sp-runtime",
@@ -14786,13 +14786,24 @@ dependencies = [
  "scale-info",
  "snowbridge-beacon-primitives 0.25.0",
  "snowbridge-core 0.25.0",
- "snowbridge-verification-primitives",
+ "snowbridge-verification-primitives 0.25.0",
  "sp-core",
  "sp-io",
  "sp-runtime",
  "staging-xcm",
  "staging-xcm-builder",
  "staging-xcm-executor",
+]
+
+[[package]]
+name = "snowbridge-merkle-tree"
+version = "0.2.0"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=stable2503#067482ed1703588b2a3eb9805fb45e5e1e868efb"
+dependencies = [
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core",
+ "sp-runtime",
 ]
 
 [[package]]
@@ -14866,7 +14877,7 @@ dependencies = [
  "polkadot-parachain-primitives",
  "scale-info",
  "snowbridge-core 0.25.0",
- "snowbridge-verification-primitives",
+ "snowbridge-verification-primitives 0.25.0",
  "sp-arithmetic",
  "sp-core",
  "sp-io",
@@ -14884,8 +14895,8 @@ dependencies = [
  "parity-scale-codec",
  "scale-info",
  "snowbridge-core 0.25.0",
- "snowbridge-merkle-tree",
- "snowbridge-outbound-queue-primitives",
+ "snowbridge-merkle-tree 0.25.0",
+ "snowbridge-outbound-queue-primitives 0.25.0",
  "sp-api",
  "staging-xcm",
 ]
@@ -15012,9 +15023,9 @@ dependencies = [
  "snowbridge-beacon-primitives 0.25.0",
  "snowbridge-core 0.25.0",
  "snowbridge-inbound-queue-primitives",
- "snowbridge-merkle-tree 0.24.0",
- "snowbridge-outbound-queue-primitives 0.24.0",
- "snowbridge-verification-primitives 0.24.0",
+ "snowbridge-merkle-tree 0.25.0",
+ "snowbridge-outbound-queue-primitives 0.25.0",
+ "snowbridge-verification-primitives 0.25.0",
  "sp-arithmetic",
  "sp-core",
  "sp-io",
@@ -15041,7 +15052,7 @@ dependencies = [
  "polkadot-primitives",
  "scale-info",
  "snowbridge-core 0.25.0",
- "snowbridge-outbound-queue-primitives",
+ "snowbridge-outbound-queue-primitives 0.25.0",
  "snowbridge-pallet-outbound-queue",
  "sp-core",
  "sp-io",
@@ -15065,7 +15076,7 @@ dependencies = [
  "polkadot-primitives",
  "scale-info",
  "snowbridge-core 0.25.0",
- "snowbridge-outbound-queue-primitives",
+ "snowbridge-outbound-queue-primitives 0.25.0",
  "snowbridge-pallet-outbound-queue-v2",
  "snowbridge-pallet-system",
  "snowbridge-test-utils",
@@ -15099,11 +15110,24 @@ dependencies = [
  "pallet-xcm",
  "parity-scale-codec",
  "scale-info",
- "snowbridge-outbound-queue-primitives 0.24.0",
+ "snowbridge-outbound-queue-primitives 0.25.0",
  "sp-core",
  "staging-xcm",
  "staging-xcm-builder",
  "staging-xcm-executor",
+]
+
+[[package]]
+name = "snowbridge-verification-primitives"
+version = "0.2.0"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=stable2503#067482ed1703588b2a3eb9805fb45e5e1e868efb"
+dependencies = [
+ "frame-support",
+ "parity-scale-codec",
+ "scale-info",
+ "snowbridge-beacon-primitives 0.13.1",
+ "sp-core",
+ "sp-std",
 ]
 
 [[package]]
@@ -15114,18 +15138,6 @@ dependencies = [
  "parity-scale-codec",
  "scale-info",
  "snowbridge-beacon-primitives 0.25.0",
- "sp-core",
- "sp-std",
-]
-
-[[package]]
-name = "snowbridge-verification-primitives"
-version = "0.24.0"
-dependencies = [
- "frame-support",
- "parity-scale-codec",
- "scale-info",
- "snowbridge-beacon-primitives 0.24.0",
  "sp-core",
 ]
 

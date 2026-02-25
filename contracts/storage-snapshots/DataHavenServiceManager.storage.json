@@ -97,28 +97,28 @@
       "type": "t_mapping(t_contract(IStrategy)7361,t_uint96)"
     },
     {
-      "astId": 23788,
+      "astId": 23805,
       "contract": "src/DataHavenServiceManager.sol:DataHavenServiceManager",
       "label": "_version",
       "offset": 0,
-      "slot": "105",
+      "slot": "108",
       "type": "t_string_storage"
     },
     {
-      "astId": 23791,
+      "astId": 23808,
       "contract": "src/DataHavenServiceManager.sol:DataHavenServiceManager",
       "label": "versionUpdater",
       "offset": 0,
-      "slot": "106",
+      "slot": "109",
       "type": "t_address"
     },
     {
-      "astId": 23796,
+      "astId": 23813,
       "contract": "src/DataHavenServiceManager.sol:DataHavenServiceManager",
       "label": "__GAP",
       "offset": 0,
-      "slot": "105",
-      "type": "t_array(t_uint256)46_storage"
+      "slot": "110",
+      "type": "t_array(t_uint256)41_storage"
     }
   ],
   "types": {
@@ -127,10 +127,10 @@
       "label": "address",
       "numberOfBytes": "20"
     },
-    "t_array(t_uint256)46_storage": {
+    "t_array(t_uint256)41_storage": {
       "encoding": "inplace",
-      "label": "uint256[46]",
-      "numberOfBytes": "1472",
+      "label": "uint256[41]",
+      "numberOfBytes": "1312",
       "base": "t_uint256"
     },
     "t_array(t_uint256)49_storage": {
@@ -173,6 +173,18 @@
       "label": "mapping(address => bool)",
       "numberOfBytes": "32",
       "value": "t_bool"
+    },
+    "t_mapping(t_contract(IStrategy)7361,t_uint96)": {
+      "encoding": "mapping",
+      "key": "t_contract(IStrategy)7361",
+      "label": "mapping(contract IStrategy => uint96)",
+      "numberOfBytes": "32",
+      "value": "t_uint96"
+    },
+    "t_string_storage": {
+      "encoding": "bytes",
+      "label": "string",
+      "numberOfBytes": "32"
     },
     "t_uint256": {
       "encoding": "inplace",

@@ -28,6 +28,7 @@ use shc_indexer_db::models::{FileFiltering, FileOrdering};
 use shc_indexer_service::IndexerMode;
 use shc_rpc::RpcConfig;
 use shp_types::StorageDataUnit;
+use sp_core::H256;
 
 // Available Sealing methods.
 #[derive(Copy, Clone, Debug, Default, ValueEnum)]
@@ -73,6 +74,7 @@ pub struct Cli {
         "pending_db_url",
         "fisherman", "fisherman_database_url", 
         "trusted_file_transfer_server", "trusted_file_transfer_server_host", "trusted_file_transfer_server_port",
+        "trusted_file_transfer_batch_size_bytes", "trusted_msps",
     ])]
     pub provider_config_file: Option<String>,
 
@@ -497,6 +499,26 @@ pub struct ProviderConfigurations {
         default_value = "7070"
     )]
     pub trusted_file_transfer_server_port: Option<u16>,
+
+    /// Batch size in bytes used by MSP trusted upload ingestion (default: 2MB).
+    #[arg(
+        long,
+        value_name = "BYTES",
+        help_heading = "Trusted File Transfer Server Options",
+        default_value = "2097152",
+        value_parser = clap::value_parser!(u64).range(1..)
+    )]
+    pub trusted_file_transfer_batch_size_bytes: Option<u64>,
+
+    /// Comma-separated list of trusted MSP IDs that this BSP accepts download requests from.
+    /// Only applicable when running as a BSP provider.
+    #[arg(
+        long = "trusted-msps",
+        value_delimiter = ',',
+        value_name = "MSP_ID",
+        help_heading = "BSP Download Authorisation"
+    )]
+    pub trusted_msps: Vec<H256>,
 }
 
 impl ProviderConfigurations {
@@ -669,6 +691,8 @@ impl ProviderConfigurations {
             trusted_file_transfer_server: self.trusted_file_transfer_server,
             trusted_file_transfer_server_host: self.trusted_file_transfer_server_host.clone(),
             trusted_file_transfer_server_port: self.trusted_file_transfer_server_port,
+            trusted_file_transfer_batch_size_bytes: self.trusted_file_transfer_batch_size_bytes,
+            trusted_msps: self.trusted_msps.clone(),
             max_open_forests: self.max_open_forests,
             // We don't support maintenance mode for now.
             // maintenance_mode: self.maintenance_mode,

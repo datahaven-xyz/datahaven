@@ -32,6 +32,19 @@ interface IDataHavenServiceManagerErrors {
     error ZeroAddress();
     /// @notice Thrown when the solochain address data length is not 20 bytes
     error InvalidSolochainAddressLength();
+    /// @notice Thrown when the caller is not the authorized validator set submitter
+    error OnlyValidatorSetSubmitter();
+    /// @notice Thrown when trying to submit a validator set message with zero validators
+    error EmptyValidatorSet();
+
+    /// @notice Thrown when a Solochain address has not been mapped to an EigenLayer operator
+    error UnknownSolochainAddress();
+
+    /// @notice Thrown when a Solochain address is already assigned to a different operator
+    error SolochainAddressAlreadyAssigned();
+
+    /// @notice Thrown when a strategy is not registered in the operator set
+    error StrategyNotInOperatorSet();
 }
 
 /**
@@ -88,6 +101,23 @@ interface IDataHavenServiceManagerEvents {
 
     /// @notice Emitted when a batch of slashing request is being successfully slashed
     event SlashingComplete();
+
+    /// @notice Emitted when strategy multipliers are set or updated
+    /// @param strategyMultipliers Array of strategy-multiplier pairs that were set
+    event StrategiesAndMultipliersSet(IRewardsCoordinatorTypes
+                .StrategyAndMultiplier[] strategyMultipliers);
+    /// @notice Emitted when the validator set submitter address is updated
+    /// @param oldSubmitter The previous validator set submitter address
+    /// @param newSubmitter The new validator set submitter address
+    event ValidatorSetSubmitterUpdated(address indexed oldSubmitter, address indexed newSubmitter);
+
+    /// @notice Emitted when a validator set message is submitted for a target era
+    /// @param targetEra The target era for the validator set
+    /// @param payloadHash The keccak256 hash of the encoded message payload
+    /// @param submitter The address that submitted the validator set message
+    event ValidatorSetMessageSubmitted(
+        uint64 indexed targetEra, bytes32 payloadHash, address indexed submitter
+    );
 }
 
 /**
@@ -127,11 +157,36 @@ interface IDataHavenServiceManager is
         address validatorAddress
     ) external view returns (address);
 
+    /// @notice Returns the address authorized to submit validator set messages
+    /// @return The validator set submitter address
+    function validatorSetSubmitter() external view returns (address);
+
+    /**
+     * @notice Sets the address authorized to submit validator set messages
+     * @param newSubmitter The new validator set submitter address
+     * @dev Only callable by the owner
+     */
+    function setValidatorSetSubmitter(
+        address newSubmitter
+    ) external;
+
+    /**
+     * @notice Converts a Solochain validator address to the corresponding EigenLayer operator address
+     * @param solochainAddress The Solochain validator address to convert
+     * @return The corresponding EigenLayer operator address
+     */
+    function validatorSolochainAddressToEthAddress(
+        address solochainAddress
+    ) external view returns (address);
+
     /**
      * @notice Initializes the DataHaven Service Manager
      * @param initialOwner Address of the initial owner
      * @param rewardsInitiator Address authorized to initiate rewards
-     * @param validatorsStrategies Array of strategies supported by validators
+     * @param validatorsStrategiesAndMultipliers Array of strategy-multiplier pairs for the validators
+     *        operator set. Each multiplier must be non-zero.
+     * @param _snowbridgeGatewayAddress Address of the Snowbridge Gateway
+     * @param _validatorSetSubmitter Address authorized to submit validator set messages
      * @param _snowbridgeGatewayAddress Address of the Snowbridge Gateway
      * @param initialVersion Initial semantic version string (e.g., "1.0.0")
      * @param _versionUpdater Address authorized to update the contract version
@@ -139,31 +194,41 @@ interface IDataHavenServiceManager is
     function initialize(
         address initialOwner,
         address rewardsInitiator,
-        IStrategy[] memory validatorsStrategies,
+        IRewardsCoordinatorTypes.StrategyAndMultiplier[] memory validatorsStrategiesAndMultipliers,
         address _snowbridgeGatewayAddress,
+        address _validatorSetSubmitter,
         string memory initialVersion,
         address _versionUpdater
     ) external;
 
     /**
-     * @notice Sends a new validator set to the Snowbridge Gateway
+     * @notice Sends a new validator set for a target era to the Snowbridge Gateway
      * @dev The new validator set is made up of the Validators currently
      *      registered in the DataHaven Service Manager as operators of
      *      the Validators operator set (operatorSetId = VALIDATORS_SET_ID)
-     * @dev Only callable by the owner
+     * @dev Only callable by the validator set submitter
+     * @param targetEra The target era for the validator set submission
      * @param executionFee The execution fee for the Snowbridge message
      * @param relayerFee The relayer fee for the Snowbridge message
      */
-    function sendNewValidatorSet(
+    function sendNewValidatorSetForEra(
+        uint64 targetEra,
         uint128 executionFee,
         uint128 relayerFee
     ) external payable;
 
     /**
-     * @notice Builds a new validator set message to be sent to the Snowbridge Gateway
-     * @return The encoded message bytes to be sent to the Snowbridge Gateway
+     * @notice Builds a SCALE-encoded message containing the top validators by weighted stake
+     * @dev Selects up to MAX_ACTIVE_VALIDATORS from registered operators. Each operator's
+     *      weighted stake is computed as: sum(allocatedStake[j] * multiplier[j])
+     *      across all strategies. Operators without a solochain address mapping or with zero
+     *      weighted stake are excluded. Ties are broken by lower operator address.
+     * @param targetEra The target era to encode in the message
+     * @return The SCALE-encoded message bytes to be sent to the Snowbridge Gateway
      */
-    function buildNewValidatorSetMessage() external view returns (bytes memory);
+    function buildNewValidatorSetMessageForEra(
+        uint64 targetEra
+    ) external view returns (bytes memory);
 
     /**
      * @notice Updates the Solochain address for a Validator
@@ -215,10 +280,39 @@ interface IDataHavenServiceManager is
 
     /**
      * @notice Adds strategies to the list of supported strategies for DataHaven Validators
-     * @param _strategies Array of strategy contracts to add to validators operator set
+     * @dev Each strategy's multiplier determines its weight in the validator selection
+     *      formula: weightedStake = sum(allocatedStake[j] * multiplier[j])
+     * @param _strategyMultipliers Array of strategy-multiplier pairs to add
      */
     function addStrategiesToValidatorsSupportedStrategies(
-        IStrategy[] calldata _strategies
+        IRewardsCoordinatorTypes.StrategyAndMultiplier[] calldata _strategyMultipliers
+    ) external;
+
+    /**
+     * @notice Returns the maximum number of active validators in the set
+     * @return The maximum active validators constant
+     */
+    function MAX_ACTIVE_VALIDATORS() external pure returns (uint32);
+
+    /**
+     * @notice Returns the multiplier for a given strategy
+     * @dev The multiplier determines how much an operator's allocated stake in this strategy
+     *      contributes to their weighted stake during validator set selection.
+     * @param strategy The strategy to look up
+     * @return The multiplier weight
+     */
+    function strategiesAndMultipliers(
+        IStrategy strategy
+    ) external view returns (uint96);
+
+    /**
+     * @notice Updates multipliers for strategies already in the operator set
+     * @dev Does not add or remove strategies from EigenLayer; only updates multiplier weights
+     *      used in the validator selection weighted stake formula
+     * @param _strategyMultipliers Array of strategy-multiplier pairs to update
+     */
+    function setStrategiesAndMultipliers(
+        IRewardsCoordinatorTypes.StrategyAndMultiplier[] calldata _strategyMultipliers
     ) external;
 
     /**
@@ -238,6 +332,15 @@ interface IDataHavenServiceManager is
     function setVersionUpdater(
         address newVersionUpdater
     ) external;
+
+    /**
+     * @notice Returns all strategies with their multipliers
+     * @return Array of StrategyAndMultiplier structs with strategy addresses and multiplier weights
+     */
+    function getStrategiesAndMultipliers()
+        external
+        view
+        returns (IRewardsCoordinatorTypes.StrategyAndMultiplier[] memory);
 
     // ============ Rewards Submitter Functions ============
 

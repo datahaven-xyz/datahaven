@@ -20,6 +20,7 @@ contract Config {
         address avsOwner;
         address rewardsInitiator;
         address[] validatorsStrategies;
+        address validatorSetSubmitter;
     }
 
     // EigenLayer parameters

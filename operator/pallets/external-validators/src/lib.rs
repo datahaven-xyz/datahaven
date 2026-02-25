@@ -309,6 +309,12 @@ pub mod pallet {
         NoKeysRegistered,
         /// Unable to derive validator id from account id
         UnableToDeriveValidatorId,
+        /// The target era is too old (targetEra <= ActiveEra). Message arrived late.
+        TargetEraTooOld,
+        /// The target era is too far ahead (targetEra > ActiveEra + 1).
+        TargetEraTooNew,
+        /// The target era has already been seen (targetEra <= ExternalIndex). Duplicate or stale.
+        DuplicateOrStaleTargetEra,
     }
 
     #[pallet::call]
@@ -419,6 +425,9 @@ pub mod pallet {
             validators: Vec<T::ValidatorId>,
             external_index: u64,
         ) -> DispatchResult {
+            // Validate the target era before accepting the validator set
+            Self::validate_target_era(external_index)?;
+
             // If more validators than max, take the first n
             let validators = BoundedVec::truncate_from(validators);
             <ExternalValidators<T>>::put(&validators);
@@ -428,6 +437,27 @@ pub mod pallet {
                 validators: validators.into_inner(),
                 external_index,
             });
+            Ok(())
+        }
+
+        fn validate_target_era(target_era: u64) -> DispatchResult {
+            let active_era_index = Self::active_era()
+                .map(|info| info.index as u64)
+                .unwrap_or(0);
+            let current_external_index = ExternalIndex::<T>::get();
+
+            // Must target exactly the next era
+            if target_era <= active_era_index {
+                return Err(Error::<T>::TargetEraTooOld.into());
+            }
+            if target_era > active_era_index + 1 {
+                return Err(Error::<T>::TargetEraTooNew.into());
+            }
+            // Dedupe/stale guard
+            if target_era <= current_external_index {
+                return Err(Error::<T>::DuplicateOrStaleTargetEra.into());
+            }
+
             Ok(())
         }
 

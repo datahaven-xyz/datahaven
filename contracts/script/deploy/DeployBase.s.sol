@@ -32,6 +32,10 @@ import {
 } from "eigenlayer-contracts/src/contracts/permissions/PermissionController.sol";
 import {EigenPodManager} from "eigenlayer-contracts/src/contracts/pods/EigenPodManager.sol";
 import {IETHPOSDeposit} from "eigenlayer-contracts/src/contracts/interfaces/IETHPOSDeposit.sol";
+import {IStrategy} from "eigenlayer-contracts/src/contracts/interfaces/IStrategy.sol";
+import {
+    IRewardsCoordinatorTypes
+} from "eigenlayer-contracts/src/contracts/interfaces/IRewardsCoordinator.sol";
 
 // DataHaven imports
 import {DataHavenServiceManager} from "../../src/DataHavenServiceManager.sol";
@@ -41,8 +45,9 @@ import {ValidatorsUtils} from "../../script/utils/ValidatorsUtils.sol";
 struct ServiceManagerInitParams {
     address avsOwner;
     address rewardsInitiator;
-    address[] validatorsStrategies;
+    IRewardsCoordinatorTypes.StrategyAndMultiplier[] validatorsStrategiesAndMultipliers;
     address gateway;
+    address validatorSetSubmitter;
     string initialVersion;
     address versionUpdater;
 }
@@ -248,6 +253,16 @@ abstract contract DeployBase is Script, DeployParams, Accounts {
             "ServiceManager Implementation", address(serviceManagerImplementation)
         );
 
+        // Build StrategyAndMultiplier[] from config addresses with default multiplier of 1.
+        // Multipliers can be updated post-deployment via setStrategiesAndMultipliers if needed.
+        IRewardsCoordinatorTypes.StrategyAndMultiplier[] memory strategiesAndMultipliers = new IRewardsCoordinatorTypes
+            .StrategyAndMultiplier[](avsConfig.validatorsStrategies.length);
+        for (uint256 i = 0; i < avsConfig.validatorsStrategies.length; i++) {
+            strategiesAndMultipliers[i] = IRewardsCoordinatorTypes.StrategyAndMultiplier({
+                strategy: IStrategy(avsConfig.validatorsStrategies[i]), multiplier: 1
+            });
+        }
+
         // Read version from environment variable (passed by TypeScript wrapper)
         string memory version = vm.envOr("DATAHAVEN_VERSION", string("0.1.0"));
         console.log("|  Version: %s", version);
@@ -256,8 +271,9 @@ abstract contract DeployBase is Script, DeployParams, Accounts {
         ServiceManagerInitParams memory initParams = ServiceManagerInitParams({
             avsOwner: avsConfig.avsOwner,
             rewardsInitiator: avsConfig.rewardsInitiator,
-            validatorsStrategies: avsConfig.validatorsStrategies,
+            validatorsStrategiesAndMultipliers: strategiesAndMultipliers,
             gateway: address(gateway),
+            validatorSetSubmitter: avsConfig.validatorSetSubmitter,
             initialVersion: version,
             versionUpdater: _deployer
         });

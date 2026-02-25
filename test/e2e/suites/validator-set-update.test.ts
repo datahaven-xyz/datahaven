@@ -10,7 +10,6 @@
  * - Observe `ExternalValidators.ExternalValidatorsSet` on DataHaven (substrate), confirming propagation.
  */
 import { beforeAll, describe, expect, it } from "bun:test";
-import { getOwnerAccount } from "launcher/validators";
 import {
   CROSS_CHAIN_TIMEOUTS,
   type Deployments,
@@ -20,14 +19,15 @@ import {
   ZERO_ADDRESS
 } from "utils";
 import { waitForDataHavenEvent } from "utils/events";
-import { decodeEventLog, parseEther } from "viem";
-import { dataHavenServiceManagerAbi, gatewayAbi } from "../../contract-bindings";
+import { dataHavenServiceManagerAbi } from "../../contract-bindings";
 import {
   addValidatorToAllowlist,
   BaseTestSuite,
+  buildSubmitterImage,
   getValidator,
   isValidatorRunning,
   launchDatahavenValidator,
+  launchSubmitter,
   registerOperator,
   type TestConnectors
 } from "../framework";
@@ -50,10 +50,17 @@ class ValidatorSetUpdateTestSuite extends BaseTestSuite {
       launchDatahavenValidator("charlie", { launchedNetwork }),
       launchDatahavenValidator("dave", { launchedNetwork })
     ]);
+
+    // Build the submitter Docker image so it's ready for the test
+    await buildSubmitterImage();
   }
 
   public getNetworkId(): string {
     return this.getConnectors().launchedNetwork.networkId;
+  }
+
+  public getLaunchedNetwork() {
+    return this.getConnectors().launchedNetwork;
   }
 }
 
@@ -69,6 +76,20 @@ describe("Validator Set Update", () => {
   beforeAll(async () => {
     deployments = await parseDeploymentsFile();
     connectors = suite.getTestConnectors();
+
+    // Pause era rotation early so the active era stabilizes during tests 1-3 (~28s),
+    // avoiding the ~80s wait inside the cross-chain test.
+    // Tests 1-3 only touch Ethereum contracts and don't depend on era rotation.
+    const { dhApi } = connectors;
+    const pauseTx = dhApi.tx.Sudo.sudo({
+      call: dhApi.tx.ExternalValidators.force_era({
+        mode: { type: "ForceNone", value: undefined }
+      }).decodedCall
+    });
+    const pauseResult = await pauseTx.signAndSubmit(getPapiSigner("ALITH"));
+    if (!pauseResult.ok) {
+      throw new Error("Failed to pause era rotation");
+    }
   });
 
   it("should verify test environment", async () => {
@@ -159,63 +180,24 @@ describe("Validator Set Update", () => {
   it(
     "should send updated validator set and verify on DataHaven",
     async () => {
-      const { publicClient, walletClient, dhApi } = connectors;
+      const { dhApi } = connectors;
 
-      // Pause era rotation so the active era doesn't advance while
-      // Snowbridge relays the message (relay latency > era duration with fast-runtime).
-      // DatahavenServiceManagerAddress is set during infrastructure setup by set-datahaven-parameters.
-      const setupTx = dhApi.tx.Sudo.sudo({
-        call: dhApi.tx.ExternalValidators.force_era({
-          mode: { type: "ForceNone", value: undefined }
-        }).decodedCall
-      });
-      const setupResult = await setupTx.signAndSubmit(getPapiSigner("ALITH"));
-      if (!setupResult.ok) {
-        throw new Error("Failed to pause era rotation");
-      }
-      // Wait for the active era to stabilize: ForceNone prevents new eras but
-      // an already-triggered era may still be pending activation at the next session boundary.
-      // Poll until CurrentEra == ActiveEra, meaning no pending era transition remains.
+      // Era rotation was paused in beforeAll. Wait for any pending transition to settle
+      // (ForceNone prevents new eras, but an in-progress one must finish first).
       let stableEraIndex: number;
       // eslint-disable-next-line no-constant-condition
       while (true) {
-        await new Promise((r) => setTimeout(r, 12_000)); // ~2 substrate blocks
         const activeEra = (await dhApi.query.ExternalValidators.ActiveEra.getValue())?.index ?? 0;
         const currentEra = (await dhApi.query.ExternalValidators.CurrentEra.getValue()) ?? 0;
         if (currentEra === activeEra) {
           stableEraIndex = activeEra;
           break;
         }
+        await new Promise((r) => setTimeout(r, 6_000)); // ~1 substrate block
       }
 
       const targetEra = BigInt(stableEraIndex + 1);
-
-      // Send the updated validator set via Snowbridge
-      const hash = await walletClient.writeContract({
-        address: deployments.ServiceManager as `0x${string}`,
-        abi: dataHavenServiceManagerAbi,
-        functionName: "sendNewValidatorSetForEra",
-        args: [targetEra, parseEther("0.1"), parseEther("0.2")],
-        value: parseEther("0.3"),
-        account: getOwnerAccount(),
-        chain: null
-      });
-      const receipt = await publicClient.waitForTransactionReceipt({ hash });
-      expect(receipt.status).toBe("success");
-
-      // Verify OutboundMessageAccepted event was emitted
-      const hasOutboundAccepted = (receipt.logs ?? []).some((log: any) => {
-        try {
-          const decoded = decodeEventLog({ abi: gatewayAbi, data: log.data, topics: log.topics });
-          return decoded.eventName === "OutboundMessageAccepted";
-        } catch {
-          return false;
-        }
-      });
-      expect(hasOutboundAccepted).toBe(true);
-
-      // Wait for the validator set to be updated on Substrate
-      await waitForDataHavenEvent({
+      const validatorSetUpdated = waitForDataHavenEvent({
         api: dhApi,
         pallet: "ExternalValidators",
         event: "ExternalValidatorsSet",
@@ -223,6 +205,27 @@ describe("Validator Set Update", () => {
           BigInt(event.external_index) === targetEra,
         timeout: CROSS_CHAIN_TIMEOUTS.ETH_TO_DH_MS
       });
+      // Prevent unhandled rejection if launchSubmitter fails before we await this promise.
+      void validatorSetUpdated.catch(() => undefined);
+
+      // Launch the submitter daemon — it will detect the last-session condition
+      // and automatically call sendNewValidatorSetForEra on the ServiceManager.
+      const launchedNetwork = suite.getLaunchedNetwork();
+      const { cleanup: cleanupSubmitter } = await launchSubmitter({
+        networkName: launchedNetwork.networkName,
+        networkId: suite.getNetworkId(),
+        ethereumRpcUrl: connectors.elRpcUrl,
+        datahavenContainerName: `datahaven-alice-${suite.getNetworkId()}`,
+        serviceManagerAddress: deployments.ServiceManager
+      });
+
+      try {
+        logger.info("Waiting for ExternalValidators.ExternalValidatorsSet event on DataHaven...");
+        // Wait for the validator set to be updated on Substrate
+        await validatorSetUpdated;
+      } finally {
+        await cleanupSubmitter();
+      }
 
       // Resume era rotation
       const resumeTx = dhApi.tx.Sudo.sudo({

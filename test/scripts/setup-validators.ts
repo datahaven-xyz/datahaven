@@ -124,6 +124,29 @@ export const setupValidators = async (options: SetupValidatorsOptions): Promise<
     logger.success(`Successfully registered validator ${validator.publicKey}`);
   }
 
+  // Allocate stake for each validator (must run in a separate script because
+  // the allocation delay needs at least 1 block after registerAsOperator)
+  logger.info("📊 Allocating operator stake...");
+  for (const [i, validator] of validatorsToRegister.entries()) {
+    logger.info(`📊 Allocating stake for validator ${i} (${validator.publicKey})`);
+
+    const env = {
+      ...process.env,
+      NETWORK: networkName,
+      OPERATOR_PRIVATE_KEY: validator.privateKey,
+      OPERATOR_SOLOCHAIN_ADDRESS: validator.solochainAddress || ""
+    };
+
+    const allocateCommand = `forge script script/transact/AllocateOperatorStake.s.sol --rpc-url ${rpcUrl} --broadcast --no-rpc-rate-limit --non-interactive`;
+    await runShellCommandWithLogger(allocateCommand, {
+      env,
+      cwd: "../contracts",
+      logLevel: "debug"
+    });
+
+    logger.success(`Successfully allocated stake for validator ${validator.publicKey}`);
+  }
+
   return true;
 };
 

@@ -1192,18 +1192,9 @@ where
     let task_spawner = TaskSpawner::new(task_manager.spawn_handle(), task_spawner_name);
     let mut builder = StorageHubBuilder::<R, S, Runtime>::new(task_spawner, prometheus_registry);
 
-    // Setup file transfer service (common to all roles)
     let (file_transfer_request_protocol_name, file_transfer_request_receiver) =
         file_transfer_request_protocol
             .expect("FileTransfer request protocol should already be initialised.");
-
-    builder
-        .with_file_transfer(
-            file_transfer_request_receiver,
-            file_transfer_request_protocol_name,
-            network.clone(),
-        )
-        .await;
 
     // Role-specific configuration
     let rpc_config = match role_options {
@@ -1226,8 +1217,20 @@ where
             trusted_file_transfer_server,
             trusted_file_transfer_server_host,
             trusted_file_transfer_server_port,
+            trusted_file_transfer_batch_size_bytes,
+            trusted_msps,
             ..
         }) => {
+            // Setup file transfer service with trusted MSPs config
+            builder
+                .with_file_transfer(
+                    client.clone(),
+                    trusted_msps.clone(),
+                    file_transfer_request_receiver,
+                    file_transfer_request_protocol_name,
+                    network.clone(),
+                )
+                .await;
             info!(
                 "Starting as a Storage Provider. Storage path: {:?}, Max storage capacity: {:?}, Jump capacity: {:?}, MSP charging period: {:?}",
                 storage_path, max_storage_capacity, jump_capacity, msp_charging_period,
@@ -1262,11 +1265,17 @@ where
             }
 
             if *trusted_file_transfer_server {
+                let batch_target_bytes = trusted_file_transfer_batch_size_bytes
+                    .and_then(|size| usize::try_from(size).ok())
+                    .unwrap_or(
+                        shc_client::trusted_file_transfer::server::DEFAULT_BATCH_TARGET_BYTES,
+                    );
                 let file_transfer_config = shc_client::trusted_file_transfer::server::Config {
                     host: trusted_file_transfer_server_host
                         .clone()
                         .unwrap_or_else(|| "127.0.0.1".to_string()),
                     port: trusted_file_transfer_server_port.unwrap_or(7070),
+                    batch_target_bytes,
                 };
                 builder.with_trusted_file_transfer_server(file_transfer_config);
             }
@@ -1281,6 +1290,17 @@ where
             rpc_config.clone()
         }
         RoleOptions::Fisherman(fisherman_options) => {
+            // Setup file transfer service (no trusted MSPs for fisherman)
+            builder
+                .with_file_transfer(
+                    client.clone(),
+                    vec![],
+                    file_transfer_request_receiver,
+                    file_transfer_request_protocol_name,
+                    network.clone(),
+                )
+                .await;
+
             // Validate configuration compatibility with indexer
             if let Some(indexer_cfg) = indexer_options {
                 if indexer_cfg.indexer_mode == shc_indexer_service::IndexerMode::Lite {

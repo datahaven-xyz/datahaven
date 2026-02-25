@@ -1305,6 +1305,11 @@ where
             // Set the indexer db pool
             builder.with_indexer_db_pool(Some(db_pool));
 
+            // Configure blockchain service options for the fisherman
+            if let Some(c) = fisherman_options.blockchain_service.clone() {
+                builder.with_blockchain_service_config(c);
+            }
+
             // Spawn the fisherman service
             builder
                 .with_fisherman(client.clone(), &fisherman_options)

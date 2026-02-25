@@ -33,8 +33,6 @@
   "avs": {
     "avsOwner": "0x0000000000000000000000000000000000000000",
     "rewardsInitiator": "0x0000000000000000000000000000000000000000",
-    "vetoCommitteeMember": "0x0000000000000000000000000000000000000000",
-    "vetoWindowBlocks": 100,
     "validatorsStrategies": [
       "0xbeaC0eeEeeeeEEeEeEEEEeeEEeEeeeEeeEEBEaC0",
       "0xf8a1a66130d614c7360e868576d5e59203475fe0",

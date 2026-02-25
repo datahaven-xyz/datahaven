@@ -207,7 +207,6 @@ Another testing scenario is testing the operational aspects of the validator set
 3. **Slashing Mechanisms**
 
    - Test slashing for various offenses
-   - Test veto committee mechanisms
 
 4. **Operator Set Modifications**
    - Modify operator sets from Ethereum

@@ -1,7 +1,7 @@
 import { logger, parseDeploymentsFile, printDivider } from "utils";
 import { createPublicClient, createWalletClient, encodeFunctionData, http } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { getChainDeploymentParams } from "../../../configs/contracts/config";
+import { buildNetworkId, getChainDeploymentParams } from "../../../configs/contracts/config";
 import { dataHavenServiceManagerAbi } from "../../../contract-bindings/generated";
 
 /**
@@ -10,7 +10,7 @@ import { dataHavenServiceManagerAbi } from "../../../contract-bindings/generated
 export const updateAVSMetadataURI = async (
   chain: string,
   uri: string,
-  opts: { execute?: boolean; avsOwnerKey?: string } = {}
+  opts: { execute?: boolean; avsOwnerKey?: string; environment?: string } = {}
 ) => {
   try {
     const execute = opts.execute ?? false;
@@ -22,14 +22,15 @@ export const updateAVSMetadataURI = async (
       throw new Error("AVS owner private key is required to execute this transaction");
     }
 
-    // Get chain configuration
+    // Get chain configuration using base chain name, and build networkId for deployment file lookup
+    const networkId = buildNetworkId(chain, opts.environment);
     const deploymentParams = getChainDeploymentParams(chain);
-    logger.info(`🫎 Updating AVS metadata URI on ${chain} chain`);
+    logger.info(`🫎 Updating AVS metadata URI on ${networkId}`);
     logger.info(`Network: ${deploymentParams.network} (Chain ID: ${deploymentParams.chainId})`);
     logger.info(`RPC URL: ${deploymentParams.rpcUrl}`);
     logger.info(`New URI: ${uri}`);
 
-    const deployments = await parseDeploymentsFile(chain);
+    const deployments = await parseDeploymentsFile(networkId);
     const serviceManagerAddress = deployments.ServiceManager;
 
     if (!serviceManagerAddress) {

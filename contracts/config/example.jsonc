@@ -69,10 +69,6 @@
     /// This is for the EigenLayer rewards distribution way, using the RewardsCoordinator.
     /// But for now, we're not using it, and instead sending the rewards directly.
     "rewardsInitiator": "0x14dC79964da2C08b23698B3D3cc7Ca32193d9955",
-    /// The address of the account that is a member of the Veto Committee for vetoing slashing.
-    "vetoCommitteeMember": "0x23618e81E3f5cdF7f54C3d65f7FBc0aBf5B21E8f",
-    /// The number of blocks that the Veto Committee will have to submit a veto.
-    "vetoWindowBlocks": 100,
     /// The EigenLayer strategy addresses for the Validators to stake into.
     /// The beaconChainETHStrategy is a virtual address representing native beacon chain ETH.
     /// All networks:

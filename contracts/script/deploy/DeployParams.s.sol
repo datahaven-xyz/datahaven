@@ -76,10 +76,14 @@ contract DeployParams is Script, Config {
             config.avsOwner = vm.parseJsonAddress(configJson, ".avs.avsOwner");
         }
         config.rewardsInitiator = vm.parseJsonAddress(configJson, ".avs.rewardsInitiator");
-        config.vetoCommitteeMember = vm.parseJsonAddress(configJson, ".avs.vetoCommitteeMember");
-        config.vetoWindowBlocks = vm.parseJsonUint(configJson, ".avs.vetoWindowBlocks").toUint32();
         config.validatorsStrategies =
             vm.parseJsonAddressArray(configJson, ".avs.validatorsStrategies");
+
+        try vm.parseJsonAddress(configJson, ".avs.validatorSetSubmitter") returns (address addr) {
+            config.validatorSetSubmitter = addr;
+        } catch {
+            config.validatorSetSubmitter = address(0);
+        }
 
         return config;
     }

@@ -33,8 +33,8 @@ normalize_json() {
         | .storage
         | map(
             del(.astId, .contract)
-            # Remove unstable AST ID suffixes from type strings (e.g., t_contract(IGatewayV2)12345)
-            | .type |= sub("\\)[0-9]+$"; ")")
+            # Remove unstable AST IDs from type strings (e.g., t_contract(IGatewayV2)12345, nested mappings)
+            | .type |= gsub("\\)[0-9]+"; ")")
           )
         | sort_by(.slot | tonumber)' "$1"
 }
@@ -57,6 +57,28 @@ if ! diff -q /tmp/snap_normalized.json /tmp/curr_normalized.json > /dev/null 2>&
     echo ""
     echo "WARNING: Unintended storage layout changes can corrupt state during upgrades!"
     exit 1
+fi
+
+# Verify gap invariant: __GAP slot + array size must equal a fixed constant.
+# This catches cases where a new variable is added but __GAP is not shrunk accordingly.
+EXPECTED_GAP_TOTAL=151
+GAP_SLOT=$(jq '.storage[] | select(.label == "__GAP") | .slot | tonumber' /tmp/current_layout.json)
+GAP_SIZE=$(jq -r '.storage[] | select(.label == "__GAP") | .type' /tmp/current_layout.json \
+           | grep -oE '[0-9]+' | tail -1)
+
+if [ -n "$GAP_SLOT" ] && [ -n "$GAP_SIZE" ]; then
+    GAP_TOTAL=$((GAP_SLOT + GAP_SIZE))
+    if [ "$GAP_TOTAL" -ne "$EXPECTED_GAP_TOTAL" ]; then
+        echo ""
+        echo "=========================================="
+        echo "ERROR: __GAP invariant violated!"
+        echo "=========================================="
+        echo ""
+        echo "  slot($GAP_SLOT) + size($GAP_SIZE) = $GAP_TOTAL, expected $EXPECTED_GAP_TOTAL"
+        echo ""
+        echo "If you added a new state variable, shrink __GAP by the same number of slots."
+        exit 1
+    fi
 fi
 
 echo "Storage layout OK - no changes detected"

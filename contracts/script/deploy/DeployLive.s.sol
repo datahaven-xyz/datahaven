@@ -120,8 +120,9 @@ contract DeployLive is DeployBase {
             DataHavenServiceManager.initialize.selector,
             params.avsOwner,
             params.rewardsInitiator,
-            params.validatorsStrategies,
-            params.gateway
+            params.validatorsStrategiesAndMultipliers,
+            params.gateway,
+            params.validatorSetSubmitter
         );
 
         TransparentUpgradeableProxy proxy =

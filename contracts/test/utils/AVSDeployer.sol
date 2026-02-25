@@ -48,11 +48,6 @@ contract AVSDeployer is Test {
     DataHavenServiceManager public serviceManager;
     DataHavenServiceManager public serviceManagerImplementation;
 
-    // Truncation is intentional - deriving a deterministic mock address from hash
-    address public vetoCommitteeMember =
-        address(uint160(uint256(keccak256("vetoCommitteeMember"))));
-    uint32 public vetoWindowBlocks = 100; // 100 blocks veto window for tests
-
     // EigenLayer contracts
     StrategyManager public strategyManager;
     StrategyManager public strategyManagerImplementation;
@@ -243,14 +238,6 @@ contract AVSDeployer is Test {
         serviceManagerImplementation =
             new DataHavenServiceManager(rewardsCoordinator, allocationManager);
 
-        // Create array for validators strategies required by DataHavenServiceManager
-        IStrategy[] memory validatorsStrategies = new IStrategy[](deployedStrategies.length);
-
-        // For testing purposes, we'll use the deployed strategies for validators
-        for (uint256 i = 0; i < deployedStrategies.length; i++) {
-            validatorsStrategies[i] = deployedStrategies[i];
-        }
-
         serviceManager = DataHavenServiceManager(
             address(
                 new TransparentUpgradeableProxy(
@@ -260,8 +247,9 @@ contract AVSDeployer is Test {
                         DataHavenServiceManager.initialize.selector,
                         avsOwner,
                         rewardsInitiator,
-                        validatorsStrategies,
-                        address(snowbridgeGatewayMock)
+                        defaultStrategyAndMultipliers,
+                        address(snowbridgeGatewayMock),
+                        avsOwner
                     )
                 )
             )

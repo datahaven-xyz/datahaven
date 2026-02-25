@@ -37,6 +37,7 @@ use shc_client::builder::{
 };
 use shc_rpc::RpcConfig;
 use shp_types::StorageDataUnit;
+use sp_core::H256;
 
 /// Configuration for the provider.
 #[derive(Debug, Clone, Deserialize)]
@@ -92,6 +93,12 @@ pub struct ProviderOptions {
     /// Port for trusted file transfer HTTP server.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub trusted_file_transfer_server_port: Option<u16>,
+    /// Batch size in bytes for trusted file transfer uploads.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub trusted_file_transfer_batch_size_bytes: Option<u64>,
+    /// List of trusted MSP IDs that BSP nodes accept download requests from.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub trusted_msps: Vec<H256>,
     // Whether the node is running in maintenance mode. We are not supporting maintenance mode.
     // pub maintenance_mode: bool,
 }

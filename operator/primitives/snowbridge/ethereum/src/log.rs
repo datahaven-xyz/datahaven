@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 // SPDX-FileCopyrightText: 2023 Snowfork <hello@snowfork.com>
+use alloc::vec::Vec;
 use codec::{Decode, Encode};
 use ethereum_types::{H160, H256};
-use sp_std::prelude::*;
 
 #[derive(Clone, Debug, Encode, Decode, PartialEq, Eq)]
 pub struct Log {

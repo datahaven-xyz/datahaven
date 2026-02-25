@@ -21,6 +21,7 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
+use core::marker::PhantomData;
 use fp_evm::PrecompileHandle;
 use frame_support::dispatch::{GetDispatchInfo, PostDispatchInfo};
 use frame_support::traits::fungible::Inspect;
@@ -31,7 +32,6 @@ use pallet_evm::AddressMapping;
 use precompile_utils::prelude::*;
 use sp_core::{H160, U256};
 use sp_runtime::traits::Dispatchable;
-use sp_std::marker::PhantomData;
 
 /// Solidity selector for the TokensLocked event:
 /// keccak256("TokensLocked(address,uint256)")

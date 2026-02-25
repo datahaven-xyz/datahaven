@@ -2,6 +2,7 @@
 // SPDX-FileCopyrightText: 2023 Snowfork <hello@snowfork.com>
 //! Governance API for controlling the Ethereum side of the bridge
 use super::*;
+use core::marker::PhantomData;
 use frame_support::{
     migrations::VersionedMigration,
     pallet_prelude::*,
@@ -9,7 +10,6 @@ use frame_support::{
     weights::Weight,
 };
 use log;
-use sp_std::marker::PhantomData;
 
 #[cfg(feature = "try-runtime")]
 use sp_runtime::TryRuntimeError;

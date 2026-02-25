@@ -31,14 +31,18 @@ pub mod weights;
 pub use configs::governance;
 pub use configs::Precompiles;
 
-// TODO: Temporary workaround before upgrading to latest polkadot-sdk - fix https://github.com/paritytech/polkadot-sdk/pull/6435
+// Aliases required by define_benchmarks! for pallet_collective instances.
+// PR #6435 (in stable2503) fixes the underlying issue, so these can be removed
+// when benchmarks are regenerated and weight files renamed accordingly.
 #[allow(unused_imports)]
 use pallet_collective as pallet_collective_treasury_council;
 #[allow(unused_imports)]
 use pallet_collective as pallet_collective_technical_committee;
 
+use alloc::collections::btree_map::BTreeMap;
 use alloc::{borrow::Cow, vec::Vec};
 use codec::Encode;
+use ethereum::AuthorizationList;
 use fp_rpc::TransactionStatus;
 use frame_support::{
     genesis_builder_helper::{build_state, get_preset},
@@ -85,7 +89,6 @@ use sp_runtime::{
     transaction_validity::{InvalidTransaction, TransactionSource},
     ApplyExtrinsicResult, Perbill, Permill,
 };
-use sp_std::collections::btree_map::BTreeMap;
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
@@ -193,15 +196,9 @@ pub const NORMAL_BLOCK_WEIGHT: Weight = MAXIMUM_BLOCK_WEIGHT.saturating_mul(3).s
 pub const EXTRINSIC_BASE_WEIGHT: Weight = Weight::from_parts(10000 * WEIGHT_PER_GAS, 0);
 
 // Existential deposit.
-#[cfg(not(feature = "runtime-benchmarks"))]
+// PR #7379 (included in stable2503) ensures benchmarks handle ED=0 internally.
 parameter_types! {
     pub const ExistentialDeposit: Balance = 0;
-}
-#[cfg(feature = "runtime-benchmarks")]
-parameter_types! {
-    // TODO: Change ED to 1 after upgrade to Polkadot SDK stable2503
-    // cfr. https://github.com/paritytech/polkadot-sdk/pull/7379
-    pub const ExistentialDeposit: Balance = 1;
 }
 
 /// The version information used to identify this runtime when compiled natively.
@@ -1061,6 +1058,7 @@ impl_runtime_apis! {
             nonce: Option<U256>,
             estimate: bool,
             access_list: Option<Vec<(H160, Vec<H256>)>>,
+            authorization_list: Option<AuthorizationList>,
         ) -> Result<pallet_evm::CallInfo, sp_runtime::DispatchError> {
             let config = if estimate {
                 let mut config = <Runtime as pallet_evm::Config>::config().clone();
@@ -1090,6 +1088,7 @@ impl_runtime_apis! {
                 max_priority_fee_per_gas,
                 nonce,
                 access_list.unwrap_or_default(),
+                authorization_list.unwrap_or_default(),
                 is_transactional,
                 validate,
                 Some(weight_limit),
@@ -1108,6 +1107,7 @@ impl_runtime_apis! {
             nonce: Option<U256>,
             estimate: bool,
             access_list: Option<Vec<(H160, Vec<H256>)>>,
+            authorization_list: Option<AuthorizationList>,
         ) -> Result<pallet_evm::CreateInfo, sp_runtime::DispatchError> {
             let config = if estimate {
                 let mut config = <Runtime as pallet_evm::Config>::config().clone();
@@ -1141,6 +1141,7 @@ impl_runtime_apis! {
                 max_priority_fee_per_gas,
                 nonce,
                 access_list.unwrap_or_default(),
+                authorization_list.unwrap_or_default(),
                 is_transactional,
                 validate,
                 Some(weight_limit),
@@ -1402,7 +1403,7 @@ impl_runtime_apis! {
         fn compute_signed_extra_implicit(
             era: sp_runtime::generic::Era,
             enable_metadata: bool,
-        ) -> Result<sp_std::vec::Vec<u8>, sp_runtime::transaction_validity::TransactionValidityError> {
+        ) -> Result<Vec<u8>, sp_runtime::transaction_validity::TransactionValidityError> {
             // Build the SignedExtra tuple with minimal values; only `era` and `enable_metadata`
             // influence the implicit. Other extensions have `()` implicit.
             let extra: SignedExtra = (

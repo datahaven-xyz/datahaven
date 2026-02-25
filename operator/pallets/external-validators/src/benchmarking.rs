@@ -27,7 +27,6 @@ use {
     pallet_session::{self as session, SessionManager},
     rand::{RngCore, SeedableRng},
     sp_runtime::{codec, traits::Convert},
-    sp_std::prelude::*,
 };
 const SEED: u32 = 0;
 

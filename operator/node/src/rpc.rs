@@ -40,7 +40,7 @@ use sc_consensus_beefy::communication::notification::{
 };
 use sc_consensus_manual_seal::rpc::{EngineCommand, ManualSeal, ManualSealApiServer};
 use sc_network_sync::SyncingService;
-use sc_transaction_pool::{ChainApi, Pool};
+use sc_transaction_pool::ChainApi;
 use sc_transaction_pool_api::TransactionPool;
 use shc_client::types::FileStorageT;
 use shc_common::traits::StorageEnableRuntime;
@@ -54,7 +54,7 @@ use shc_rpc::StorageHubClientRpcConfig;
 use sp_consensus_babe::{BabeApi, SlotDuration};
 use sp_consensus_beefy::AuthorityIdBound;
 use sp_core::H256;
-use sp_runtime::traits::BlakeTwo256;
+use sp_runtime::traits::{BlakeTwo256, Block as BlockT, Header as HeaderT};
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
@@ -69,7 +69,7 @@ pub struct BeefyDeps<AuthorityId: AuthorityIdBound> {
 }
 
 /// Full client dependencies.
-pub struct FullDeps<P, B, AuthorityId: AuthorityIdBound, A: ChainApi, FL, FS, Runtime>
+pub struct FullDeps<P, B, AuthorityId: AuthorityIdBound, FL, FS, Runtime>
 where
     Runtime: StorageEnableRuntime,
 {
@@ -80,7 +80,7 @@ where
     /// BEEFY dependencies.
     pub beefy: BeefyDeps<AuthorityId>,
     /// Graph pool instance.
-    pub graph: Arc<Pool<A>>,
+    pub graph: Arc<P>,
     /// Backend used by the node.
     pub backend: Arc<B>,
     /// Network service
@@ -112,8 +112,8 @@ where
 }
 
 /// Instantiate all full RPC extensions.
-pub fn create_full<P, BE, AuthorityId, A, FL, FSH, Runtime>(
-    deps: FullDeps<P, BE, AuthorityId, A, FL, FSH, Runtime>,
+pub fn create_full<P, BE, AuthorityId, FL, FSH, Runtime>(
+    deps: FullDeps<P, BE, AuthorityId, FL, FSH, Runtime>,
     subscription_task_executor: sc_rpc::SubscriptionTaskExecutor,
     pubsub_notification_sinks: Arc<
         fc_mapping_sync::EthereumBlockNotificationSinks<
@@ -122,11 +122,10 @@ pub fn create_full<P, BE, AuthorityId, A, FL, FSH, Runtime>(
     >,
 ) -> Result<RpcModule<()>, Box<dyn std::error::Error + Send + Sync>>
 where
-    P: TransactionPool<Block = Block> + 'static,
+    P: TransactionPool<Block = Block, Hash = <Block as BlockT>::Hash> + 'static,
     BE: Backend<Block> + Send + Sync + 'static,
     BE::State: StateBackend<BlakeTwo256>,
     AuthorityId: AuthorityIdBound,
-    A: ChainApi<Block = Block> + 'static,
     Runtime: StorageEnableRuntime,
     Runtime::RuntimeApi: StorageEnableRuntimeApi<
         RuntimeApi: mmr_rpc::MmrRuntimeApi<
@@ -225,7 +224,7 @@ where
     };
 
     module.merge(
-        Eth::<_, _, _, _, _, _, _, DefaultEthConfig<StorageHubClient<Runtime::RuntimeApi>, BE>>::new(
+        Eth::<_, _, _, _, _, _, DefaultEthConfig<StorageHubClient<Runtime::RuntimeApi>, BE>>::new(
             Arc::clone(&client),
             Arc::clone(&pool),
             graph.clone(),

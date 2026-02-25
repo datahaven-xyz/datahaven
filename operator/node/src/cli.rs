@@ -617,10 +617,11 @@ impl ProviderConfigurations {
             bs_changed = true;
         }
 
-        if let Some(extrinsic_mortality) = self.extrinsic_mortality {
-            bs_options.extrinsic_mortality = Some(extrinsic_mortality);
-            bs_changed = true;
-        }
+        // TODO: restore once PR https://github.com/Moonsong-Labs/storage-hub/pull/671 is merged
+        // if let Some(extrinsic_mortality) = self.extrinsic_mortality {
+        //     bs_options.extrinsic_mortality = Some(extrinsic_mortality);
+        //     bs_changed = true;
+        // }
 
         if let Some(check_for_pending_proofs_period) = self.check_for_pending_proofs_period {
             bs_options.check_for_pending_proofs_period = Some(check_for_pending_proofs_period);
@@ -840,10 +841,11 @@ impl FishermanConfigurations {
             let mut bs_options = BlockchainServiceOptions::default();
             let mut bs_changed = false;
 
-            if let Some(extrinsic_mortality) = self.fisherman_extrinsic_mortality {
-                bs_options.extrinsic_mortality = Some(extrinsic_mortality);
-                bs_changed = true;
-            }
+            // TODO: restore once PR https://github.com/Moonsong-Labs/storage-hub/pull/671 is merged
+            // if let Some(extrinsic_mortality) = self.fisherman_extrinsic_mortality {
+            //     bs_options.extrinsic_mortality = Some(extrinsic_mortality);
+            //     bs_changed = true;
+            // }
 
             if bs_changed {
                 blockchain_service = Some(bs_options);
@@ -862,7 +864,8 @@ impl FishermanConfigurations {
                 maintenance_mode: false, // Skipping maintenance mode for now
                 filtering,
                 ordering,
-                blockchain_service,
+                // TODO: restore once PR https://github.com/Moonsong-Labs/storage-hub/pull/671 is merged
+                // blockchain_service,
             })
         } else {
             None

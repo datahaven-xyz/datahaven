@@ -3,13 +3,13 @@
 // Generated, do not edit!
 // See ethereum client README.md for instructions to generate
 
+use alloc::vec;
 use hex_literal::hex;
 use snowbridge_beacon_primitives::{
     types::deneb, AncestryProof, BeaconHeader, ExecutionProof, VersionedExecutionPayloadHeader,
 };
 use snowbridge_inbound_queue_primitives::{EventProof, InboundQueueFixture, Log, Proof};
 use sp_core::U256;
-use sp_std::vec;
 
 pub fn make_register_token_message() -> InboundQueueFixture {
     InboundQueueFixture {

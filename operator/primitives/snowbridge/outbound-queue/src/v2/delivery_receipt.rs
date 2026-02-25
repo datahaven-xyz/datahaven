@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: Apache-2.0
 // SPDX-FileCopyrightText: 2023 Snowfork <hello@snowfork.com>
+extern crate alloc;
+
 use crate::Log;
+use alloc::vec::Vec;
 use alloy_core::{primitives::B256, sol, sol_types::SolEvent};
 use codec::Decode;
 use frame_support::pallet_prelude::{Encode, TypeInfo};
 use sp_core::{RuntimeDebug, H160, H256};
-use sp_std::prelude::*;
 
 sol! {
     event InboundMessageDispatched(uint64 indexed nonce, bytes32 topic, bool success, bytes32 reward_address);

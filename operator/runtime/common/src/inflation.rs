@@ -59,7 +59,7 @@ pub struct ExternalRewardsEraInflationProvider<
     BlocksPerSession,
     MillisecsPerBlock,
 >(
-    sp_std::marker::PhantomData<(
+    core::marker::PhantomData<(
         AnnualAmount,
         SessionsPerEra,
         BlocksPerSession,
@@ -155,7 +155,7 @@ where
 /// This struct provides a mint_inflation method that can be called from wrapper implementations
 /// in your runtime to avoid circular dependencies.
 pub struct ExternalRewardsInflationHandler<Balances, TreasuryProportion, TreasuryAccount>(
-    sp_std::marker::PhantomData<(Balances, TreasuryProportion, TreasuryAccount)>,
+    core::marker::PhantomData<(Balances, TreasuryProportion, TreasuryAccount)>,
 );
 
 impl<Balances, TreasuryProportion, TreasuryAccount>

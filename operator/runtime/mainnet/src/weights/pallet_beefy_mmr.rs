@@ -50,7 +50,7 @@
 #![allow(unused_imports)]
 
 use frame_support::{traits::Get, weights::{Weight, constants::RocksDbWeight}};
-use sp_std::marker::PhantomData;
+use core::marker::PhantomData;
 
 /// Weights for `pallet_beefy_mmr`.
 pub struct WeightInfo<T>(PhantomData<T>);
@@ -90,4 +90,6 @@ impl<T: frame_system::Config> pallet_beefy_mmr::WeightInfo for WeightInfo<T> {
 			.saturating_add(Weight::from_parts(1_511_565, 0).saturating_mul(n.into()))
 			.saturating_add(T::DbWeight::get().reads(2_u64))
 	}
+
+	fn n_leafs_proof_is_optimal(_: u32) -> sp_runtime::Weight { todo!() }
 }

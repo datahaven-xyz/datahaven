@@ -122,8 +122,15 @@ mod benchmarks {
         Ok(())
     }
 
+    /// Benchmarks the full `report_equivocation` dispatch cost.
+    ///
+    /// The upstream `WeightInfo::report_equivocation` signature takes
+    /// `(validator_count: u32, max_nominators_per_validator: u32)` as linear components.
+    /// We expose the same parameters here so the generated weight function matches the
+    /// trait exactly and the linear terms are populated from real measurements.
+    /// `v` = validator_count, `n` = max_nominators_per_validator (matches upstream component names).
     #[benchmark]
-    fn report_equivocation() -> Result<(), BenchmarkError> {
+    fn report_equivocation(v: Linear<0, 1000>, n: Linear<0, 1>) -> Result<(), BenchmarkError> {
         let (proof, key_owner_proof, reporter) = setup_equivocation::<T>()?;
 
         #[extrinsic_call]

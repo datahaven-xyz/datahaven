@@ -240,10 +240,12 @@ where
             treasury_amount
         );
 
-        Ok(pallet_external_validators_rewards::types::InflationMintResult {
-            rewards_amount,
-            treasury_amount,
-        })
+        Ok(
+            pallet_external_validators_rewards::types::InflationMintResult {
+                rewards_amount,
+                treasury_amount,
+            },
+        )
     }
 }
 

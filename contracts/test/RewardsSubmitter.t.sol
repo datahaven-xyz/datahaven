@@ -348,13 +348,15 @@ contract RewardsSubmitterTest is AVSDeployer {
         serviceManager.submitRewards(submission);
     }
 
-    function test_submitRewards_revertsIfUnknownSolochainAddress() public {
+    function test_submitRewards_skipsUnknownSolochainAddress() public {
         address unknownSolochainOperator = address(0xDEAD);
         IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission memory submission =
             _buildSubmission(1000e18, unknownSolochainOperator);
 
+        // Unknown solochain address is silently skipped; RewardsSubmitted is emitted with zero amount
         vm.prank(snowbridgeAgent);
-        vm.expectRevert(abi.encodeWithSignature("UnknownSolochainAddress()"));
+        vm.expectEmit();
+        emit IDataHavenServiceManagerEvents.RewardsSubmitted(0, submission.operatorRewards.length);
         serviceManager.submitRewards(submission);
     }
 

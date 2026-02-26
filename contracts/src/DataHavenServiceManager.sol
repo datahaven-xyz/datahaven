@@ -481,12 +481,31 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
     ) external override onlyRewardsInitiator {
         IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission memory translatedSubmission =
         submission;
+
+        uint256 len = translatedSubmission.operatorRewards.length;
+        IRewardsCoordinatorTypes.OperatorReward[] memory translated =
+            new IRewardsCoordinatorTypes.OperatorReward[](len);
         uint256 totalAmount = 0;
-        for (uint256 i = 0; i < translatedSubmission.operatorRewards.length; i++) {
-            translatedSubmission.operatorRewards[i].operator =
-                _ethOperatorFromSolochain(translatedSubmission.operatorRewards[i].operator);
-            totalAmount += translatedSubmission.operatorRewards[i].amount;
+        uint256 writeIdx = 0;
+        for (uint256 i = 0; i < len; i++) {
+            address ethOp =
+                validatorSolochainAddressToEthAddress[translatedSubmission.operatorRewards[i].operator];
+            if (ethOp == address(0)) continue;
+            translated[writeIdx] = translatedSubmission.operatorRewards[i];
+            translated[writeIdx].operator = ethOp;
+            totalAmount += translated[writeIdx].amount;
+            writeIdx++;
         }
+
+        // Resize to the number of successfully resolved operators
+        assembly {
+            mstore(translated, writeIdx)
+        }
+        translatedSubmission.operatorRewards = translated;
+
+        emit RewardsSubmitted(totalAmount, submission.operatorRewards.length);
+
+        if (writeIdx == 0) return;
 
         _sortOperatorRewards(translatedSubmission.operatorRewards);
 
@@ -500,8 +519,6 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         _REWARDS_COORDINATOR.createOperatorDirectedOperatorSetRewardsSubmission(
             operatorSet, submissions
         );
-
-        emit RewardsSubmitted(totalAmount, submission.operatorRewards.length);
     }
 
     /// @inheritdoc IDataHavenServiceManager
@@ -545,7 +562,8 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         SlashingRequest[] calldata slashings
     ) external onlyRewardsInitiator {
         for (uint256 i = 0; i < slashings.length; i++) {
-            address ethOperator = _ethOperatorFromSolochain(slashings[i].operator);
+            address ethOperator = validatorSolochainAddressToEthAddress[slashings[i].operator];
+            if (ethOperator == address(0)) continue;
             IAllocationManagerTypes.SlashingParams memory slashingParams =
                 IAllocationManagerTypes.SlashingParams({
                     operator: ethOperator,
@@ -619,15 +637,4 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         return opA < opB;
     }
 
-    /**
-     * @notice Returns the EigenLayer operator address for a Solochain validator address
-     * @dev Reverts if the Solochain address has not been mapped to an operator
-     */
-    function _ethOperatorFromSolochain(
-        address solochainAddress
-    ) internal view returns (address) {
-        address ethOperator = validatorSolochainAddressToEthAddress[solochainAddress];
-        require(ethOperator != address(0), UnknownSolochainAddress());
-        return ethOperator;
-    }
 }

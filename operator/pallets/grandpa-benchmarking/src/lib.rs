@@ -2,25 +2,26 @@
 
 extern crate alloc;
 
-use sp_consensus_grandpa::AuthorityId as GrandpaId;
-
 pub struct Pallet<T: Config>(pallet_grandpa::Pallet<T>);
 
 /// Benchmarking configuration for `pallet-grandpa` in DataHaven.
 ///
-/// This is a small wrapper crate (similar to `pallet-session-benchmarking`) so we can
-/// provide benchmarks for GRANDPA extrinsics that upstream `pallet-grandpa` does not
-/// expose in its own benchmarking suite.
+/// This is a small wrapper crate (similar to `pallet-session-benchmarking`) that provides
+/// benchmarks for GRANDPA extrinsics that upstream `pallet-grandpa` does not expose in its
+/// own benchmarking suite. Run via the node's `benchmark pallet` subcommand, not
+/// `frame-omni-bencher`, as the latter lacks a real ed25519 verifier.
 pub trait Config:
-    pallet_grandpa::Config<KeyOwnerProof = sp_session::MembershipProof>
-    + pallet_session::Config
+    pallet_grandpa::Config<
+        KeyOwnerProof = <pallet_session::historical::Pallet<Self> as frame_support::traits::KeyOwnerProofSystem<(
+            sp_core::crypto::KeyTypeId,
+            sp_consensus_grandpa::AuthorityId,
+        )>>::Proof,
+    > + pallet_session::Config
     + pallet_session::historical::Config
 {
-    /// Build the runtime's session keys type (`T::Keys`) using the provided GRANDPA authority id.
-    ///
-    /// The runtime should fill other key types (BABE/IM-ONLINE/BEEFY/etc) with deterministic
-    /// values suitable for benchmarking.
-    fn benchmark_session_keys(grandpa: GrandpaId) -> Self::Keys;
+    /// Construct a full `Self::Keys` value for benchmarking, filling all slots except GRANDPA
+    /// with dummy values and placing `grandpa` in the GRANDPA slot.
+    fn benchmark_session_keys(grandpa: sp_consensus_grandpa::AuthorityId) -> Self::Keys;
 }
 
 #[cfg(feature = "runtime-benchmarks")]

@@ -649,12 +649,12 @@ pub mod pallet {
             let ethereum_sovereign_account = T::RewardsEthereumSovereignAccount::get();
 
             // Mint scaled inflation tokens using the configurable handler.
-            // Returns the actual amount minted to the rewards account (post-treasury split).
-            let rewards_amount = match T::HandleInflation::mint_inflation(
+            // Returns an InflationMintResult with the rewards/treasury split.
+            let mint_result = match T::HandleInflation::mint_inflation(
                 &ethereum_sovereign_account,
                 scaled_inflation,
             ) {
-                Ok(amount) => amount,
+                Ok(result) => result,
                 Err(err) => {
                     log::error!(target: "ext_validators_rewards", "Failed to handle inflation: {err:?}");
                     log::error!(target: "ext_validators_rewards", "Not sending message since there are no rewards to distribute");
@@ -673,7 +673,7 @@ pub mod pallet {
             // This ensures the message to EigenLayer matches the actual minted rewards.
             let utils = match era_reward_points.generate_era_rewards_utils(
                 era_index,
-                rewards_amount,
+                mint_result.rewards_amount,
                 era_start_timestamp,
             ) {
                 Some(utils) => utils,
@@ -697,7 +697,7 @@ pub mod pallet {
                     message_id,
                     era_index,
                     total_points: utils.total_points,
-                    inflation_amount: rewards_amount,
+                    inflation_amount: mint_result.rewards_amount,
                 });
             }
         }

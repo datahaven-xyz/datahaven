@@ -39,16 +39,34 @@ pub trait SendMessage {
     fn deliver(ticket: Self::Ticket) -> Result<H256, SendError>;
 }
 
-// Trait for handling inflation
+/// Result of minting inflation tokens, detailing the split between rewards and treasury.
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub struct InflationMintResult {
+    /// Amount minted to the rewards account (for distribution to validators via AVS).
+    pub rewards_amount: u128,
+    /// Amount minted to the treasury account.
+    pub treasury_amount: u128,
+}
+
+/// Trait for handling inflation minting with a rewards/treasury split.
 pub trait HandleInflation<AccountId> {
     /// Mint inflation tokens, splitting between rewards and treasury.
-    /// Returns the amount actually minted to the rewards account.
-    fn mint_inflation(who: &AccountId, amount: u128) -> Result<u128, sp_runtime::DispatchError>;
+    /// Returns an `InflationMintResult` detailing the amounts minted to each destination.
+    fn mint_inflation(
+        who: &AccountId,
+        amount: u128,
+    ) -> Result<InflationMintResult, sp_runtime::DispatchError>;
 }
 
 impl<AccountId> HandleInflation<AccountId> for () {
-    fn mint_inflation(_: &AccountId, _: u128) -> Result<u128, sp_runtime::DispatchError> {
-        Ok(0)
+    fn mint_inflation(
+        _: &AccountId,
+        _: u128,
+    ) -> Result<InflationMintResult, sp_runtime::DispatchError> {
+        Ok(InflationMintResult {
+            rewards_amount: 0,
+            treasury_amount: 0,
+        })
     }
 }
 

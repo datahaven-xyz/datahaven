@@ -31,7 +31,7 @@ COPY test/utils/ ./utils/
 
 ENV NODE_ENV=production
 
-EXPOSE 9090
+EXPOSE 8080
 
 USER submitter
 

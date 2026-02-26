@@ -106,7 +106,7 @@ function optionalHexString(raw: Record<string, unknown>, key: string): `0x${stri
 
 function resolveMetricsPort(raw: Record<string, unknown>): number {
   const port =
-    raw.metrics_port !== undefined && raw.metrics_port !== null ? Number(raw.metrics_port) : 9090;
+    raw.metrics_port !== undefined && raw.metrics_port !== null ? Number(raw.metrics_port) : 8080;
 
   if (!Number.isFinite(port) || !Number.isInteger(port) || port < 1 || port > 65535) {
     throw new Error(`Invalid metrics port: ${port}. Must be an integer between 1 and 65535.`);

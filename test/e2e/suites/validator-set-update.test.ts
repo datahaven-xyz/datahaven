@@ -10,7 +10,6 @@
  * - Observe `ExternalValidators.ExternalValidatorsSet` on DataHaven (substrate), confirming propagation.
  */
 import { beforeAll, describe, expect, it } from "bun:test";
-import { getOwnerAccount } from "launcher/validators";
 import {
   CROSS_CHAIN_TIMEOUTS,
   type Deployments,
@@ -20,14 +19,15 @@ import {
   ZERO_ADDRESS
 } from "utils";
 import { waitForDataHavenEvent } from "utils/events";
-import { decodeEventLog, parseEther } from "viem";
-import { dataHavenServiceManagerAbi, gatewayAbi } from "../../contract-bindings";
+import { dataHavenServiceManagerAbi } from "../../contract-bindings";
 import {
   addValidatorToAllowlist,
   BaseTestSuite,
+  buildSubmitterImage,
   getValidator,
   isValidatorRunning,
   launchDatahavenValidator,
+  launchSubmitter,
   registerOperator,
   type TestConnectors
 } from "../framework";
@@ -50,10 +50,17 @@ class ValidatorSetUpdateTestSuite extends BaseTestSuite {
       launchDatahavenValidator("charlie", { launchedNetwork }),
       launchDatahavenValidator("dave", { launchedNetwork })
     ]);
+
+    // Build the submitter Docker image so it's ready for the test
+    await buildSubmitterImage();
   }
 
   public getNetworkId(): string {
     return this.getConnectors().launchedNetwork.networkId;
+  }
+
+  public getLaunchedNetwork() {
+    return this.getConnectors().launchedNetwork;
   }
 }
 
@@ -173,7 +180,7 @@ describe("Validator Set Update", () => {
   it(
     "should send updated validator set and verify on DataHaven",
     async () => {
-      const { publicClient, walletClient, dhApi } = connectors;
+      const { dhApi } = connectors;
 
       // Era rotation was paused in beforeAll. Wait for any pending transition to settle
       // (ForceNone prevents new eras, but an in-progress one must finish first).
@@ -190,44 +197,7 @@ describe("Validator Set Update", () => {
       }
 
       const targetEra = BigInt(stableEraIndex + 1);
-
-      // Send the updated validator set via Snowbridge
-      const hash = await walletClient.writeContract({
-        address: deployments.ServiceManager as `0x${string}`,
-        abi: dataHavenServiceManagerAbi,
-        functionName: "sendNewValidatorSetForEra",
-        args: [targetEra, parseEther("0.1"), parseEther("0.2")],
-        value: parseEther("0.3"),
-        account: getOwnerAccount(),
-        chain: null
-      });
-      const receipt = await publicClient.waitForTransactionReceipt({ hash });
-      logger.info(
-        `sendNewValidatorSet tx status: ${receipt.status}, block: ${receipt.blockNumber}`
-      );
-      expect(receipt.status).toBe("success");
-
-      // Verify OutboundMessageAccepted event was emitted
-      const hasOutboundAccepted = (receipt.logs ?? []).some((log: any) => {
-        try {
-          const decoded = decodeEventLog({
-            abi: gatewayAbi,
-            data: log.data,
-            topics: log.topics
-          });
-          if (decoded.eventName === "OutboundMessageAccepted") {
-            logger.info(`OutboundMessageAccepted event: nonce=${(decoded.args as any)?.nonce}`);
-          }
-          return decoded.eventName === "OutboundMessageAccepted";
-        } catch {
-          return false;
-        }
-      });
-      expect(hasOutboundAccepted).toBe(true);
-
-      logger.info("Waiting for ExternalValidators.ExternalValidatorsSet event on DataHaven...");
-      // Wait for the validator set to be updated on Substrate
-      await waitForDataHavenEvent({
+      const validatorSetUpdated = waitForDataHavenEvent({
         api: dhApi,
         pallet: "ExternalValidators",
         event: "ExternalValidatorsSet",
@@ -235,6 +205,27 @@ describe("Validator Set Update", () => {
           BigInt(event.external_index) === targetEra,
         timeout: CROSS_CHAIN_TIMEOUTS.ETH_TO_DH_MS
       });
+      // Prevent unhandled rejection if launchSubmitter fails before we await this promise.
+      void validatorSetUpdated.catch(() => undefined);
+
+      // Launch the submitter daemon — it will detect the last-session condition
+      // and automatically call sendNewValidatorSetForEra on the ServiceManager.
+      const launchedNetwork = suite.getLaunchedNetwork();
+      const { cleanup: cleanupSubmitter } = await launchSubmitter({
+        networkName: launchedNetwork.networkName,
+        networkId: suite.getNetworkId(),
+        ethereumRpcUrl: connectors.elRpcUrl,
+        datahavenContainerName: `datahaven-alice-${suite.getNetworkId()}`,
+        serviceManagerAddress: deployments.ServiceManager
+      });
+
+      try {
+        logger.info("Waiting for ExternalValidators.ExternalValidatorsSet event on DataHaven...");
+        // Wait for the validator set to be updated on Substrate
+        await validatorSetUpdated;
+      } finally {
+        await cleanupSubmitter();
+      }
 
       // Resume era rotation
       const resumeTx = dhApi.tx.Sudo.sudo({

@@ -40,8 +40,8 @@ network_id: "anvil"
 execution_fee: "0.1"
 relayer_fee: "0.2"
 
-# Optional metrics port (default: 9090)
-# metrics_port: 9090
+# Optional metrics port (default: 8080)
+# metrics_port: 8080
 ```
 
 ## Usage
@@ -69,7 +69,7 @@ Private key precedence is: `--submitter-private-key` > `SUBMITTER_PRIVATE_KEY` >
 
 ## Observability
 
-The submitter exposes a Prometheus metrics server on `metrics_port` (default `9090`):
+The submitter exposes a Prometheus metrics server on `metrics_port` (default `8080`):
 
 - `GET /metrics` — Prometheus metrics
 - `GET /healthz` — liveness

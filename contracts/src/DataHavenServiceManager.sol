@@ -295,16 +295,13 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
     ) external onlyValidator {
         require(solochainAddress != address(0), ZeroAddress());
 
-        address existingEthOperator = validatorSolochainAddressToEthAddress[solochainAddress];
-        require(
-            existingEthOperator == address(0) || existingEthOperator == msg.sender,
-            SolochainAddressAlreadyAssigned()
-        );
-
         address oldSolochainAddress = validatorEthAddressToSolochainAddress[msg.sender];
-        if (oldSolochainAddress != address(0) && oldSolochainAddress != solochainAddress) {
-            delete validatorSolochainAddressToEthAddress[oldSolochainAddress];
-        }
+        require(oldSolochainAddress != solochainAddress, SolochainAddressAlreadyAssigned());
+
+        address existingEthOperator = validatorSolochainAddressToEthAddress[solochainAddress];
+        require(existingEthOperator == address(0), SolochainAddressAlreadyAssigned());
+
+        delete validatorSolochainAddressToEthAddress[oldSolochainAddress];
 
         validatorEthAddressToSolochainAddress[msg.sender] = solochainAddress;
         validatorSolochainAddressToEthAddress[solochainAddress] = msg.sender;
@@ -338,18 +335,13 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         require(operatorSetIds.length == 1, CantRegisterToMultipleOperatorSets());
         require(operatorSetIds[0] == VALIDATORS_SET_ID, InvalidOperatorSetId());
         require(validatorsAllowlist[operator], OperatorNotInAllowlist());
+        require(validatorEthAddressToSolochainAddress[operator] == address(0), OperatorAlreadyRegistered());
 
         address solochainAddress = _toAddress(data);
-        address existingEthOperator = validatorSolochainAddressToEthAddress[solochainAddress];
         require(
-            existingEthOperator == address(0) || existingEthOperator == operator,
+            validatorSolochainAddressToEthAddress[solochainAddress] == address(0),
             SolochainAddressAlreadyAssigned()
         );
-
-        address oldSolochainAddress = validatorEthAddressToSolochainAddress[operator];
-        if (oldSolochainAddress != address(0) && oldSolochainAddress != solochainAddress) {
-            delete validatorSolochainAddressToEthAddress[oldSolochainAddress];
-        }
 
         validatorEthAddressToSolochainAddress[operator] = solochainAddress;
         validatorSolochainAddressToEthAddress[solochainAddress] = operator;
@@ -366,12 +358,11 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         require(avsAddress == address(this), IncorrectAVSAddress());
         require(operatorSetIds.length == 1, CantDeregisterFromMultipleOperatorSets());
         require(operatorSetIds[0] == VALIDATORS_SET_ID, InvalidOperatorSetId());
+        require(validatorEthAddressToSolochainAddress[operator] != address(0), OperatorNotRegistered());
 
         address oldSolochainAddress = validatorEthAddressToSolochainAddress[operator];
         delete validatorEthAddressToSolochainAddress[operator];
-        if (oldSolochainAddress != address(0)) {
-            delete validatorSolochainAddressToEthAddress[oldSolochainAddress];
-        }
+        delete validatorSolochainAddressToEthAddress[oldSolochainAddress];
 
         emit OperatorDeregistered(operator, operatorSetIds[0]);
     }

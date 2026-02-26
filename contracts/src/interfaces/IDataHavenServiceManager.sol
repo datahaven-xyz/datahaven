@@ -45,6 +45,12 @@ interface IDataHavenServiceManagerErrors {
 
     /// @notice Thrown when a strategy is not registered in the operator set
     error StrategyNotInOperatorSet();
+
+    /// @notice Thrown when an operator attempts to register but is already registered
+    error OperatorAlreadyRegistered();
+
+    /// @notice Thrown when an operation requires the operator to be registered but it is not
+    error OperatorNotRegistered();
 }
 
 /**

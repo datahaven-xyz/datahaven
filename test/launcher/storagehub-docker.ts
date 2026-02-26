@@ -182,7 +182,10 @@ export const launchMspNode = async (
     "--max-storage-capacity",
     "10737418240", // 10 GiB
     "--jump-capacity",
-    "1073741824" // 1 GiB
+    "1073741824", // 1 GiB
+    "--trusted-file-transfer-server",
+    "--trusted-file-transfer-server-host",
+    "0.0.0.0" // Listen on all interfaces so the backend container can reach it
   ];
 
   logger.debug(`Executing: ${command.join(" ")}`);
@@ -459,11 +462,12 @@ export const launchFishermanNode = async (
  *
  * @param options - Configuration options for launching the network
  * @param launchedNetwork - The launched network instance to track the node
+ * @returns The HTTP URL of the backend API (e.g. "http://127.0.0.1:8080")
  */
 export const launchBackend = async (
   options: DataHavenOptions,
   launchedNetwork: LaunchedNetwork
-): Promise<void> => {
+): Promise<string> => {
   logger.info("🚀 Launching StorageHub Backend...");
 
   const backendImage = "moonsonglabs/storage-hub-msp-backend:latest";
@@ -486,8 +490,10 @@ export const launchBackend = async (
     "-e",
     "RUST_LOG=info",
     backendImage,
-    "--chain",
-    "local",
+    "--host",
+    "0.0.0.0",
+    "--port",
+    "8080",
     "--log-format",
     "text",
     "--database-url",
@@ -509,6 +515,8 @@ export const launchBackend = async (
   launchedNetwork.addContainer(containerName, { http: apiPort }, { http: apiPort });
 
   logger.success(`StorageHub Backend container started on port ${apiPort}`);
+
+  return `http://127.0.0.1:${apiPort}`;
 };
 
 /**

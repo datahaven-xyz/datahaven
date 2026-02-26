@@ -268,11 +268,11 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
             if (bestIdx != i) {
                 // Swap all parallel arrays
                 (candidateSolochain[i], candidateSolochain[bestIdx]) =
-                    (candidateSolochain[bestIdx], candidateSolochain[i]);
+                (candidateSolochain[bestIdx], candidateSolochain[i]);
                 (candidateStake[i], candidateStake[bestIdx]) =
-                    (candidateStake[bestIdx], candidateStake[i]);
+                (candidateStake[bestIdx], candidateStake[i]);
                 (candidateOperator[i], candidateOperator[bestIdx]) =
-                    (candidateOperator[bestIdx], candidateOperator[i]);
+                (candidateOperator[bestIdx], candidateOperator[i]);
             }
         }
 
@@ -335,7 +335,10 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         require(operatorSetIds.length == 1, CantRegisterToMultipleOperatorSets());
         require(operatorSetIds[0] == VALIDATORS_SET_ID, InvalidOperatorSetId());
         require(validatorsAllowlist[operator], OperatorNotInAllowlist());
-        require(validatorEthAddressToSolochainAddress[operator] == address(0), OperatorAlreadyRegistered());
+        require(
+            validatorEthAddressToSolochainAddress[operator] == address(0),
+            OperatorAlreadyRegistered()
+        );
 
         address solochainAddress = _toAddress(data);
         require(
@@ -358,7 +361,9 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         require(avsAddress == address(this), IncorrectAVSAddress());
         require(operatorSetIds.length == 1, CantDeregisterFromMultipleOperatorSets());
         require(operatorSetIds[0] == VALIDATORS_SET_ID, InvalidOperatorSetId());
-        require(validatorEthAddressToSolochainAddress[operator] != address(0), OperatorNotRegistered());
+        require(
+            validatorEthAddressToSolochainAddress[operator] != address(0), OperatorNotRegistered()
+        );
 
         address oldSolochainAddress = validatorEthAddressToSolochainAddress[operator];
         delete validatorEthAddressToSolochainAddress[operator];
@@ -488,8 +493,9 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         uint256 totalAmount = 0;
         uint256 writeIdx = 0;
         for (uint256 i = 0; i < len; i++) {
-            address ethOp =
-                validatorSolochainAddressToEthAddress[translatedSubmission.operatorRewards[i].operator];
+            address ethOp = validatorSolochainAddressToEthAddress[
+                translatedSubmission.operatorRewards[i].operator
+            ];
             if (ethOp == address(0)) continue;
             translated[writeIdx] = translatedSubmission.operatorRewards[i];
             translated[writeIdx].operator = ethOp;
@@ -636,5 +642,4 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         }
         return opA < opB;
     }
-
 }

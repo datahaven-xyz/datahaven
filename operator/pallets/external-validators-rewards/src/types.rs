@@ -41,12 +41,14 @@ pub trait SendMessage {
 
 // Trait for handling inflation
 pub trait HandleInflation<AccountId> {
-    fn mint_inflation(who: &AccountId, amount: u128) -> sp_runtime::DispatchResult;
+    /// Mint inflation tokens, splitting between rewards and treasury.
+    /// Returns the amount actually minted to the rewards account.
+    fn mint_inflation(who: &AccountId, amount: u128) -> Result<u128, sp_runtime::DispatchError>;
 }
 
 impl<AccountId> HandleInflation<AccountId> for () {
-    fn mint_inflation(_: &AccountId, _: u128) -> sp_runtime::DispatchResult {
-        Ok(())
+    fn mint_inflation(_: &AccountId, _: u128) -> Result<u128, sp_runtime::DispatchError> {
+        Ok(0)
     }
 }
 

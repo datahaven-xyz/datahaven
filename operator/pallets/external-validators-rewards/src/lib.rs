@@ -625,9 +625,42 @@ pub mod pallet {
     impl<T: Config> OnEraEnd for Pallet<T> {
         fn on_era_end(era_index: EraIndex) {
             // Calculate performance-scaled inflation based on blocks produced.
-            // This must be done first since we use it for both minting and the rewards message.
             let base_inflation = T::EraInflationProvider::get();
             let scaled_inflation = Self::calculate_scaled_inflation(era_index, base_inflation);
+
+            // Check that there are reward points before minting.
+            // This prevents minting inflation when no validators have earned rewards.
+            let era_reward_points = RewardPointsForEra::<T>::get(&era_index);
+            let total_points: u128 = era_reward_points
+                .individual
+                .values()
+                .map(|pts| *pts as u128)
+                .sum();
+
+            if total_points.is_zero() {
+                log::error!(
+                    target: "ext_validators_rewards",
+                    "No reward points in era {}, skipping inflation minting",
+                    era_index
+                );
+                return;
+            }
+
+            let ethereum_sovereign_account = T::RewardsEthereumSovereignAccount::get();
+
+            // Mint scaled inflation tokens using the configurable handler.
+            // Returns the actual amount minted to the rewards account (post-treasury split).
+            let rewards_amount = match T::HandleInflation::mint_inflation(
+                &ethereum_sovereign_account,
+                scaled_inflation,
+            ) {
+                Ok(amount) => amount,
+                Err(err) => {
+                    log::error!(target: "ext_validators_rewards", "Failed to handle inflation: {err:?}");
+                    log::error!(target: "ext_validators_rewards", "Not sending message since there are no rewards to distribute");
+                    return;
+                }
+            };
 
             // Get era start timestamp from the active era (still the ending era at this point).
             // Convert from milliseconds to seconds for EigenLayer compatibility.
@@ -636,11 +669,11 @@ pub mod pallet {
                 .map(|ms| (ms / 1000) as u32)
                 .unwrap_or(0);
 
-            // Generate era rewards utils with the scaled inflation amount.
-            // This ensures the message to EigenLayer matches the actual minted amount.
-            let utils = match RewardPointsForEra::<T>::get(&era_index).generate_era_rewards_utils(
+            // Generate era rewards utils with the actual rewards amount (post-treasury split).
+            // This ensures the message to EigenLayer matches the actual minted rewards.
+            let utils = match era_reward_points.generate_era_rewards_utils(
                 era_index,
-                scaled_inflation,
+                rewards_amount,
                 era_start_timestamp,
             ) {
                 Some(utils) => utils,
@@ -654,17 +687,6 @@ pub mod pallet {
                 }
             };
 
-            let ethereum_sovereign_account = T::RewardsEthereumSovereignAccount::get();
-
-            // Mint scaled inflation tokens using the configurable handler
-            if let Err(err) =
-                T::HandleInflation::mint_inflation(&ethereum_sovereign_account, scaled_inflation)
-            {
-                log::error!(target: "ext_validators_rewards", "Failed to handle inflation: {err:?}");
-                log::error!(target: "ext_validators_rewards", "Not sending message since there are no rewards to distribute");
-                return;
-            }
-
             frame_system::Pallet::<T>::register_extra_weight_unchecked(
                 T::WeightInfo::on_era_end(),
                 DispatchClass::Mandatory,
@@ -675,7 +697,7 @@ pub mod pallet {
                     message_id,
                     era_index,
                     total_points: utils.total_points,
-                    inflation_amount: scaled_inflation,
+                    inflation_amount: rewards_amount,
                 });
             }
         }

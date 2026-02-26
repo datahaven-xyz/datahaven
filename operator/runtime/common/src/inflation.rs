@@ -165,11 +165,12 @@ where
     TreasuryProportion: Get<Perbill>,
     TreasuryAccount: Get<crate::AccountId>,
 {
-    /// Mints inflation tokens and splits them between rewards and treasury accounts
+    /// Mints inflation tokens and splits them between rewards and treasury accounts.
+    /// Returns the amount minted to the rewards account.
     pub fn mint_inflation(
         rewards_account: &crate::AccountId,
         total_amount: u128,
-    ) -> sp_runtime::DispatchResult {
+    ) -> Result<u128, sp_runtime::DispatchError> {
         use sp_runtime::traits::Zero;
 
         if total_amount.is_zero() {
@@ -236,7 +237,7 @@ where
             treasury_amount
         );
 
-        Ok(())
+        Ok(rewards_amount)
     }
 }
 
@@ -561,7 +562,7 @@ mod tests {
             let total_inflation = 1_000_000u128;
 
             let result = TestHandler::mint_inflation(&rewards_account, total_inflation);
-            assert!(result.is_ok());
+            assert_eq!(result, Ok(800_000));
 
             let rewards_balance = get_balance(&rewards_account);
             let treasury_balance = get_balance(&TreasuryAccountId::get());
@@ -579,7 +580,7 @@ mod tests {
             let total_inflation = 1_000_000u128;
 
             let result = TestHandler50Pct::mint_inflation(&rewards_account, total_inflation);
-            assert!(result.is_ok());
+            assert_eq!(result, Ok(500_000));
 
             let rewards_balance = get_balance(&rewards_account);
             let treasury_balance = get_balance(&TreasuryAccountId::get());
@@ -596,7 +597,7 @@ mod tests {
             let total_inflation = 1_000_000u128;
 
             let result = TestHandler0Pct::mint_inflation(&rewards_account, total_inflation);
-            assert!(result.is_ok());
+            assert_eq!(result, Ok(total_inflation));
 
             let rewards_balance = get_balance(&rewards_account);
             let treasury_balance = get_balance(&TreasuryAccountId::get());
@@ -613,7 +614,7 @@ mod tests {
             let total_inflation = 1_000_000u128;
 
             let result = TestHandler100Pct::mint_inflation(&rewards_account, total_inflation);
-            assert!(result.is_ok());
+            assert_eq!(result, Ok(0));
 
             let rewards_balance = get_balance(&rewards_account);
             let treasury_balance = get_balance(&TreasuryAccountId::get());

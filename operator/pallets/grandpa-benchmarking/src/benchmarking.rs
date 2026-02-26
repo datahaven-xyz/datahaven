@@ -131,14 +131,4 @@ mod benchmarks {
 
         Ok(())
     }
-
-    #[benchmark]
-    fn report_equivocation_unsigned() -> Result<(), BenchmarkError> {
-        let (proof, key_owner_proof, _) = setup_equivocation::<T>()?;
-
-        #[extrinsic_call]
-        _(RawOrigin::None, proof, key_owner_proof);
-
-        Ok(())
-    }
 }

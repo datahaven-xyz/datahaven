@@ -268,11 +268,11 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
             if (bestIdx != i) {
                 // Swap all parallel arrays
                 (candidateSolochain[i], candidateSolochain[bestIdx]) =
-                (candidateSolochain[bestIdx], candidateSolochain[i]);
+                    (candidateSolochain[bestIdx], candidateSolochain[i]);
                 (candidateStake[i], candidateStake[bestIdx]) =
-                (candidateStake[bestIdx], candidateStake[i]);
+                    (candidateStake[bestIdx], candidateStake[i]);
                 (candidateOperator[i], candidateOperator[bestIdx]) =
-                (candidateOperator[bestIdx], candidateOperator[i]);
+                    (candidateOperator[bestIdx], candidateOperator[i]);
             }
         }
 

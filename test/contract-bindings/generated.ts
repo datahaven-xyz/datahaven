@@ -2050,6 +2050,13 @@ export const dataHavenServiceManagerAbi = [
   {
     type: 'function',
     inputs: [],
+    name: 'DATAHAVEN_VERSION',
+    outputs: [{ name: '', internalType: 'string', type: 'string' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
     name: 'MAX_ACTIVE_VALIDATORS',
     outputs: [{ name: '', internalType: 'uint32', type: 'uint32' }],
     stateMutability: 'view',
@@ -2166,6 +2173,8 @@ export const dataHavenServiceManagerAbi = [
         internalType: 'address',
         type: 'address',
       },
+      { name: 'initialVersion', internalType: 'string', type: 'string' },
+      { name: '_versionUpdater', internalType: 'address', type: 'address' },
     ],
     name: 'initialize',
     outputs: [],
@@ -2290,6 +2299,15 @@ export const dataHavenServiceManagerAbi = [
   {
     type: 'function',
     inputs: [
+      { name: 'newVersionUpdater', internalType: 'address', type: 'address' },
+    ],
+    name: 'setVersionUpdater',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
       {
         name: 'slashings',
         internalType: 'struct IDataHavenServiceManager.SlashingRequest[]',
@@ -2399,6 +2417,13 @@ export const dataHavenServiceManagerAbi = [
   },
   {
     type: 'function',
+    inputs: [{ name: 'newVersion', internalType: 'string', type: 'string' }],
+    name: 'updateVersion',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
     inputs: [{ name: '', internalType: 'address', type: 'address' }],
     name: 'validatorEthAddressToSolochainAddress',
     outputs: [{ name: '', internalType: 'address', type: 'address' }],
@@ -2432,6 +2457,13 @@ export const dataHavenServiceManagerAbi = [
     outputs: [
       { name: '', internalType: 'contract IStrategy[]', type: 'address[]' },
     ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'versionUpdater',
+    outputs: [{ name: '', internalType: 'address', type: 'address' }],
     stateMutability: 'view',
   },
   {
@@ -2660,6 +2692,44 @@ export const dataHavenServiceManagerAbi = [
       },
     ],
     name: 'ValidatorSetSubmitterUpdated',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'oldVersion',
+        internalType: 'string',
+        type: 'string',
+        indexed: false,
+      },
+      {
+        name: 'newVersion',
+        internalType: 'string',
+        type: 'string',
+        indexed: false,
+      },
+    ],
+    name: 'VersionUpdated',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'oldVersionUpdater',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'newVersionUpdater',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+    ],
+    name: 'VersionUpdaterSet',
   },
   { type: 'error', inputs: [], name: 'CallerIsNotValidator' },
   { type: 'error', inputs: [], name: 'CantDeregisterFromMultipleOperatorSets' },
@@ -10814,6 +10884,15 @@ export const readDataHavenServiceManagerDatahavenAvsMetadata =
   })
 
 /**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"DATAHAVEN_VERSION"`
+ */
+export const readDataHavenServiceManagerDatahavenVersion =
+  /*#__PURE__*/ createReadContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: 'DATAHAVEN_VERSION',
+  })
+
+/**
  * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"MAX_ACTIVE_VALIDATORS"`
  */
 export const readDataHavenServiceManagerMaxActiveValidators =
@@ -10937,6 +11016,15 @@ export const readDataHavenServiceManagerValidatorsSupportedStrategies =
   /*#__PURE__*/ createReadContract({
     abi: dataHavenServiceManagerAbi,
     functionName: 'validatorsSupportedStrategies',
+  })
+
+/**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"versionUpdater"`
+ */
+export const readDataHavenServiceManagerVersionUpdater =
+  /*#__PURE__*/ createReadContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: 'versionUpdater',
   })
 
 /**
@@ -11073,6 +11161,15 @@ export const writeDataHavenServiceManagerSetValidatorSetSubmitter =
   })
 
 /**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"setVersionUpdater"`
+ */
+export const writeDataHavenServiceManagerSetVersionUpdater =
+  /*#__PURE__*/ createWriteContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: 'setVersionUpdater',
+  })
+
+/**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"slashValidatorsOperator"`
  */
 export const writeDataHavenServiceManagerSlashValidatorsOperator =
@@ -11115,6 +11212,15 @@ export const writeDataHavenServiceManagerUpdateSolochainAddressForValidator =
   /*#__PURE__*/ createWriteContract({
     abi: dataHavenServiceManagerAbi,
     functionName: 'updateSolochainAddressForValidator',
+  })
+
+/**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"updateVersion"`
+ */
+export const writeDataHavenServiceManagerUpdateVersion =
+  /*#__PURE__*/ createWriteContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: 'updateVersion',
   })
 
 /**
@@ -11250,6 +11356,15 @@ export const simulateDataHavenServiceManagerSetValidatorSetSubmitter =
   })
 
 /**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"setVersionUpdater"`
+ */
+export const simulateDataHavenServiceManagerSetVersionUpdater =
+  /*#__PURE__*/ createSimulateContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: 'setVersionUpdater',
+  })
+
+/**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"slashValidatorsOperator"`
  */
 export const simulateDataHavenServiceManagerSlashValidatorsOperator =
@@ -11292,6 +11407,15 @@ export const simulateDataHavenServiceManagerUpdateSolochainAddressForValidator =
   /*#__PURE__*/ createSimulateContract({
     abi: dataHavenServiceManagerAbi,
     functionName: 'updateSolochainAddressForValidator',
+  })
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"updateVersion"`
+ */
+export const simulateDataHavenServiceManagerUpdateVersion =
+  /*#__PURE__*/ createSimulateContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: 'updateVersion',
   })
 
 /**
@@ -11424,6 +11548,24 @@ export const watchDataHavenServiceManagerValidatorSetSubmitterUpdatedEvent =
   /*#__PURE__*/ createWatchContractEvent({
     abi: dataHavenServiceManagerAbi,
     eventName: 'ValidatorSetSubmitterUpdated',
+  })
+
+/**
+ * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `eventName` set to `"VersionUpdated"`
+ */
+export const watchDataHavenServiceManagerVersionUpdatedEvent =
+  /*#__PURE__*/ createWatchContractEvent({
+    abi: dataHavenServiceManagerAbi,
+    eventName: 'VersionUpdated',
+  })
+
+/**
+ * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `eventName` set to `"VersionUpdaterSet"`
+ */
+export const watchDataHavenServiceManagerVersionUpdaterSetEvent =
+  /*#__PURE__*/ createWatchContractEvent({
+    abi: dataHavenServiceManagerAbi,
+    eventName: 'VersionUpdaterSet',
   })
 
 /**

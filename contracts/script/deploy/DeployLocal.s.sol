@@ -208,7 +208,9 @@ contract DeployLocal is DeployBase {
             params.rewardsInitiator,
             params.validatorsStrategiesAndMultipliers,
             params.gateway,
-            params.validatorSetSubmitter
+            params.validatorSetSubmitter,
+            params.initialVersion,
+            params.versionUpdater
         );
 
         TransparentUpgradeableProxy proxy =
@@ -223,7 +225,8 @@ contract DeployLocal is DeployBase {
         IGatewayV2 gateway,
         DataHavenServiceManager serviceManager,
         DataHavenServiceManager serviceManagerImplementation,
-        address rewardsAgent
+        address rewardsAgent,
+        ProxyAdmin proxyAdmin
     ) internal override {
         Logging.logHeader("DEPLOYMENT SUMMARY");
 
@@ -284,6 +287,7 @@ contract DeployLocal is DeployBase {
             vm.toString(address(serviceManagerImplementation)),
             '",'
         );
+        json = string.concat(json, '"ProxyAdmin": "', vm.toString(address(proxyAdmin)), '",');
         json = string.concat(json, '"RewardsAgent": "', vm.toString(rewardsAgent), '",');
 
         // EigenLayer contracts

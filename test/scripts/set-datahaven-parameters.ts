@@ -38,7 +38,7 @@ export const setDataHavenParameters = async (
         dhApi.tx.Parameters.set_parameter({
           key_value: {
             type: "RuntimeConfig",
-            value: { type: p.name, value: [p.value] }
+            value: { type: p.name as any, value: [p.value] }
           }
         }).decodedCall
     );

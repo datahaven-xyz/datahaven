@@ -48,6 +48,8 @@ struct ServiceManagerInitParams {
     IRewardsCoordinatorTypes.StrategyAndMultiplier[] validatorsStrategiesAndMultipliers;
     address gateway;
     address validatorSetSubmitter;
+    string initialVersion;
+    address versionUpdater;
 }
 
 // Struct to store more detailed strategy information
@@ -149,7 +151,8 @@ abstract contract DeployBase is Script, DeployParams, Accounts {
             gateway,
             serviceManager,
             serviceManagerImplementation,
-            rewardsAgentAddress
+            rewardsAgentAddress,
+            proxyAdmin
         );
 
         _outputRewardsAgentInfo(rewardsAgentAddress, snowbridgeConfig.rewardsMessageOrigin);
@@ -260,13 +263,19 @@ abstract contract DeployBase is Script, DeployParams, Accounts {
             });
         }
 
+        // Read version from environment variable (passed by TypeScript wrapper)
+        string memory version = vm.envOr("DATAHAVEN_VERSION", string("0.1.0"));
+        console.log("|  Version: %s", version);
+
         // Create service manager initialisation parameters struct
         ServiceManagerInitParams memory initParams = ServiceManagerInitParams({
             avsOwner: avsConfig.avsOwner,
             rewardsInitiator: avsConfig.rewardsInitiator,
             validatorsStrategiesAndMultipliers: strategiesAndMultipliers,
             gateway: address(gateway),
-            validatorSetSubmitter: avsConfig.validatorSetSubmitter
+            validatorSetSubmitter: avsConfig.validatorSetSubmitter,
+            initialVersion: version,
+            versionUpdater: _deployer
         });
 
         // Create the service manager proxy (different logic for local vs testnet)
@@ -306,7 +315,8 @@ abstract contract DeployBase is Script, DeployParams, Accounts {
         IGatewayV2 gateway,
         DataHavenServiceManager serviceManager,
         DataHavenServiceManager serviceManagerImplementation,
-        address rewardsAgent
+        address rewardsAgent,
+        ProxyAdmin proxyAdmin
     ) internal virtual;
 
     /**

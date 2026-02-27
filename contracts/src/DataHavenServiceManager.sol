@@ -29,6 +29,7 @@ import {IDataHavenServiceManager} from "./interfaces/IDataHavenServiceManager.so
 /**
  * @title DataHaven ServiceManager contract
  * @notice Manages validators in the DataHaven network and submits rewards to EigenLayer
+ * @dev This contract is upgradeable and integrates with EigenLayer's AllocationManager
  */
 contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHavenServiceManager {
     using SafeERC20 for IERC20;
@@ -75,9 +76,19 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
     /// @inheritdoc IDataHavenServiceManager
     mapping(IStrategy => uint96) public strategiesAndMultipliers;
 
+    /// @notice Semantic version of the deployed DataHaven AVS stack.
+    /// Set during initialization based on deployment chain.
+    /// This should match the `version` field in the corresponding
+    /// `contracts/deployments/<chain>.json`.
+    string private _version;
+
+    /// @notice The address authorized to update the contract version
+    /// Typically set to the deployer account to allow version updates during upgrades
+    address public versionUpdater;
+
     /// @notice Storage gap for upgradeability (must be at end of state variables)
     // solhint-disable-next-line var-name-mixedcase
-    uint256[43] private __GAP;
+    uint256[41] private __GAP;
 
     // ============ Modifiers ============
 
@@ -105,6 +116,12 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         _;
     }
 
+    /// @notice Restricts function to the version updater or owner
+    modifier onlyVersionUpdater() {
+        _checkVersionUpdater();
+        _;
+    }
+
     function _checkRewardsInitiator() internal view {
         require(msg.sender == rewardsInitiator, OnlyRewardsInitiator());
     }
@@ -123,6 +140,12 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
 
     function _checkValidatorSetSubmitter() internal view {
         require(msg.sender == validatorSetSubmitter, OnlyValidatorSetSubmitter());
+    }
+
+    function _checkVersionUpdater() internal view {
+        require(
+            msg.sender == versionUpdater || msg.sender == owner(), "Only version updater or owner"
+        );
     }
 
     // ============ Constructor ============
@@ -145,16 +168,25 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         address _rewardsInitiator,
         IRewardsCoordinatorTypes.StrategyAndMultiplier[] memory validatorsStrategiesAndMultipliers,
         address _snowbridgeGatewayAddress,
-        address _validatorSetSubmitter
+        address _validatorSetSubmitter,
+        string memory initialVersion,
+        address _versionUpdater
     ) public virtual initializer {
         require(initialOwner != address(0), ZeroAddress());
         require(_rewardsInitiator != address(0), ZeroAddress());
         require(_snowbridgeGatewayAddress != address(0), ZeroAddress());
+        require(_versionUpdater != address(0), ZeroAddress());
+        require(bytes(initialVersion).length > 0, "Version cannot be empty");
 
         __Ownable_init();
         _transferOwnership(initialOwner);
         rewardsInitiator = _rewardsInitiator;
         emit RewardsInitiatorSet(address(0), _rewardsInitiator);
+
+        // Set version from parameter (allows flexibility per deployment environment)
+        _version = initialVersion;
+        versionUpdater = _versionUpdater;
+        emit VersionUpdaterSet(address(0), _versionUpdater);
 
         // Register the DataHaven service in the AllocationManager.
         _ALLOCATION_MANAGER.updateAVSMetadataURI(address(this), DATAHAVEN_AVS_METADATA);
@@ -186,6 +218,16 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         }
     }
 
+    // ============ View Functions ============
+
+    /// @notice Returns the semantic version of the deployed DataHaven AVS stack
+    /// @return The version string (e.g., "1.0.0")
+    function DATAHAVEN_VERSION() external view returns (string memory) {
+        return _version;
+    }
+
+    // ============ External Functions ============
+
     /// @inheritdoc IDataHavenServiceManager
     function setValidatorSetSubmitter(
         address newSubmitter
@@ -195,6 +237,8 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         validatorSetSubmitter = newSubmitter;
         emit ValidatorSetSubmitterUpdated(oldSubmitter, newSubmitter);
     }
+
+    // ============ External Functions ============
 
     /// @inheritdoc IDataHavenServiceManager
     function sendNewValidatorSetForEra(
@@ -568,6 +612,32 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         }
 
         emit SlashingComplete();
+    }
+
+    // ============ Version Management ============
+
+    /// @notice Updates the contract version (typically called after upgrades)
+    /// @param newVersion The new version string (e.g., "1.1.0")
+    /// @dev Only callable by the version updater or owner
+    function updateVersion(
+        string memory newVersion
+    ) external onlyVersionUpdater {
+        require(bytes(newVersion).length > 0, "Version cannot be empty");
+        string memory oldVersion = _version;
+        _version = newVersion;
+        emit VersionUpdated(oldVersion, newVersion);
+    }
+
+    /// @notice Sets the address authorized to update the contract version
+    /// @param newVersionUpdater The new version updater address
+    /// @dev Only callable by the owner
+    function setVersionUpdater(
+        address newVersionUpdater
+    ) external onlyOwner {
+        require(newVersionUpdater != address(0), ZeroAddress());
+        address oldVersionUpdater = versionUpdater;
+        versionUpdater = newVersionUpdater;
+        emit VersionUpdaterSet(oldVersionUpdater, newVersionUpdater);
     }
 
     // ============ Internal Functions ============

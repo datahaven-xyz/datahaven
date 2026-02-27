@@ -11,6 +11,7 @@ const ethAddressCustom = z.custom<`0x${string}`>(
   (val) => typeof val === "string" && ethAddressRegex.test(val),
   { message: "Invalid Ethereum address" }
 );
+
 const DeployedStrategySchema = z.object({
   address: ethAddress,
   underlyingToken: ethAddress,
@@ -24,6 +25,7 @@ const DeploymentsSchema = z.object({
   Gateway: ethAddressCustom,
   ServiceManager: ethAddressCustom,
   ServiceManagerImplementation: ethAddressCustom,
+  RewardsAgent: ethAddressCustom,
   DelegationManager: ethAddressCustom,
   StrategyManager: ethAddressCustom,
   AVSDirectory: ethAddressCustom,
@@ -34,6 +36,25 @@ const DeploymentsSchema = z.object({
   PermissionController: ethAddressCustom,
   ETHPOSDeposit: ethAddressCustom.optional(),
   BaseStrategyImplementation: ethAddressCustom.optional(),
+  ProxyAdmin: ethAddressCustom.optional(),
+  // Version tag for this set of deployed contracts (optional for backwards compatibility)
+  version: z.string().optional(),
+  deps: z
+    .object({
+      eigenlayer: z
+        .object({
+          release: z.string().optional(),
+          gitCommit: z.string().optional()
+        })
+        .optional(),
+      snowbridge: z
+        .object({
+          release: z.string().optional(),
+          gitCommit: z.string().optional()
+        })
+        .optional()
+    })
+    .optional(),
   DeployedStrategies: z.array(DeployedStrategySchema).optional()
 });
 

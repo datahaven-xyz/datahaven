@@ -1,3 +1,5 @@
+import { readFileSync, writeFileSync } from "node:fs";
+import path from "node:path";
 import { $ } from "bun";
 import { CHAIN_CONFIGS, loadChainConfig } from "configs/contracts/config";
 import invariant from "tiny-invariant";
@@ -114,6 +116,59 @@ export const executeDeployment = async (
   }
 
   logger.success("Contracts deployed successfully");
+};
+
+/**
+ * Gets the current code version from contracts/VERSION file
+ * This is the single source of truth for the code version
+ */
+export const getCurrentVersion = async (): Promise<string> => {
+  const cwd = process.cwd();
+  const repoRoot = path.basename(cwd) === "test" ? path.join(cwd, "..") : cwd;
+  const versionFile = path.join(repoRoot, "contracts", "VERSION");
+
+  try {
+    const version = readFileSync(versionFile, "utf8").trim();
+    if (!version) {
+      throw new Error("VERSION file is empty");
+    }
+    return version;
+  } catch (error) {
+    throw new Error(`Failed to read contracts/VERSION: ${error}`);
+  }
+};
+
+/**
+ * Updates versions-matrix.json to track deployment
+ * Does NOT bump version - version comes from contracts/VERSION file
+ */
+export const updateDeploymentTracking = async (chain: string | undefined, version: string) => {
+  if (!chain) {
+    return;
+  }
+
+  try {
+    const cwd = process.cwd();
+    const repoRoot = path.basename(cwd) === "test" ? path.join(cwd, "..") : cwd;
+    const matrixFile = path.join(repoRoot, "contracts", "versions-matrix.json");
+
+    const matrixContent = readFileSync(matrixFile, "utf8");
+    const matrix = JSON.parse(matrixContent);
+
+    // Update deployment info
+    if (!matrix.deployments) {
+      matrix.deployments = {};
+    }
+    matrix.deployments[chain] = {
+      version,
+      lastDeployed: new Date().toISOString()
+    };
+
+    writeFileSync(matrixFile, JSON.stringify(matrix, null, 2));
+    logger.info(`📝 Updated versions-matrix.json: ${chain} deployed at version ${version}`);
+  } catch (error) {
+    logger.warn(`⚠️ Could not update versions-matrix.json: ${error}`);
+  }
 };
 
 /**

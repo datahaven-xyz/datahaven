@@ -46,6 +46,8 @@ export const updateValidatorSet = async (options: UpdateValidatorSetOptions): Pr
   const serviceManagerAddress = deployments.ServiceManager;
   invariant(serviceManagerAddress, "ServiceManager address not found in deployments");
 
+  // Security Note: Private key is passed via stdin with --interactive flag
+  // using printf to avoid command-line exposure in process lists (security best practice)
   // Using cast to send the transaction
   const executionFee = "100000000000000000"; // 0.1 ETH
   const relayerFee = "200000000000000000"; // 0.2 ETH
@@ -62,7 +64,10 @@ export const updateValidatorSet = async (options: UpdateValidatorSetOptions): Pr
 
   logger.debug(`Running command: ${sendCommand}`);
 
-  const { exitCode, stderr } = await $`sh -c ${sendCommand}`.nothrow().quiet();
+  const { exitCode, stderr } = await $`sh -c ${sendCommand}`
+    .env({ ...process.env, PRIVATE_KEY: ownerPrivateKey })
+    .nothrow()
+    .quiet();
 
   if (exitCode !== 0) {
     logger.error(`Failed to send validator set: ${stderr.toString()}`);

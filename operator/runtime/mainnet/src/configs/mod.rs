@@ -1568,6 +1568,7 @@ impl pallet_external_validators_rewards::Config for Runtime {
     type RewardsEthereumSovereignAccount = ExternalValidatorRewardsAccount;
     type SendMessage = RewardsSendAdapter;
     type HandleInflation = ExternalRewardsInflationHandler;
+    type GovernanceOrigin = EnsureRoot<AccountId>;
     type WeightInfo = mainnet_weights::pallet_external_validators_rewards::WeightInfo<Runtime>;
     #[cfg(feature = "runtime-benchmarks")]
     type BenchmarkHelper = ();

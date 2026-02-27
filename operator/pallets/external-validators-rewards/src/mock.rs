@@ -131,6 +131,9 @@ impl crate::types::SendMessage for MockOkOutboundQueue {
     }
 
     fn validate(ticket: Self::Ticket) -> Result<Self::Ticket, SendError> {
+        if Mock::mock().send_message_fails {
+            return Err(SendError::MessageTooLarge);
+        }
         Ok(ticket)
     }
 
@@ -223,6 +226,7 @@ impl pallet_external_validators_rewards::Config for Test {
     type HandleInflation = InflationMinter;
     type Currency = Balances;
     type RewardsEthereumSovereignAccount = RewardsEthereumSovereignAccount;
+    type GovernanceOrigin = frame_system::EnsureRoot<H160>;
     type WeightInfo = ();
     #[cfg(feature = "runtime-benchmarks")]
     type BenchmarkHelper = ();
@@ -286,6 +290,8 @@ pub mod mock_data {
         pub offline_validators: sp_std::vec::Vec<sp_core::H160>,
         /// Set of (era_index, validator_id) pairs that are slashed
         pub slashed_validators: sp_std::vec::Vec<(u32, sp_core::H160)>,
+        /// When true, MockOkOutboundQueue::validate will return Err(SendError::MessageTooLarge)
+        pub send_message_fails: bool,
     }
 
     #[pallet::config]

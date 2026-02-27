@@ -26,6 +26,8 @@ contract SlashingTest is AVSDeployer {
     }
 
     function test_fulfilSlashingRequest() public {
+        address solochainOperator = address(0xBEEF);
+
         // Allow our operator to register
         vm.prank(avsOwner);
         serviceManager.addValidatorToAllowlist(operator);
@@ -43,7 +45,7 @@ contract SlashingTest is AVSDeployer {
             IAllocationManagerTypes.RegisterParams({
                 avs: address(serviceManager),
                 operatorSetIds: operatorSetIds,
-                data: abi.encodePacked(address(operator))
+                data: abi.encodePacked(solochainOperator)
             });
 
         vm.prank(operator);
@@ -61,7 +63,7 @@ contract SlashingTest is AVSDeployer {
         IStrategy[] memory strategies = allocationManager.getStrategiesInOperatorSet(operatorSet);
 
         slashings[0] = IDataHavenServiceManager.SlashingRequest(
-            operator, strategies, wadsToSlash, "Testing slashing"
+            solochainOperator, strategies, wadsToSlash, "Testing slashing"
         );
 
         console.log(block.number);
@@ -83,6 +85,8 @@ contract SlashingTest is AVSDeployer {
     }
 
     function test_fulfilSlashingRequestForOnlyOneStrategy() public {
+        address solochainOperator = address(0xBEEF);
+
         // Allow our operator to register
         vm.prank(avsOwner);
         serviceManager.addValidatorToAllowlist(operator);
@@ -100,7 +104,7 @@ contract SlashingTest is AVSDeployer {
             IAllocationManagerTypes.RegisterParams({
                 avs: address(serviceManager),
                 operatorSetIds: operatorSetIds,
-                data: abi.encodePacked(address(operator))
+                data: abi.encodePacked(solochainOperator)
             });
 
         vm.prank(operator);
@@ -119,7 +123,7 @@ contract SlashingTest is AVSDeployer {
         strategiesToSlash[0] = strategies[0];
 
         slashings[0] = IDataHavenServiceManager.SlashingRequest(
-            operator, strategiesToSlash, wadsToSlash, "Testing slashing"
+            solochainOperator, strategiesToSlash, wadsToSlash, "Testing slashing"
         );
 
         console.log(block.number);
@@ -137,6 +141,26 @@ contract SlashingTest is AVSDeployer {
         );
         vm.expectEmit();
         emit IDataHavenServiceManagerEvents.SlashingComplete();
+        serviceManager.slashValidatorsOperator(slashings);
+    }
+
+    function test_fulfilSlashingRequest_revertsIfUnknownSolochainAddress() public {
+        // Configure the rewards initiator (because only the reward agent can submit slashing request)
+        vm.prank(avsOwner);
+        serviceManager.setRewardsInitiator(snowbridgeAgent);
+
+        address unknownSolochainOperator = address(0xDEAD);
+        DataHavenServiceManager.SlashingRequest[] memory slashings =
+            new DataHavenServiceManager.SlashingRequest[](1);
+        slashings[0] = IDataHavenServiceManager.SlashingRequest(
+            unknownSolochainOperator,
+            new IStrategy[](0),
+            new uint256[](0),
+            "Testing unknown solochain operator"
+        );
+
+        vm.prank(snowbridgeAgent);
+        vm.expectRevert(abi.encodeWithSignature("UnknownSolochainAddress()"));
         serviceManager.slashValidatorsOperator(slashings);
     }
 }

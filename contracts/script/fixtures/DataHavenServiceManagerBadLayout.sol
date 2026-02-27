@@ -16,9 +16,10 @@ contract DataHavenServiceManagerBadLayout is OwnableUpgradeable {
     mapping(address => bool) public validatorsAllowlist;
     IGatewayV2 private _snowbridgeGateway;
     mapping(address => address) public validatorEthAddressToSolochainAddress;
+    mapping(address => address) public validatorSolochainAddressToEthAddress;
 
     // Keep the original gap size to mirror shape, despite the shift
-    uint256[46] private __GAP;
+    uint256[45] private __GAP;
 
     // Keep a compatible constructor signature for upgrade tests.
     constructor(

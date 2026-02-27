@@ -32,6 +32,10 @@ import {
 } from "eigenlayer-contracts/src/contracts/permissions/PermissionController.sol";
 import {EigenPodManager} from "eigenlayer-contracts/src/contracts/pods/EigenPodManager.sol";
 import {IETHPOSDeposit} from "eigenlayer-contracts/src/contracts/interfaces/IETHPOSDeposit.sol";
+import {IStrategy} from "eigenlayer-contracts/src/contracts/interfaces/IStrategy.sol";
+import {
+    IRewardsCoordinatorTypes
+} from "eigenlayer-contracts/src/contracts/interfaces/IRewardsCoordinator.sol";
 
 // DataHaven imports
 import {DataHavenServiceManager} from "../../src/DataHavenServiceManager.sol";
@@ -41,8 +45,9 @@ import {ValidatorsUtils} from "../../script/utils/ValidatorsUtils.sol";
 struct ServiceManagerInitParams {
     address avsOwner;
     address rewardsInitiator;
-    address[] validatorsStrategies;
+    IRewardsCoordinatorTypes.StrategyAndMultiplier[] validatorsStrategiesAndMultipliers;
     address gateway;
+    address validatorSetSubmitter;
 }
 
 // Struct to store more detailed strategy information
@@ -246,12 +251,23 @@ abstract contract DeployBase is Script, DeployParams, Accounts {
             "ServiceManager Implementation", address(serviceManagerImplementation)
         );
 
+        // Build StrategyAndMultiplier[] from config addresses with default multiplier of 1.
+        // Multipliers can be updated post-deployment via setStrategiesAndMultipliers if needed.
+        IRewardsCoordinatorTypes.StrategyAndMultiplier[] memory strategiesAndMultipliers = new IRewardsCoordinatorTypes
+            .StrategyAndMultiplier[](avsConfig.validatorsStrategies.length);
+        for (uint256 i = 0; i < avsConfig.validatorsStrategies.length; i++) {
+            strategiesAndMultipliers[i] = IRewardsCoordinatorTypes.StrategyAndMultiplier({
+                strategy: IStrategy(avsConfig.validatorsStrategies[i]), multiplier: 1
+            });
+        }
+
         // Create service manager initialisation parameters struct
         ServiceManagerInitParams memory initParams = ServiceManagerInitParams({
             avsOwner: avsConfig.avsOwner,
             rewardsInitiator: agentAddress,
-            validatorsStrategies: avsConfig.validatorsStrategies,
-            gateway: address(gateway)
+            validatorsStrategiesAndMultipliers: strategiesAndMultipliers,
+            gateway: address(gateway),
+            validatorSetSubmitter: avsConfig.validatorSetSubmitter
         });
 
         // Create the service manager proxy (different logic for local vs testnet)

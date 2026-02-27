@@ -439,7 +439,7 @@ pub async fn new_full_impl<
     RuntimeApi,
     N: sc_network::NetworkBackend<Block, <Block as sp_runtime::traits::Block>::Hash>,
 >(
-    config: Configuration,
+    mut config: Configuration,
     mut eth_config: EthConfiguration,
     role_options: Option<RoleOptions>,
     indexer_options: Option<IndexerOptions>,
@@ -673,7 +673,7 @@ where
             },
             storage_override,
             sync: sync_service.clone(),
-            pubsub_notification_sinks,
+            pubsub_notification_sinks: pubsub_notification_sinks.clone(),
         },
     )
     .await;
@@ -693,37 +693,51 @@ where
         let fee_history_limit = eth_config.fee_history_limit;
         let sync = sync_service.clone();
 
-        Box::new(move |subscription_executor| {
-            let deps = crate::rpc::FullDeps {
-                client: client.clone(),
-                pool: pool.clone(),
-                graph: pool.pool().clone(),
-                beefy: BeefyDeps::<BeefyId> {
-                    beefy_finality_proof_stream: beefy_rpc_links.from_voter_justif_stream.clone(),
-                    beefy_best_block_stream: beefy_rpc_links.from_voter_best_beefy_stream.clone(),
+        Box::new(
+            move |subscription_executor: sc_rpc::SubscriptionTaskExecutor| {
+                let deps = crate::rpc::FullDeps {
+                    client: client.clone(),
+                    pool: pool.clone(),
+                    graph: pool.pool().clone(),
+                    beefy: BeefyDeps::<BeefyId> {
+                        beefy_finality_proof_stream: beefy_rpc_links
+                            .from_voter_justif_stream
+                            .clone(),
+                        beefy_best_block_stream: beefy_rpc_links
+                            .from_voter_best_beefy_stream
+                            .clone(),
+                        subscription_executor: subscription_executor.clone(),
+                    },
+                    max_past_logs,
+                    fee_history_limit,
+                    fee_history_cache: fee_history_cache.clone(),
+                    network: Arc::new(network.clone()),
+                    sync: sync.clone(),
+                    filter_pool: filter_pool.clone(),
+                    block_data_cache: block_data_cache.clone(),
+                    overrides: overrides.clone(),
+                    is_authority: is_authority.clone(),
+                    command_sink: command_sink.clone(),
+                    backend: backend.clone(),
+                    frontier_backend: match &*frontier_backend {
+                        fc_db::Backend::KeyValue(b) => b.clone(),
+                        fc_db::Backend::Sql(b) => b.clone(),
+                    },
+                    forced_parent_hashes: None,
+                    maybe_storage_hub_client_config: maybe_storage_hub_client_rpc_config.clone(),
+                };
+                crate::rpc::create_full(
+                    deps,
                     subscription_executor,
-                },
-                max_past_logs,
-                fee_history_limit,
-                fee_history_cache: fee_history_cache.clone(),
-                network: Arc::new(network.clone()),
-                sync: sync.clone(),
-                filter_pool: filter_pool.clone(),
-                block_data_cache: block_data_cache.clone(),
-                overrides: overrides.clone(),
-                is_authority: is_authority.clone(),
-                command_sink: command_sink.clone(),
-                backend: backend.clone(),
-                frontier_backend: match &*frontier_backend {
-                    fc_db::Backend::KeyValue(b) => b.clone(),
-                    fc_db::Backend::Sql(b) => b.clone(),
-                },
-                forced_parent_hashes: None,
-                maybe_storage_hub_client_config: maybe_storage_hub_client_rpc_config.clone(),
-            };
-            crate::rpc::create_full(deps).map_err(Into::into)
-        })
+                    pubsub_notification_sinks.clone(),
+                )
+                .map_err(Into::into)
+            },
+        )
     };
+
+    // Use Ethereum-style hex subscription IDs (0x-prefixed) instead of jsonrpsee defaults.
+    config.rpc.id_provider = Some(Box::new(fc_rpc::EthereumSubIdProvider));
 
     let rpc_handlers = sc_service::spawn_tasks(sc_service::SpawnTasksParams {
         network: Arc::new(network.clone()),
@@ -1178,18 +1192,9 @@ where
     let task_spawner = TaskSpawner::new(task_manager.spawn_handle(), task_spawner_name);
     let mut builder = StorageHubBuilder::<R, S, Runtime>::new(task_spawner, prometheus_registry);
 
-    // Setup file transfer service (common to all roles)
     let (file_transfer_request_protocol_name, file_transfer_request_receiver) =
         file_transfer_request_protocol
             .expect("FileTransfer request protocol should already be initialised.");
-
-    builder
-        .with_file_transfer(
-            file_transfer_request_receiver,
-            file_transfer_request_protocol_name,
-            network.clone(),
-        )
-        .await;
 
     // Role-specific configuration
     let rpc_config = match role_options {
@@ -1212,8 +1217,27 @@ where
             trusted_file_transfer_server,
             trusted_file_transfer_server_host,
             trusted_file_transfer_server_port,
+            trusted_file_transfer_batch_size_bytes,
+            trusted_msps,
             ..
         }) => {
+            // Only BSP nodes can have trusted MSPs
+            let trusted_msps = if *provider_type == ProviderType::Bsp {
+                trusted_msps.clone()
+            } else {
+                Vec::new()
+            };
+
+            // Setup file transfer service with trusted MSPs config
+            builder
+                .with_file_transfer(
+                    client.clone(),
+                    trusted_msps.clone(),
+                    file_transfer_request_receiver,
+                    file_transfer_request_protocol_name,
+                    network.clone(),
+                )
+                .await;
             info!(
                 "Starting as a Storage Provider. Storage path: {:?}, Max storage capacity: {:?}, Jump capacity: {:?}, MSP charging period: {:?}",
                 storage_path, max_storage_capacity, jump_capacity, msp_charging_period,
@@ -1248,11 +1272,17 @@ where
             }
 
             if *trusted_file_transfer_server {
+                let batch_target_bytes = trusted_file_transfer_batch_size_bytes
+                    .and_then(|size| usize::try_from(size).ok())
+                    .unwrap_or(
+                        shc_client::trusted_file_transfer::server::DEFAULT_BATCH_TARGET_BYTES,
+                    );
                 let file_transfer_config = shc_client::trusted_file_transfer::server::Config {
                     host: trusted_file_transfer_server_host
                         .clone()
                         .unwrap_or_else(|| "127.0.0.1".to_string()),
                     port: trusted_file_transfer_server_port.unwrap_or(7070),
+                    batch_target_bytes,
                 };
                 builder.with_trusted_file_transfer_server(file_transfer_config);
             }
@@ -1267,6 +1297,17 @@ where
             rpc_config.clone()
         }
         RoleOptions::Fisherman(fisherman_options) => {
+            // Setup file transfer service (no trusted MSPs for fisherman)
+            builder
+                .with_file_transfer(
+                    client.clone(),
+                    vec![],
+                    file_transfer_request_receiver,
+                    file_transfer_request_protocol_name,
+                    network.clone(),
+                )
+                .await;
+
             // Validate configuration compatibility with indexer
             if let Some(indexer_cfg) = indexer_options {
                 if indexer_cfg.indexer_mode == shc_indexer_service::IndexerMode::Lite {
@@ -1290,6 +1331,11 @@ where
 
             // Set the indexer db pool
             builder.with_indexer_db_pool(Some(db_pool));
+
+            // Configure blockchain service options for the fisherman
+            if let Some(c) = fisherman_options.blockchain_service.clone() {
+                builder.with_blockchain_service_config(c);
+            }
 
             // Spawn the fisherman service
             builder

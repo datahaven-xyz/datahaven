@@ -24,8 +24,7 @@ export const showDeploymentPlanAndStatus = async (chain: string, environment?: s
       "Block Explorer": deploymentParams.blockExplorer,
       "Genesis Time": new Date(deploymentParams.genesisTime * 1000).toISOString(),
       "AVS Owner": `${config.avs.avsOwner.slice(0, 10)}...${config.avs.avsOwner.slice(-8)}`,
-      "Rewards Initiator": `${config.avs.rewardsInitiator.slice(0, 10)}...${config.avs.rewardsInitiator.slice(-8)}`,
-      "Veto Committee Member": `${config.avs.vetoCommitteeMember.slice(0, 10)}...${config.avs.vetoCommitteeMember.slice(-8)}`
+      "Rewards Initiator": `${config.avs.rewardsInitiator.slice(0, 10)}...${config.avs.rewardsInitiator.slice(-8)}`
     };
 
     if (environment) {

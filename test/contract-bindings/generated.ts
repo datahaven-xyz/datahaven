@@ -2050,6 +2050,13 @@ export const dataHavenServiceManagerAbi = [
   {
     type: 'function',
     inputs: [],
+    name: 'MAX_ACTIVE_VALIDATORS',
+    outputs: [{ name: '', internalType: 'uint32', type: 'uint32' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
     name: 'VALIDATORS_SET_ID',
     outputs: [{ name: '', internalType: 'uint32', type: 'uint32' }],
     stateMutability: 'view',
@@ -2058,9 +2065,17 @@ export const dataHavenServiceManagerAbi = [
     type: 'function',
     inputs: [
       {
-        name: '_strategies',
-        internalType: 'contract IStrategy[]',
-        type: 'address[]',
+        name: '_strategyMultipliers',
+        internalType: 'struct IRewardsCoordinatorTypes.StrategyAndMultiplier[]',
+        type: 'tuple[]',
+        components: [
+          {
+            name: 'strategy',
+            internalType: 'contract IStrategy',
+            type: 'address',
+          },
+          { name: 'multiplier', internalType: 'uint96', type: 'uint96' },
+        ],
       },
     ],
     name: 'addStrategiesToValidatorsSupportedStrategies',
@@ -2076,8 +2091,8 @@ export const dataHavenServiceManagerAbi = [
   },
   {
     type: 'function',
-    inputs: [],
-    name: 'buildNewValidatorSetMessage',
+    inputs: [{ name: 'targetEra', internalType: 'uint64', type: 'uint64' }],
+    name: 'buildNewValidatorSetMessageForEra',
     outputs: [{ name: '', internalType: 'bytes', type: 'bytes' }],
     stateMutability: 'view',
   },
@@ -2104,16 +2119,50 @@ export const dataHavenServiceManagerAbi = [
   },
   {
     type: 'function',
+    inputs: [],
+    name: 'getStrategiesAndMultipliers',
+    outputs: [
+      {
+        name: '',
+        internalType: 'struct IRewardsCoordinatorTypes.StrategyAndMultiplier[]',
+        type: 'tuple[]',
+        components: [
+          {
+            name: 'strategy',
+            internalType: 'contract IStrategy',
+            type: 'address',
+          },
+          { name: 'multiplier', internalType: 'uint96', type: 'uint96' },
+        ],
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
     inputs: [
       { name: 'initialOwner', internalType: 'address', type: 'address' },
       { name: '_rewardsInitiator', internalType: 'address', type: 'address' },
       {
-        name: 'validatorsStrategies',
-        internalType: 'contract IStrategy[]',
-        type: 'address[]',
+        name: 'validatorsStrategiesAndMultipliers',
+        internalType: 'struct IRewardsCoordinatorTypes.StrategyAndMultiplier[]',
+        type: 'tuple[]',
+        components: [
+          {
+            name: 'strategy',
+            internalType: 'contract IStrategy',
+            type: 'address',
+          },
+          { name: 'multiplier', internalType: 'uint96', type: 'uint96' },
+        ],
       },
       {
         name: '_snowbridgeGatewayAddress',
+        internalType: 'address',
+        type: 'address',
+      },
+      {
+        name: '_validatorSetSubmitter',
         internalType: 'address',
         type: 'address',
       },
@@ -2178,10 +2227,11 @@ export const dataHavenServiceManagerAbi = [
   {
     type: 'function',
     inputs: [
+      { name: 'targetEra', internalType: 'uint64', type: 'uint64' },
       { name: 'executionFee', internalType: 'uint128', type: 'uint128' },
       { name: 'relayerFee', internalType: 'uint128', type: 'uint128' },
     ],
-    name: 'sendNewValidatorSet',
+    name: 'sendNewValidatorSetForEra',
     outputs: [],
     stateMutability: 'payable',
   },
@@ -2204,6 +2254,36 @@ export const dataHavenServiceManagerAbi = [
       },
     ],
     name: 'setSnowbridgeGateway',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      {
+        name: '_strategyMultipliers',
+        internalType: 'struct IRewardsCoordinatorTypes.StrategyAndMultiplier[]',
+        type: 'tuple[]',
+        components: [
+          {
+            name: 'strategy',
+            internalType: 'contract IStrategy',
+            type: 'address',
+          },
+          { name: 'multiplier', internalType: 'uint96', type: 'uint96' },
+        ],
+      },
+    ],
+    name: 'setStrategiesAndMultipliers',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'newSubmitter', internalType: 'address', type: 'address' },
+    ],
+    name: 'setValidatorSetSubmitter',
     outputs: [],
     stateMutability: 'nonpayable',
   },
@@ -2235,6 +2315,13 @@ export const dataHavenServiceManagerAbi = [
     inputs: [],
     name: 'snowbridgeGateway',
     outputs: [{ name: '', internalType: 'address', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: '', internalType: 'contract IStrategy', type: 'address' }],
+    name: 'strategiesAndMultipliers',
+    outputs: [{ name: '', internalType: 'uint96', type: 'uint96' }],
     stateMutability: 'view',
   },
   {
@@ -2314,6 +2401,20 @@ export const dataHavenServiceManagerAbi = [
     type: 'function',
     inputs: [{ name: '', internalType: 'address', type: 'address' }],
     name: 'validatorEthAddressToSolochainAddress',
+    outputs: [{ name: '', internalType: 'address', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'validatorSetSubmitter',
+    outputs: [{ name: '', internalType: 'address', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: '', internalType: 'address', type: 'address' }],
+    name: 'validatorSolochainAddressToEthAddress',
     outputs: [{ name: '', internalType: 'address', type: 'address' }],
     stateMutability: 'view',
   },
@@ -2474,6 +2575,27 @@ export const dataHavenServiceManagerAbi = [
     anonymous: false,
     inputs: [
       {
+        name: 'strategyMultipliers',
+        internalType: 'struct IRewardsCoordinatorTypes.StrategyAndMultiplier[]',
+        type: 'tuple[]',
+        components: [
+          {
+            name: 'strategy',
+            internalType: 'contract IStrategy',
+            type: 'address',
+          },
+          { name: 'multiplier', internalType: 'uint96', type: 'uint96' },
+        ],
+        indexed: false,
+      },
+    ],
+    name: 'StrategiesAndMultipliersSet',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
         name: 'validator',
         internalType: 'address',
         type: 'address',
@@ -2495,15 +2617,64 @@ export const dataHavenServiceManagerAbi = [
     ],
     name: 'ValidatorRemovedFromAllowlist',
   },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'targetEra',
+        internalType: 'uint64',
+        type: 'uint64',
+        indexed: true,
+      },
+      {
+        name: 'payloadHash',
+        internalType: 'bytes32',
+        type: 'bytes32',
+        indexed: false,
+      },
+      {
+        name: 'submitter',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+    ],
+    name: 'ValidatorSetMessageSubmitted',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'oldSubmitter',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'newSubmitter',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+    ],
+    name: 'ValidatorSetSubmitterUpdated',
+  },
   { type: 'error', inputs: [], name: 'CallerIsNotValidator' },
   { type: 'error', inputs: [], name: 'CantDeregisterFromMultipleOperatorSets' },
   { type: 'error', inputs: [], name: 'CantRegisterToMultipleOperatorSets' },
+  { type: 'error', inputs: [], name: 'EmptyValidatorSet' },
   { type: 'error', inputs: [], name: 'IncorrectAVSAddress' },
   { type: 'error', inputs: [], name: 'InvalidOperatorSetId' },
   { type: 'error', inputs: [], name: 'InvalidSolochainAddressLength' },
   { type: 'error', inputs: [], name: 'OnlyAllocationManager' },
   { type: 'error', inputs: [], name: 'OnlyRewardsInitiator' },
+  { type: 'error', inputs: [], name: 'OnlyValidatorSetSubmitter' },
   { type: 'error', inputs: [], name: 'OperatorNotInAllowlist' },
+  { type: 'error', inputs: [], name: 'SolochainAddressAlreadyAssigned' },
+  { type: 'error', inputs: [], name: 'StrategyNotInOperatorSet' },
+  { type: 'error', inputs: [], name: 'UnknownSolochainAddress' },
   { type: 'error', inputs: [], name: 'ZeroAddress' },
 ] as const
 
@@ -10643,6 +10814,15 @@ export const readDataHavenServiceManagerDatahavenAvsMetadata =
   })
 
 /**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"MAX_ACTIVE_VALIDATORS"`
+ */
+export const readDataHavenServiceManagerMaxActiveValidators =
+  /*#__PURE__*/ createReadContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: 'MAX_ACTIVE_VALIDATORS',
+  })
+
+/**
  * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"VALIDATORS_SET_ID"`
  */
 export const readDataHavenServiceManagerValidatorsSetId =
@@ -10652,12 +10832,21 @@ export const readDataHavenServiceManagerValidatorsSetId =
   })
 
 /**
- * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"buildNewValidatorSetMessage"`
+ * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"buildNewValidatorSetMessageForEra"`
  */
-export const readDataHavenServiceManagerBuildNewValidatorSetMessage =
+export const readDataHavenServiceManagerBuildNewValidatorSetMessageForEra =
   /*#__PURE__*/ createReadContract({
     abi: dataHavenServiceManagerAbi,
-    functionName: 'buildNewValidatorSetMessage',
+    functionName: 'buildNewValidatorSetMessageForEra',
+  })
+
+/**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"getStrategiesAndMultipliers"`
+ */
+export const readDataHavenServiceManagerGetStrategiesAndMultipliers =
+  /*#__PURE__*/ createReadContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: 'getStrategiesAndMultipliers',
   })
 
 /**
@@ -10688,6 +10877,15 @@ export const readDataHavenServiceManagerSnowbridgeGateway =
   })
 
 /**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"strategiesAndMultipliers"`
+ */
+export const readDataHavenServiceManagerStrategiesAndMultipliers =
+  /*#__PURE__*/ createReadContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: 'strategiesAndMultipliers',
+  })
+
+/**
  * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"supportsAVS"`
  */
 export const readDataHavenServiceManagerSupportsAvs =
@@ -10703,6 +10901,24 @@ export const readDataHavenServiceManagerValidatorEthAddressToSolochainAddress =
   /*#__PURE__*/ createReadContract({
     abi: dataHavenServiceManagerAbi,
     functionName: 'validatorEthAddressToSolochainAddress',
+  })
+
+/**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"validatorSetSubmitter"`
+ */
+export const readDataHavenServiceManagerValidatorSetSubmitter =
+  /*#__PURE__*/ createReadContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: 'validatorSetSubmitter',
+  })
+
+/**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"validatorSolochainAddressToEthAddress"`
+ */
+export const readDataHavenServiceManagerValidatorSolochainAddressToEthAddress =
+  /*#__PURE__*/ createReadContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: 'validatorSolochainAddressToEthAddress',
   })
 
 /**
@@ -10812,12 +11028,12 @@ export const writeDataHavenServiceManagerRenounceOwnership =
   })
 
 /**
- * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"sendNewValidatorSet"`
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"sendNewValidatorSetForEra"`
  */
-export const writeDataHavenServiceManagerSendNewValidatorSet =
+export const writeDataHavenServiceManagerSendNewValidatorSetForEra =
   /*#__PURE__*/ createWriteContract({
     abi: dataHavenServiceManagerAbi,
-    functionName: 'sendNewValidatorSet',
+    functionName: 'sendNewValidatorSetForEra',
   })
 
 /**
@@ -10836,6 +11052,24 @@ export const writeDataHavenServiceManagerSetSnowbridgeGateway =
   /*#__PURE__*/ createWriteContract({
     abi: dataHavenServiceManagerAbi,
     functionName: 'setSnowbridgeGateway',
+  })
+
+/**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"setStrategiesAndMultipliers"`
+ */
+export const writeDataHavenServiceManagerSetStrategiesAndMultipliers =
+  /*#__PURE__*/ createWriteContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: 'setStrategiesAndMultipliers',
+  })
+
+/**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"setValidatorSetSubmitter"`
+ */
+export const writeDataHavenServiceManagerSetValidatorSetSubmitter =
+  /*#__PURE__*/ createWriteContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: 'setValidatorSetSubmitter',
   })
 
 /**
@@ -10971,12 +11205,12 @@ export const simulateDataHavenServiceManagerRenounceOwnership =
   })
 
 /**
- * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"sendNewValidatorSet"`
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"sendNewValidatorSetForEra"`
  */
-export const simulateDataHavenServiceManagerSendNewValidatorSet =
+export const simulateDataHavenServiceManagerSendNewValidatorSetForEra =
   /*#__PURE__*/ createSimulateContract({
     abi: dataHavenServiceManagerAbi,
-    functionName: 'sendNewValidatorSet',
+    functionName: 'sendNewValidatorSetForEra',
   })
 
 /**
@@ -10995,6 +11229,24 @@ export const simulateDataHavenServiceManagerSetSnowbridgeGateway =
   /*#__PURE__*/ createSimulateContract({
     abi: dataHavenServiceManagerAbi,
     functionName: 'setSnowbridgeGateway',
+  })
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"setStrategiesAndMultipliers"`
+ */
+export const simulateDataHavenServiceManagerSetStrategiesAndMultipliers =
+  /*#__PURE__*/ createSimulateContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: 'setStrategiesAndMultipliers',
+  })
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"setValidatorSetSubmitter"`
+ */
+export const simulateDataHavenServiceManagerSetValidatorSetSubmitter =
+  /*#__PURE__*/ createSimulateContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: 'setValidatorSetSubmitter',
   })
 
 /**
@@ -11130,6 +11382,15 @@ export const watchDataHavenServiceManagerSolochainAddressUpdatedEvent =
   })
 
 /**
+ * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `eventName` set to `"StrategiesAndMultipliersSet"`
+ */
+export const watchDataHavenServiceManagerStrategiesAndMultipliersSetEvent =
+  /*#__PURE__*/ createWatchContractEvent({
+    abi: dataHavenServiceManagerAbi,
+    eventName: 'StrategiesAndMultipliersSet',
+  })
+
+/**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `eventName` set to `"ValidatorAddedToAllowlist"`
  */
 export const watchDataHavenServiceManagerValidatorAddedToAllowlistEvent =
@@ -11145,6 +11406,24 @@ export const watchDataHavenServiceManagerValidatorRemovedFromAllowlistEvent =
   /*#__PURE__*/ createWatchContractEvent({
     abi: dataHavenServiceManagerAbi,
     eventName: 'ValidatorRemovedFromAllowlist',
+  })
+
+/**
+ * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `eventName` set to `"ValidatorSetMessageSubmitted"`
+ */
+export const watchDataHavenServiceManagerValidatorSetMessageSubmittedEvent =
+  /*#__PURE__*/ createWatchContractEvent({
+    abi: dataHavenServiceManagerAbi,
+    eventName: 'ValidatorSetMessageSubmitted',
+  })
+
+/**
+ * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `eventName` set to `"ValidatorSetSubmitterUpdated"`
+ */
+export const watchDataHavenServiceManagerValidatorSetSubmitterUpdatedEvent =
+  /*#__PURE__*/ createWatchContractEvent({
+    abi: dataHavenServiceManagerAbi,
+    eventName: 'ValidatorSetSubmitterUpdated',
   })
 
 /**

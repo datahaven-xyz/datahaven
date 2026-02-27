@@ -24,10 +24,13 @@
 use crate::consensus::BabeConsensusDataProvider;
 use crate::eth::DefaultEthConfig;
 use datahaven_runtime_common::{time::SLOT_DURATION, Block, BlockNumber, Hash};
-use fc_rpc::TxPool;
 use fc_rpc::{Eth, EthBlockDataCacheTask, EthFilter, Net, Web3};
+use fc_rpc::{EthPubSub, TxPool};
 use fc_rpc_core::types::{FeeHistoryCache, FilterPool};
-use fc_rpc_core::{EthApiServer, EthFilterApiServer, NetApiServer, TxPoolApiServer, Web3ApiServer};
+use fc_rpc_core::{
+    EthApiServer, EthFilterApiServer, EthPubSubApiServer, NetApiServer, TxPoolApiServer,
+    Web3ApiServer,
+};
 use fc_storage::StorageOverride;
 use fp_rpc::EthereumRuntimeRPCApi;
 use jsonrpsee::RpcModule;
@@ -111,6 +114,12 @@ where
 /// Instantiate all full RPC extensions.
 pub fn create_full<P, BE, AuthorityId, A, FL, FSH, Runtime>(
     deps: FullDeps<P, BE, AuthorityId, A, FL, FSH, Runtime>,
+    subscription_task_executor: sc_rpc::SubscriptionTaskExecutor,
+    pubsub_notification_sinks: Arc<
+        fc_mapping_sync::EthereumBlockNotificationSinks<
+            fc_mapping_sync::EthereumBlockNotification<Block>,
+        >,
+    >,
 ) -> Result<RpcModule<()>, Box<dyn std::error::Error + Send + Sync>>
 where
     P: TransactionPool<Block = Block> + 'static,
@@ -263,6 +272,17 @@ where
     )?;
 
     module.merge(Web3::new(Arc::clone(&client)).into_rpc())?;
+    module.merge(
+        EthPubSub::new(
+            pool,
+            Arc::clone(&client),
+            sync.clone(),
+            subscription_task_executor,
+            overrides,
+            pubsub_notification_sinks.clone(),
+        )
+        .into_rpc(),
+    )?;
 
     if let Some(command_sink) = command_sink {
         module.merge(
@@ -274,20 +294,6 @@ where
 
     let tx_pool = TxPool::new(client.clone(), graph.clone());
     module.merge(tx_pool.into_rpc())?;
-
-    // module.merge(FrontierFinality::new(client.clone(), frontier_backend.clone()).into_rpc())?;
-
-    // Extend this RPC with a custom API by using the following syntax.
-    // `YourRpcStruct` should have a reference to a client, which is needed
-    // to call into the runtime.
-    // `module.merge(YourRpcTrait::into_rpc(YourRpcStruct::new(ReferenceToClient, ...)))?;`
-
-    // You probably want to enable the `rpc v2 chainSpec` API as well
-    //
-    // let chain_name = chain_spec.name().to_string();
-    // let genesis_hash = client.block_hash(0).ok().flatten().expect("Genesis block exists; qed");
-    // let properties = chain_spec.properties();
-    // module.merge(ChainSpec::new(chain_name, genesis_hash, properties).into_rpc())?;
 
     Ok(module)
 }

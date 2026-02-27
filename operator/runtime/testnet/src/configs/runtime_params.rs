@@ -133,9 +133,9 @@ pub mod dynamic_params {
         ///
         /// [`MaxPrice`] = [`MostlyStablePrice`] + u * e ^ ( 1 - [`SystemUtilisationUpperThresholdPercentage`] )
         ///
-        /// 500 = 50 + u * (e ^ (1 - 0.95) - 1)
-        /// u = (500 - 50) / (e ^ (1 - 0.95) - 1) ≈ 8777
-        pub static UpperExponentFactor: u32 = 8777;
+        /// 500 GIGAWEI = 50 GIGAWEI + u * (e ^ (1 - 0.95) - 1)
+        /// u = (500 GIGAWEI - 50 GIGAWEI) / (e ^ (1 - 0.95) - 1) ≈ 8,776,874,921,880
+        pub static UpperExponentFactor: Balance = 8_776_874_921_880;
 
         #[codec(index = 15)]
         #[allow(non_upper_case_globals)]
@@ -144,9 +144,9 @@ pub mod dynamic_params {
         ///
         /// [`MinPrice`] = [`MostlyStablePrice`] - u * e ^ ( [`SystemUtilisationLowerThresholdPercentage`] - 0 )
         ///
-        /// 10 = 50 - l * (e ^ (0.3 - 0) - 1)
-        /// l = (50 - 10) / (e ^ (0.3 - 0) - 1) ≈ 114
-        pub static LowerExponentFactor: u32 = 114;
+        /// 10 GIGAWEI = 50 GIGAWEI - l * (e ^ (0.3 - 0) - 1)
+        /// l = (50 GIGAWEI - 10 GIGAWEI) / (e ^ (0.3 - 0) - 1) ≈ 114,331,836,540
+        pub static LowerExponentFactor: Balance = 114_331_836_540;
 
         #[codec(index = 16)]
         #[allow(non_upper_case_globals)]

@@ -50,8 +50,20 @@ export const setDataHavenParameters = async (
 
     const result = await tx.signAndSubmit(signer);
 
-    if (!result.ok) {
-      logger.error(`❌ Transaction failed: ${result.block.hash}`);
+    // sudo always returns Ok at the extrinsic level — check the Sudid event
+    // for the inner call result
+    const sudidEvent = result.events.find(
+      (e: any) => e.type === "Sudo" && e.value?.type === "Sudid"
+    );
+
+    if (!sudidEvent) {
+      logger.error("❌ Sudo.Sudid event not found in transaction events");
+      return false;
+    }
+
+    const sudoResult = (sudidEvent.value as any).value.sudo_result;
+    if (sudoResult.type === "Err") {
+      logger.error(`❌ Sudo inner call failed: ${JSON.stringify(sudoResult)}`);
       return false;
     }
 

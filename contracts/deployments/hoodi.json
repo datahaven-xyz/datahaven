@@ -13,6 +13,5 @@
   "AVSDirectory": "0xD58f6844f79eB1fbd9f7091d05f7cb30d3363926",
   "RewardsCoordinator": "0x29e8572678e0c272350aa0b4B8f304E47EBcd5e7",
   "AllocationManager": "0x95a7431400F362F3647a69535C5666cA0133CAA0",
-  "PermissionController": "0xdcCF401fD121d8C542E96BC1d0078884422aFAD2",
-  "version": "1.0.0"
+  "PermissionController": "0xdcCF401fD121d8C542E96BC1d0078884422aFAD2"
 }

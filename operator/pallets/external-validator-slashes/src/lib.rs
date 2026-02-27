@@ -84,12 +84,6 @@ pub enum OffenceKind {
     Custom(BoundedVec<u8, ConstU32<256>>),
 }
 
-impl Default for OffenceKind {
-    fn default() -> Self {
-        Self::LivenessOffence
-    }
-}
-
 impl OffenceKind {
     pub fn to_description(&self) -> String {
         match self {
@@ -229,6 +223,9 @@ pub mod pallet {
         EthereumDeliverFail,
         /// Invalid params for root_test_send_msg_to_eth
         RootTestInvalidParams,
+        /// No PendingOffenceKind found for (session, validator) — offence was not
+        /// reported through EquivocationReportWrapper, so the offence kind is unknown.
+        MissingOffenceKind,
     }
 
     #[apply(derive_storage_traits)]
@@ -527,8 +524,19 @@ where
             // This is set synchronously before on_offence is called, so take() clears it.
             // Type safety: `stash` is T::ValidatorId (from IdentificationTuple), matching
             // the key used by the wrapper. The trait bounds above enforce ValidatorId == AccountId.
-            let offence_kind =
-                pallet::PendingOffenceKind::<T>::take(slash_session, stash).unwrap_or_default();
+            let offence_kind = match pallet::PendingOffenceKind::<T>::take(slash_session, stash) {
+                Some(kind) => kind,
+                None => {
+                    log!(
+                        log::Level::Error,
+                        "MissingOffenceKind for session {:?}, validator {:?} — skipping slash",
+                        slash_session,
+                        stash,
+                    );
+                    add_db_reads_writes(1, 1);
+                    continue;
+                }
+            };
             add_db_reads_writes(1, 1);
 
             // Skip if the validator is invulnerable.
@@ -749,20 +757,6 @@ pub struct Slash<AccountId, SlashId> {
     pub confirmed: bool,
     /// The type of consensus offence (relayed to EigenLayer as a description string).
     pub offence_kind: OffenceKind,
-}
-
-impl<AccountId, SlashId: One> Slash<AccountId, SlashId> {
-    /// Initializes the default object using the given `validator`.
-    pub fn default_from(validator: AccountId) -> Self {
-        Self {
-            validator,
-            reporters: vec![],
-            slash_id: One::one(),
-            percentage: Perbill::from_percent(1),
-            confirmed: false,
-            offence_kind: OffenceKind::default(),
-        }
-    }
 }
 
 /// Computes a slash of a validator and nominators. It returns an unapplied

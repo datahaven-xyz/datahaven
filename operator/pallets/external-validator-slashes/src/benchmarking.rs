@@ -41,7 +41,14 @@ mod benchmarks {
         let era = T::EraIndexProvider::active_era().index;
         let dummy = || T::AccountId::decode(&mut TrailingZeroInput::zeroes()).unwrap();
         for _ in 0..MAX_SLASHES {
-            existing_slashes.push(Slash::<T::AccountId, T::SlashId>::default_from(dummy()));
+            existing_slashes.push(Slash {
+                validator: dummy(),
+                reporters: vec![],
+                slash_id: One::one(),
+                percentage: Perbill::from_percent(1),
+                confirmed: false,
+                offence_kind: OffenceKind::LivenessOffence,
+            });
         }
         Slashes::<T>::insert(
             era.saturating_add(T::SlashDeferDuration::get())
@@ -79,7 +86,7 @@ mod benchmarks {
             era,
             dummy(),
             Perbill::from_percent(50),
-            OffenceKind::default(),
+            OffenceKind::LivenessOffence,
         );
 
         assert_eq!(
@@ -99,7 +106,14 @@ mod benchmarks {
         let dummy = || T::AccountId::decode(&mut TrailingZeroInput::zeroes()).unwrap();
 
         for _ in 0..(s + 1) {
-            queue.push_back(Slash::<T::AccountId, T::SlashId>::default_from(dummy()));
+            queue.push_back(Slash {
+                validator: dummy(),
+                reporters: vec![],
+                slash_id: One::one(),
+                percentage: Perbill::from_percent(1),
+                confirmed: false,
+                offence_kind: OffenceKind::LivenessOffence,
+            });
         }
 
         UnreportedSlashesQueue::<T>::set(queue);

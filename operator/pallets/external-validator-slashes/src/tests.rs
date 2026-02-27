@@ -244,6 +244,7 @@ fn test_on_offence_injects_offences() {
     new_test_ext().execute_with(|| {
         start_era(0, 0, 0);
         start_era(1, 1, 1);
+        PendingOffenceKind::<Test>::insert(0, 3u64, OffenceKind::LivenessOffence);
         Pallet::<Test>::on_offence(
             &[OffenceDetails {
                 // 1 and 2 are invulnerables
@@ -261,7 +262,7 @@ fn test_on_offence_injects_offences() {
                 confirmed: false,
                 reporters: vec![],
                 slash_id: 0,
-                offence_kind: OffenceKind::default(),
+                offence_kind: OffenceKind::LivenessOffence,
             }]
         );
     });
@@ -272,7 +273,8 @@ fn test_on_offence_does_not_work_for_invulnerables() {
     new_test_ext().execute_with(|| {
         start_era(0, 0, 0);
         start_era(1, 1, 1);
-        // account 1 invulnerable
+        // account 1 invulnerable — populate kind so we test the invulnerable check, not missing kind
+        PendingOffenceKind::<Test>::insert(0, 1u64, OffenceKind::LivenessOffence);
         Pallet::<Test>::on_offence(
             &[OffenceDetails {
                 offender: (1, ()),
@@ -295,6 +297,7 @@ fn test_on_offence_does_not_work_if_slashing_disabled() {
             RuntimeOrigin::root(),
             SlashingModeOption::Disabled,
         ));
+        PendingOffenceKind::<Test>::insert(0, 3u64, OffenceKind::LivenessOffence);
         let weight = Pallet::<Test>::on_offence(
             &[OffenceDetails {
                 // 1 and 2 are invulnerables
@@ -366,6 +369,7 @@ fn test_on_offence_defer_period_0() {
         crate::mock::DeferPeriodGetter::with_defer_period(0);
         start_era(0, 0, 0);
         start_era(1, 1, 1);
+        PendingOffenceKind::<Test>::insert(0, 3u64, OffenceKind::LivenessOffence);
         Pallet::<Test>::on_offence(
             &[OffenceDetails {
                 // 1 and 2 are invulnerables
@@ -384,7 +388,7 @@ fn test_on_offence_defer_period_0() {
                 confirmed: true,
                 reporters: vec![],
                 slash_id: 0,
-                offence_kind: OffenceKind::default(),
+                offence_kind: OffenceKind::LivenessOffence,
             }]
         );
         start_era(2, 2, 2);
@@ -398,6 +402,7 @@ fn test_slashes_command_matches_event() {
         crate::mock::DeferPeriodGetter::with_defer_period(0);
         start_era(0, 0, 0);
         start_era(1, 1, 1);
+        PendingOffenceKind::<Test>::insert(0, 3u64, OffenceKind::LivenessOffence);
         Pallet::<Test>::on_offence(
             &[OffenceDetails {
                 // 1 and 2 are invulnerables
@@ -417,7 +422,7 @@ fn test_slashes_command_matches_event() {
                 confirmed: true,
                 reporters: vec![],
                 slash_id: 0,
-                offence_kind: OffenceKind::default(),
+                offence_kind: OffenceKind::LivenessOffence,
             }]
         );
         start_era(2, 2, 2);
@@ -443,6 +448,7 @@ fn wad_conversion_100_percent_slash_maps_to_max_slash_wad() {
         start_era(0, 0, 0);
         start_era(1, 1, 1);
 
+        PendingOffenceKind::<Test>::insert(0, 3u64, OffenceKind::LivenessOffence);
         Pallet::<Test>::on_offence(
             &[OffenceDetails {
                 offender: (3, ()),
@@ -470,6 +476,7 @@ fn wad_conversion_50_percent_slash_maps_to_half_max_slash_wad() {
         start_era(0, 0, 0);
         start_era(1, 1, 1);
 
+        PendingOffenceKind::<Test>::insert(0, 3u64, OffenceKind::LivenessOffence);
         Pallet::<Test>::on_offence(
             &[OffenceDetails {
                 offender: (3, ()),
@@ -496,6 +503,7 @@ fn wad_conversion_zero_percent_slash_maps_to_zero() {
         start_era(0, 0, 0);
         start_era(1, 1, 1);
 
+        PendingOffenceKind::<Test>::insert(0, 3u64, OffenceKind::LivenessOffence);
         Pallet::<Test>::on_offence(
             &[OffenceDetails {
                 offender: (3, ()),
@@ -552,6 +560,7 @@ fn test_on_offence_defer_period_0_messages_get_queued() {
         start_era(1, 1, 1);
         // The limit is 20,
         for i in 0..25 {
+            PendingOffenceKind::<Test>::insert(0, 3 + i, OffenceKind::LivenessOffence);
             Pallet::<Test>::on_offence(
                 &[OffenceDetails {
                     // 1 and 2 are invulnerables
@@ -589,7 +598,7 @@ fn test_account_id_encoding() {
             slash_id: 1,
             percentage: Perbill::default(),
             confirmed: true,
-            offence_kind: OffenceKind::default(),
+            offence_kind: OffenceKind::LivenessOffence,
         };
 
         let encoded_account = slash.validator.encode();
@@ -606,6 +615,7 @@ fn test_on_offence_defer_period_0_messages_get_queued_across_eras() {
         start_era(1, 1, 1);
         // The limit is 20,
         for i in 0..25 {
+            PendingOffenceKind::<Test>::insert(0, 3 + i, OffenceKind::LivenessOffence);
             Pallet::<Test>::on_offence(
                 &[OffenceDetails {
                     // 1 and 2 are invulnerables
@@ -627,6 +637,7 @@ fn test_on_offence_defer_period_0_messages_get_queued_across_eras() {
         // We have 5 non-dispatched, which should accumulate
         // We shoulld have 30 after we initialie era 3
         for i in 0..25 {
+            PendingOffenceKind::<Test>::insert(2, 3 + i, OffenceKind::LivenessOffence);
             Pallet::<Test>::on_offence(
                 &[OffenceDetails {
                     // 1 and 2 are invulnerables

@@ -16,7 +16,7 @@
 
 use alloc::{boxed::Box, vec};
 
-use codec::Decode;
+use codec::{Decode, Encode};
 use frame_benchmarking::v2::*;
 use frame_support::traits::{KeyOwnerProofSystem, OnInitialize};
 use frame_system::RawOrigin;
@@ -48,7 +48,16 @@ const PREENCODED_EQUIVOCATION_PROOF: [u8; 249] = [
     109, 221, 114, 165, 70, 43, 146, 198, 158, 253, 1,
 ];
 
-fn setup_equivocation<T: Config>() -> Result<
+/// Set up a benchmark environment for `report_equivocation` with a realistic validator set.
+///
+/// `extra_validators` filler validators are added to the session alongside the real offender,
+/// so that `Historical::prove` builds a trie of size `extra_validators + 1` and the resulting
+/// `key_owner_proof.validator_count()` equals `extra_validators + 1`. This makes the trie
+/// verification cost (and the `v` linear term in the weight function) scale with the benchmark
+/// parameter rather than always being measured against a single-entry trie.
+fn setup_equivocation<T: Config>(
+    extra_validators: u32,
+) -> Result<
     (
         Box<GrandpaEquivocationProof<T>>,
         <T as pallet_grandpa::Config>::KeyOwnerProof,
@@ -81,21 +90,57 @@ fn setup_equivocation<T: Config>() -> Result<
     )
     .map_err(|_| BenchmarkError::Stop("set_keys failed"))?;
 
-    let validator_id = <T as pallet_session::Config>::ValidatorIdOf::convert(reporter.clone())
-        .ok_or_else(|| BenchmarkError::Stop("could not convert reporter to ValidatorId"))?;
+    let reporter_validator_id =
+        <T as pallet_session::Config>::ValidatorIdOf::convert(reporter.clone())
+            .ok_or_else(|| BenchmarkError::Stop("could not convert reporter to ValidatorId"))?;
 
-    // Best-effort: ensure the reporter is treated as a validator for the purposes of generating
-    // the key ownership proof. This relies on `pallet_session` internals; if the runtime session
-    // manager overwrites these storages, the benchmark will fail and should be adjusted.
-    pallet_session::Validators::<T>::put(vec![validator_id.clone()]);
-    pallet_session::QueuedKeys::<T>::put(vec![(validator_id, keys)]);
+    // Build the full validator + queued-keys lists: the real offender first, then
+    // `extra_validators` filler entries. Each filler uses a unique dummy GRANDPA key derived
+    // from its index so the session trie has `extra_validators + 1` distinct leaves. The
+    // resulting trie depth (and therefore `key_owner_proof.validator_count()`) scales with `v`,
+    // giving the linear regression a real signal to measure.
+    let mut validators = vec![reporter_validator_id.clone()];
+    let mut queued_keys = vec![(reporter_validator_id, keys)];
+
+    for i in 0..extra_validators {
+        // Derive a unique account for each filler validator.
+        let filler: T::AccountId = account("filler_validator", i, i);
+        frame_system::Pallet::<T>::inc_providers(&filler);
+
+        // Each filler gets a unique dummy GRANDPA key so the trie has distinct leaves.
+        // The seed is deterministic and unique per index; we do not need these keys in
+        // the keystore because we are only proving membership for the real offender.
+        let filler_seed = (b"filler_grandpa_key_".to_vec(), i.to_le_bytes()).encode();
+        let filler_grandpa_id: GrandpaId = GrandpaId::generate_pair(Some(filler_seed));
+        let filler_keys = T::benchmark_session_keys(filler_grandpa_id);
+
+        pallet_session::Pallet::<T>::set_keys(
+            RawOrigin::Signed(filler.clone()).into(),
+            filler_keys.clone(),
+            vec![],
+        )
+        .map_err(|_| BenchmarkError::Stop("set_keys failed for filler validator"))?;
+
+        let filler_validator_id =
+            <T as pallet_session::Config>::ValidatorIdOf::convert(filler.clone())
+                .ok_or_else(|| BenchmarkError::Stop("could not convert filler to ValidatorId"))?;
+
+        validators.push(filler_validator_id.clone());
+        queued_keys.push((filler_validator_id, filler_keys));
+    }
+
+    // Overwrite session storage so the full set (offender + fillers) is active.
+    pallet_session::Validators::<T>::put(validators);
+    pallet_session::QueuedKeys::<T>::put(queued_keys);
 
     // Initialize session again after overwriting validator state.
     <pallet_session::Pallet<T> as OnInitialize<BlockNumberFor<T>>>::on_initialize(1u32.into());
 
     // Generate a fresh KeyOwnerProof via Historical for the GRANDPA key registered above.
     // The authority ID in this proof must match the one embedded in PREENCODED_EQUIVOCATION_PROOF,
-    // which is guaranteed because both use the same seed.
+    // which is guaranteed because both use the same seed. The proof's `validator_count` field
+    // will now equal `extra_validators + 1`, matching what the weight function receives at
+    // dispatch time in production.
     let key_owner_proof = pallet_session::historical::Pallet::<T>::prove((
         sp_consensus_grandpa::KEY_TYPE,
         grandpa_id.clone(),
@@ -135,9 +180,14 @@ mod benchmarks {
     /// We expose the same parameters here so the generated weight function matches the
     /// trait exactly and the linear terms are populated from real measurements.
     /// `v` = validator_count, `n` = max_nominators_per_validator (matches upstream component names).
+    ///
+    /// `v` extra filler validators are registered in the session alongside the real offender, so
+    /// the session trie has `v + 1` leaves and `key_owner_proof.validator_count()` equals `v + 1`.
+    /// This means the trie verification path actually grows with `v`, giving the linear regression
+    /// a real signal and producing a meaningful slope coefficient in the generated weight function.
     #[benchmark]
     fn report_equivocation(v: Linear<0, 1000>, n: Linear<0, 1>) -> Result<(), BenchmarkError> {
-        let (proof, key_owner_proof, reporter) = setup_equivocation::<T>()?;
+        let (proof, key_owner_proof, reporter) = setup_equivocation::<T>(v)?;
 
         #[extrinsic_call]
         _(RawOrigin::Signed(reporter), proof, key_owner_proof);

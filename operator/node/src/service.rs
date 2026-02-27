@@ -1221,6 +1221,13 @@ where
             trusted_msps,
             ..
         }) => {
+            // Only BSP nodes can have trusted MSPs
+            let trusted_msps = if *provider_type == ProviderType::Bsp {
+                trusted_msps.clone()
+            } else {
+                Vec::new()
+            };
+
             // Setup file transfer service with trusted MSPs config
             builder
                 .with_file_transfer(

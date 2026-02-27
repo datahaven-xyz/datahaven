@@ -160,6 +160,10 @@ fn test_on_era_end() {
         let era_rewards = pallet_external_validators_rewards::RewardPointsForEra::<Test>::get(1);
         let inflation =
             <Test as pallet_external_validators_rewards::Config>::EraInflationProvider::get();
+        // The event should contain the rewards amount (post-treasury split), not the full inflation.
+        // Treasury gets Perbill::from_percent(20).mul_floor(inflation), rewards gets the rest.
+        let treasury_amount = InflationTreasuryProportion::get().mul_floor(inflation);
+        let rewards_amount = inflation - treasury_amount;
         // Use 0 for era_start_timestamp in tests
         let rewards_info = era_rewards.generate_era_rewards_info(1, inflation, 0);
         assert!(rewards_info.is_some());
@@ -168,7 +172,7 @@ fn test_on_era_end() {
                 message_id: Default::default(),
                 era_index: 1,
                 total_points: total_points as u128,
-                inflation_amount: inflation,
+                inflation_amount: rewards_amount,
             },
         ));
     })

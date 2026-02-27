@@ -1456,7 +1456,13 @@ pub struct ExternalRewardsInflationHandler;
 impl pallet_external_validators_rewards::types::HandleInflation<AccountId>
     for ExternalRewardsInflationHandler
 {
-    fn mint_inflation(who: &AccountId, amount: u128) -> sp_runtime::DispatchResult {
+    fn mint_inflation(
+        who: &AccountId,
+        amount: u128,
+    ) -> Result<
+        pallet_external_validators_rewards::types::InflationMintResult,
+        sp_runtime::DispatchError,
+    > {
         datahaven_runtime_common::inflation::ExternalRewardsInflationHandler::<
             Balances,
             runtime_params::dynamic_params::runtime_config::InflationTreasuryProportion,

@@ -234,7 +234,10 @@ impl pallet_external_validators_rewards::Config for Test {
 
 pub struct InflationMinter;
 impl HandleInflation<H160> for InflationMinter {
-    fn mint_inflation(rewards_account: &H160, total_amount: u128) -> sp_runtime::DispatchResult {
+    fn mint_inflation(
+        rewards_account: &H160,
+        total_amount: u128,
+    ) -> Result<crate::types::InflationMintResult, sp_runtime::DispatchError> {
         use sp_runtime::traits::Zero;
 
         if total_amount.is_zero() {
@@ -270,7 +273,10 @@ impl HandleInflation<H160> for InflationMinter {
             .map_err(|_| DispatchError::Other("Failed to mint treasury inflation"))?;
         }
 
-        Ok(())
+        Ok(crate::types::InflationMintResult {
+            rewards_amount,
+            treasury_amount,
+        })
     }
 }
 

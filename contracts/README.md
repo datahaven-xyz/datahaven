@@ -61,6 +61,21 @@ NETWORK=hoodi forge script script/deploy/DeployTestnet.s.sol \
 ```
 Supported networks: `hoodi` (no mainnet config yet). Artifacts → `contracts/deployments/<network>.json`.
 
+### Contract versioning (version)
+
+DataHaven uses a changeset-based versioning system with centralized tracking:
+
+- `contracts/VERSION` is the single source of truth for the code version.
+- `contracts/versions-matrix.json` tracks the code version and per-chain deployments.
+- `contracts/deployments/<network>.json` contains addresses only (no version field).
+- Version is **passed as a parameter** during contract deployment (not hardcoded by chain ID).
+- Version management is **changeset-driven**:
+  - `bun cli contracts bump --type [major|minor|patch]` creates a changeset
+  - CI applies changesets and updates `VERSION` + `versions-matrix.json`
+- Multiple environments can share the same deployment file:
+  - `stagenet-hoodi` and `testnet-hoodi` both write to `hoodi.json` (chainId: 560048)
+- For validation, run `bun cli contracts version-check --chain <chain>` and `bun cli contracts validate-changesets`.
+
 ## How It Works
 1. **Registration**: Validators register with EigenLayer via `DataHavenServiceManager`.
 2. **Performance Tracking**: DataHaven computes reward points and sends a Merkle root to `RewardsRegistry` on Ethereum via Snowbridge.

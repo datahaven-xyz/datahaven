@@ -13,3 +13,7 @@ docs/
 
 # Local CLAUDE configuration
 CLAUDE.local.md
+
+# Changesets - track changeset files but not .gitkeep
+# Empty .gitkeep is only needed for directory tracking
+.changesets/.gitkeep

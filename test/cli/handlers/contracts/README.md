@@ -62,4 +62,4 @@ bun cli contracts status --chain hoodi
 
 Successful deployments create:
 - `../contracts/deployments/{chain}.json` - Contract addresses
-- `../contracts/deployments/{chain}-rewards-info.json` - Rewards configuration
+ 

@@ -110,6 +110,113 @@ datahaven/
 - **Kurtosis**: Orchestrates multi-container test environments
 - **Parallel Testing**: Use `test:e2e:parallel` for faster CI runs
 
+### Version Management
+
+DataHaven uses a changeset-based versioning system for contracts with centralized tracking:
+
+#### Key Files
+- **`contracts/VERSION`**: Single source of truth for code version (e.g., `1.0.0`)
+- **`contracts/versions-matrix.json`**: Tracks code version + deployed versions across chains
+- **`contracts/.changesets/`**: PR-based version bump declarations with descriptions
+- **`contracts/deployments/{chain}.json`**: Per-chain deployment info (addresses only)
+
+#### Developer Workflow
+
+1. **Make contract changes** in `contracts/src/`
+
+2. **Declare version bump** (required for CI to pass):
+   ```bash
+   bun cli contracts bump --type [major|minor|patch] --description "Brief change description"
+   ```
+   - `major`: Breaking changes (X.0.0)
+   - `minor`: New features, backwards compatible (0.X.0)
+   - `patch`: Bug fixes, backwards compatible (0.0.X)
+   - `--description`: Optional but recommended for clarity in release notes
+
+   This creates a changeset file like `.changesets/pr-123.txt` containing:
+   - Line 1: Bump type
+   - Lines 2+: Description (optional)
+
+3. **Commit changeset**:
+   ```bash
+   git add contracts/.changesets/
+   git commit -m "feat: your changes"
+   ```
+
+4. **Before release** (manual process):
+   - Trigger the "Contracts Versioning" GitHub Action manually
+   - Action processes all accumulated changesets:
+     - Aggregates multiple major bumps into single major version bump
+     - Takes highest bump type across all changesets (major > minor > patch)
+     - Updates `VERSION` file
+     - Updates `versions-matrix.json` with new checksum
+     - Creates a PR with version bump and all changeset descriptions
+     - Deletes processed changesets in the PR
+
+#### Upgrade/Deploy Commands
+
+- **Upgrade** (uses VERSION file):
+  ```bash
+  bun cli contracts upgrade --chain hoodi --version latest
+  ```
+  - Validates checksum matches `versions-matrix.json`
+  - Deploys new implementation contracts
+  - Updates proxy via `upgradeToAndCall` with version update (saves gas)
+  - Updates `versions-matrix.json` deployment info
+  - Version is set on-chain during the upgrade transaction (no separate call)
+
+- **Deploy** (MINOR bump):
+  ```bash
+  bun cli contracts deploy --chain anvil
+  ```
+  - Performs MINOR bump automatically
+  - Updates both deployment file and `versions-matrix.json`
+
+#### Validation Commands
+
+- **Check versions across deployments**:
+  ```bash
+  bun cli contracts version-check --chain hoodi
+  ```
+
+- **Validate changesets (CI use)**:
+  ```bash
+  bun cli contracts validate-changesets
+  ```
+  Fails if contracts changed but no changeset exists
+
+#### Version Matrix Structure
+
+```json
+{
+  "code": {
+    "version": "1.0.0",           // Current code version
+    "checksum": "abc123...",       // SHA1 of contracts/src/
+    "lastModified": "2026-02-05T..."
+  },
+  "deployments": {
+    "anvil": { "version": "0.1.0", "lastDeployed": "..." },
+    "hoodi": { "version": "1.0.0", "lastDeployed": "..." }
+  }
+}
+```
+
+#### Release Process
+
+1. **Accumulate changesets**: Multiple PRs with contract changes create changeset files
+2. **Trigger version bump**: Manually run "Contracts Versioning" GitHub Action
+3. **Review PR**: Action creates PR with:
+   - Updated VERSION and versions-matrix.json
+   - All changeset descriptions in PR body
+   - Deleted changeset files
+4. **Upgrade contracts**: Checkout PR branch and run `bun cli contracts upgrade`
+5. **Merge PR**: Complete the release by merging to main
+
+#### If Version Out of Sync (Rare)
+1. **Checksum mismatch**: Run `bun cli contracts apply-changesets` locally or update VERSION manually
+2. **On-chain sync**: Upgrade command automatically sets version via `upgradeToAndCall`
+3. **Generated reference**: Not used (versions are tracked in `versions-matrix.json`)
+
 ### Development Workflow
 1. Make changes to relevant component
 2. Run component-specific tests and linters
@@ -124,6 +231,7 @@ datahaven/
 - **Types mismatch**: Regenerate with `bun generate:types` after runtime changes
 - **Kurtosis not running**: Ensure Docker is running and Kurtosis engine is started
 - **Contract changes not reflected**: Run `bun generate:wagmi` after modifications
+- **Version out of sync**: Run `bun cli contracts apply-changesets` (CI) or update `VERSION` manually
 - **Forge build errors**: Try `forge clean` then rebuild
 - **Slow development cycle**: Use `--features fast-runtime` for faster block times
 - **Network launch halts**: Check Blockscout - forge output can appear frozen

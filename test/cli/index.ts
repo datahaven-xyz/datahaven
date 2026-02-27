@@ -207,7 +207,7 @@ const contractsCommand = program
     - deploy: Deploy contracts to specified chain
     - verify: Verify deployed contracts on block explorer
     - update-beefy-checkpoint: Fetch BEEFY authorities from a live chain and update config
-    - update-rewards-origin: Fetch or compute the RewardsAgentOrigin and update config
+    - update-rewards-origin: Fetch or compute the AgentOrigin and update config
     - update-metadata: Update the metadata URI of an existing AVS contract
 
     Common options:
@@ -307,7 +307,7 @@ contractsCommand
 contractsCommand
   .command("update-rewards-origin")
   .description(
-    "Fetch or compute the RewardsAgentOrigin and update the config file with the rewards message origin"
+    "Fetch or compute the AgentOrigin and update the config file with the rewards message origin"
   )
   .option("--chain <value>", "Target chain (hoodi, ethereum, anvil)")
   .option(
@@ -316,7 +316,7 @@ contractsCommand
   )
   .option(
     "--rpc-url <value>",
-    "WebSocket RPC URL of the DataHaven chain to fetch RewardsAgentOrigin from"
+    "WebSocket RPC URL of the DataHaven chain to fetch AgentOrigin from"
   )
   .option(
     "--genesis-hash <value>",

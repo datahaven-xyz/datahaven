@@ -1989,8 +1989,8 @@ mod tests {
         // Hash with blake2_256
         let computed_agent_id = H256(blake2_256(&encoded));
 
-        // Expected Agent ID - this value must match RewardsAgentOrigin in runtime_params.rs
-        // If this test fails, update RewardsAgentOrigin to match the computed value.
+        // Expected Agent ID - this value must match AgentOrigin in runtime_params.rs
+        // If this test fails, update AgentOrigin to match the computed value.
         let expected_agent_id = H256(hex_literal::hex!(
             "d0d6dbd1ffb401ef613f00e93cd5061ecec03ae35d2f820cd6754a5b5f020215"
         ));
@@ -2000,7 +2000,7 @@ mod tests {
             expected_agent_id,
             "Computed Rewards Agent ID must match expected value.\n\
              This value should be set as:\n\
-             - RewardsAgentOrigin in runtime_params.rs\n\
+             - AgentOrigin in runtime_params.rs\n\
              - rewardsMessageOrigin in AVS contract config\n\
              \n\
              Rewards account: 0x{}\n\

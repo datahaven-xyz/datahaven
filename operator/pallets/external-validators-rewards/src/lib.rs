@@ -971,7 +971,11 @@ pub mod pallet {
                 }
                 None => {
                     // Message failed — queue for automatic retry via on_initialize
-                    if Self::unsent_queue_push((era_index, era_start_timestamp, mint_result.rewards_amount)) {
+                    if Self::unsent_queue_push((
+                        era_index,
+                        era_start_timestamp,
+                        mint_result.rewards_amount,
+                    )) {
                         Self::deposit_event(Event::RewardsMessageSendFailed { era_index });
                     } else {
                         log::error!(

@@ -1920,7 +1920,7 @@ mod tests {
     /// Test that the Rewards Agent ID (used for Snowbridge outbound messages from the rewards pallet)
     /// is correctly computed from the chain's genesis hash and the ExternalValidatorRewardsAccount.
     ///
-    /// This test verifies the value that should be set as `RewardsAgentOrigin` in runtime parameters
+    /// This test verifies the value that should be set as `AgentOrigin` in runtime parameters
     /// and as `rewardsMessageOrigin` in the AVS contract configuration.
     ///
     /// The Agent ID is computed following Snowbridge's pattern for GlobalConsensus locations:

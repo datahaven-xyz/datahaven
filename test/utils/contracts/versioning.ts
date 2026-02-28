@@ -147,9 +147,7 @@ export const checkContractVersions = async (
     return { ok: false, skipped: false };
   }
 
-  logger.info(
-    `✅ All checked contract versions match contracts/VERSION=${version} on '${chain}'.`
-  );
+  logger.info(`✅ All checked contract versions match contracts/VERSION=${version} on '${chain}'.`);
   return { ok: true, skipped: false };
 };
 

@@ -41,9 +41,7 @@ const resolveUpgradeContext = (options: ContractsUpgradeOptions) => {
   // All upgrade operations (proxy upgrade + version update) must be signed by the AVS owner.
   const avsOwnerKey = process.env.AVS_OWNER_PRIVATE_KEY;
   if (!avsOwnerKey) {
-    throw new Error(
-      "AVS_OWNER_PRIVATE_KEY environment variable is required to perform upgrades"
-    );
+    throw new Error("AVS_OWNER_PRIVATE_KEY environment variable is required to perform upgrades");
   }
 
   return { chainConfig, rpcUrl, deployerKey, avsOwnerKey };
@@ -305,23 +303,6 @@ const updateServiceManagerProxyWithVersion = async (
       "ProxyAdmin address is required for proxy updates. Add `ProxyAdmin` to the deployments file or set the PROXY_ADMIN environment variable."
     );
   }
-
-  // #region agent log
-  try {
-    const { createPublicClient, http } = await import("viem");
-    const client = createPublicClient({ transport: http(rpcUrl) });
-    const ownerResult = await client.readContract({
-      address: proxyAdmin as `0x${string}`,
-      abi: [{ name: "owner", type: "function", stateMutability: "view", inputs: [], outputs: [{ type: "address" }] }],
-      functionName: "owner"
-    });
-    const { privateKeyToAccount } = await import("viem/accounts");
-    const avsOwnerAddress = privateKeyToAccount(avsOwnerKey as `0x${string}`).address;
-    fetch('http://127.0.0.1:7307/ingest/cc6c7d19-fa70-4ab7-95bd-540b130c2f0d',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'252775'},body:JSON.stringify({sessionId:'252775',location:'upgrade.ts:proxyAdminOwnerCheck',message:'ProxyAdmin owner vs AVS owner',data:{proxyAdminAddress:proxyAdmin,proxyAdminOwner:ownerResult,avsOwnerAddress,keysMatch:ownerResult?.toLowerCase()===avsOwnerAddress?.toLowerCase()},runId:'post-fix',hypothesisId:'H-A',timestamp:Date.now()})}).catch(()=>{});
-  } catch(e) {
-    fetch('http://127.0.0.1:7307/ingest/cc6c7d19-fa70-4ab7-95bd-540b130c2f0d',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'252775'},body:JSON.stringify({sessionId:'252775',location:'upgrade.ts:proxyAdminOwnerCheck',message:'Failed to read ProxyAdmin owner',data:{error:String(e)},runId:'post-fix',hypothesisId:'H-A',timestamp:Date.now()})}).catch(()=>{});
-  }
-  // #endregion
 
   // AVS_OWNER_PRIVATE_KEY is passed via environment variable (not command-line)
   // to prevent it from appearing in system process lists (security best practice)

@@ -18,8 +18,7 @@ import {
   stop,
   stopPreActionHook,
   updateAVSMetadataURI,
-  versioningPostChecks,
-  versioningPreChecks
+  versioningPostChecks
 } from "./handlers";
 
 // Function to parse integer

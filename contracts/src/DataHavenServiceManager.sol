@@ -3,6 +3,7 @@ pragma solidity ^0.8.27;
 
 // OpenZeppelin imports
 import {OwnableUpgradeable} from "@openzeppelin-upgrades/contracts/access/OwnableUpgradeable.sol";
+import {StorageSlot} from "@openzeppelin/contracts/utils/StorageSlot.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
@@ -82,13 +83,9 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
     /// `contracts/deployments/<chain>.json`.
     string private _version;
 
-    /// @notice The address authorized to update the contract version
-    /// Typically set to the deployer account to allow version updates during upgrades
-    address public versionUpdater;
-
     /// @notice Storage gap for upgradeability (must be at end of state variables)
     // solhint-disable-next-line var-name-mixedcase
-    uint256[41] private __GAP;
+    uint256[42] private __GAP;
 
     // ============ Modifiers ============
 
@@ -116,9 +113,15 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         _;
     }
 
-    /// @notice Restricts function to the version updater or owner
-    modifier onlyVersionUpdater() {
-        _checkVersionUpdater();
+    /// @notice Restricts function to the ProxyAdmin contract.
+    /// @dev Version updates must come through the ProxyAdmin so they are always
+    ///      bundled with an actual proxy upgrade (via upgradeAndCall). The ProxyAdmin
+    ///      is owned by the AVS owner, so the trust chain is: AVS owner → ProxyAdmin → updateVersion.
+    modifier onlyProxyAdmin() {
+        // EIP-1967 admin slot: keccak256("eip1967.proxy.admin") - 1
+        bytes32 adminSlot = 0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103;
+        address proxyAdmin = StorageSlot.getAddressSlot(adminSlot).value;
+        require(msg.sender == proxyAdmin, "Caller is not the proxy admin");
         _;
     }
 
@@ -142,12 +145,6 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         require(msg.sender == validatorSetSubmitter, OnlyValidatorSetSubmitter());
     }
 
-    function _checkVersionUpdater() internal view {
-        require(
-            msg.sender == versionUpdater || msg.sender == owner(), "Only version updater or owner"
-        );
-    }
-
     // ============ Constructor ============
 
     /// @notice Sets the immutable EigenLayer contract references
@@ -169,13 +166,11 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         IRewardsCoordinatorTypes.StrategyAndMultiplier[] memory validatorsStrategiesAndMultipliers,
         address _snowbridgeGatewayAddress,
         address _validatorSetSubmitter,
-        string memory initialVersion,
-        address _versionUpdater
+        string memory initialVersion
     ) public virtual initializer {
         require(initialOwner != address(0), ZeroAddress());
         require(_rewardsInitiator != address(0), ZeroAddress());
         require(_snowbridgeGatewayAddress != address(0), ZeroAddress());
-        require(_versionUpdater != address(0), ZeroAddress());
         require(bytes(initialVersion).length > 0, "Version cannot be empty");
 
         __Ownable_init();
@@ -185,8 +180,6 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
 
         // Set version from parameter (allows flexibility per deployment environment)
         _version = initialVersion;
-        versionUpdater = _versionUpdater;
-        emit VersionUpdaterSet(address(0), _versionUpdater);
 
         // Register the DataHaven service in the AllocationManager.
         _ALLOCATION_MANAGER.updateAVSMetadataURI(address(this), DATAHAVEN_AVS_METADATA);
@@ -618,26 +611,16 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
 
     /// @notice Updates the contract version (typically called after upgrades)
     /// @param newVersion The new version string (e.g., "1.1.0")
-    /// @dev Only callable by the version updater or owner
+    /// @dev Only callable by the ProxyAdmin, ensuring version changes are always
+    ///      bundled with a proxy upgrade via upgradeAndCall. The AVS owner controls
+    ///      the ProxyAdmin, maintaining the trust chain: AVS owner → ProxyAdmin → updateVersion.
     function updateVersion(
         string memory newVersion
-    ) external onlyVersionUpdater {
+    ) external onlyProxyAdmin {
         require(bytes(newVersion).length > 0, "Version cannot be empty");
         string memory oldVersion = _version;
         _version = newVersion;
         emit VersionUpdated(oldVersion, newVersion);
-    }
-
-    /// @notice Sets the address authorized to update the contract version
-    /// @param newVersionUpdater The new version updater address
-    /// @dev Only callable by the owner
-    function setVersionUpdater(
-        address newVersionUpdater
-    ) external onlyOwner {
-        require(newVersionUpdater != address(0), ZeroAddress());
-        address oldVersionUpdater = versionUpdater;
-        versionUpdater = newVersionUpdater;
-        emit VersionUpdaterSet(oldVersionUpdater, newVersionUpdater);
     }
 
     // ============ Internal Functions ============
@@ -706,6 +689,7 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         address solochainAddress
     ) internal view returns (address) {
         address ethOperator = validatorSolochainAddressToEthAddress[solochainAddress];
+        address avsAddress = address(this);
         require(ethOperator != address(0), UnknownSolochainAddress());
         return ethOperator;
     }

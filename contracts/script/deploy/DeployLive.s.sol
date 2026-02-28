@@ -115,6 +115,11 @@ contract DeployLive is DeployBase {
         ProxyAdmin proxyAdmin = new ProxyAdmin();
         Logging.logContractDeployed("ProxyAdmin", address(proxyAdmin));
 
+        // Transfer ProxyAdmin ownership to AVS owner so upgrades can only be performed by AVS owner
+        vm.broadcast(_deployerPrivateKey);
+        proxyAdmin.transferOwnership(_avsOwner);
+        Logging.logStep("ProxyAdmin ownership transferred to AVS owner");
+
         vm.broadcast(_deployerPrivateKey);
         bytes memory initData = abi.encodeWithSelector(
             DataHavenServiceManager.initialize.selector,
@@ -123,8 +128,7 @@ contract DeployLive is DeployBase {
             params.validatorsStrategiesAndMultipliers,
             params.gateway,
             params.validatorSetSubmitter,
-            params.initialVersion,
-            params.versionUpdater
+            params.initialVersion
         );
 
         TransparentUpgradeableProxy proxy =

@@ -34,6 +34,21 @@ const isInfraUnavailableError = (error: unknown): boolean => {
   );
 };
 
+/**
+ * Reads the expected version from contracts/VERSION file.
+ * Returns undefined if the file cannot be read.
+ */
+const readVersionFile = (): string | undefined => {
+  try {
+    const cwd = process.cwd();
+    const repoRoot = path.basename(cwd) === "test" ? path.join(cwd, "..") : cwd;
+    const versionFile = path.join(repoRoot, "contracts", "VERSION");
+    return readFileSync(versionFile, "utf8").trim();
+  } catch {
+    return undefined;
+  }
+};
+
 export const checkContractVersions = async (
   chain: string,
   rpcUrl?: string
@@ -41,26 +56,11 @@ export const checkContractVersions = async (
   assertValidChain(chain);
   logger.info(`🔍 Checking contract versions for chain '${chain}'`);
 
-  // Read version from versions-matrix.json
-  const cwd = process.cwd();
-  const repoRoot = path.basename(cwd) === "test" ? path.join(cwd, "..") : cwd;
-  const matrixFile = path.join(repoRoot, "contracts", "versions-matrix.json");
-
-  let version: string | undefined;
-  try {
-    const matrixContent = readFileSync(matrixFile, "utf8");
-    const matrix = JSON.parse(matrixContent);
-    version = matrix.deployments?.[chain]?.version;
-  } catch (_error) {
-    logger.info(
-      "ℹ️  Could not read versions-matrix.json - skipping version check (probably fresh deployment)"
-    );
-    return { ok: true, skipped: true };
-  }
-
+  // Read expected version from contracts/VERSION file
+  const version = readVersionFile();
   if (!version) {
     logger.info(
-      `ℹ️  No version tracked for '${chain}' in versions-matrix.json - skipping version check (probably fresh deployment)`
+      "ℹ️  Could not read contracts/VERSION - skipping version check (probably fresh deployment)"
     );
     return { ok: true, skipped: true };
   }
@@ -102,12 +102,12 @@ export const checkContractVersions = async (
 
     if (smVersion !== version) {
       logger.error(
-        `❌ DataHavenServiceManager DATAHAVEN_VERSION=${smVersion} does not match deployments version=${version} for chain='${chain}'.`
+        `❌ DataHavenServiceManager DATAHAVEN_VERSION=${smVersion} does not match contracts/VERSION=${version} for chain='${chain}'.`
       );
       ok = false;
     } else {
       logger.info(
-        `✅ DataHavenServiceManager version matches deployments version (${version}) for chain='${chain}'.`
+        `✅ DataHavenServiceManager version matches contracts/VERSION (${version}) for chain='${chain}'.`
       );
     }
   } catch (error) {
@@ -148,7 +148,7 @@ export const checkContractVersions = async (
   }
 
   logger.info(
-    `✅ All checked contract versions match deployments version=${version} on '${chain}'.`
+    `✅ All checked contract versions match contracts/VERSION=${version} on '${chain}'.`
   );
   return { ok: true, skipped: false };
 };
@@ -162,44 +162,21 @@ export const isValidSemver = (version: string): boolean => {
 };
 
 /**
- * Validates version formats across all deployment files
+ * Validates that contracts/VERSION contains a valid semver string
  */
 export const validateVersionFormats = async (): Promise<boolean> => {
-  const cwd = process.cwd();
-  const repoRoot = path.basename(cwd) === "test" ? path.join(cwd, "..") : cwd;
-  const matrixFile = path.join(repoRoot, "contracts", "versions-matrix.json");
+  const version = readVersionFile();
 
-  let allValid = true;
-
-  try {
-    const matrixContent = readFileSync(matrixFile, "utf8");
-    const matrix = JSON.parse(matrixContent);
-    const codeVersion = matrix?.code?.version;
-
-    if (!codeVersion) {
-      logger.warn("⚠️ versions-matrix.json has no code.version");
-      allValid = false;
-    } else if (!isValidSemver(codeVersion)) {
-      logger.error(`❌ Invalid code.version format in versions-matrix.json: ${codeVersion}`);
-      allValid = false;
-    }
-
-    const deployments = matrix?.deployments ?? {};
-    for (const [chain, entry] of Object.entries(deployments)) {
-      const version = (entry as { version?: string }).version;
-      if (!version) {
-        logger.warn(`⚠️ No version for '${chain}' in versions-matrix.json deployments`);
-        continue;
-      }
-      if (!isValidSemver(version)) {
-        logger.error(`❌ Invalid deployment version format for '${chain}': ${version}`);
-        allValid = false;
-      }
-    }
-  } catch (error) {
-    logger.warn(`⚠️ Could not read versions-matrix.json: ${error}`);
+  if (!version) {
+    logger.warn("⚠️ Could not read contracts/VERSION");
     return false;
   }
 
-  return allValid;
+  if (!isValidSemver(version)) {
+    logger.error(`❌ Invalid version format in contracts/VERSION: ${version}`);
+    return false;
+  }
+
+  logger.info(`✅ contracts/VERSION is valid semver: ${version}`);
+  return true;
 };

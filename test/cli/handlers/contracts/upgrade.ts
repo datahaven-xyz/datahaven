@@ -12,7 +12,7 @@ interface ContractsUpgradeOptions {
   rpcUrl?: string;
   privateKeyFile?: string;
   verify?: boolean;
-  version?: string; // Version to upgrade to ("latest" or specific semver)
+  version?: string; // Explicit version to upgrade to (writes to VERSION file); omit to read from VERSION file
 }
 
 const resolveUpgradeContext = (options: ContractsUpgradeOptions) => {
@@ -23,21 +23,30 @@ const resolveUpgradeContext = (options: ContractsUpgradeOptions) => {
 
   const rpcUrl = options.rpcUrl || chainConfig.RPC_URL;
 
-  let privateKey: string;
+  // Key used to deploy new implementation contracts (any funded account works)
+  let deployerKey: string;
   if (options.privateKeyFile) {
-    privateKey = readPrivateKeyFromFile(options.privateKeyFile);
+    deployerKey = readPrivateKeyFromFile(options.privateKeyFile);
   } else if (process.env.DEPLOYER_PRIVATE_KEY) {
-    // ProxyAdmin is owned by deployer, so use that key for proxy upgrades
-    privateKey = process.env.DEPLOYER_PRIVATE_KEY;
+    deployerKey = process.env.DEPLOYER_PRIVATE_KEY;
   } else if (process.env.PRIVATE_KEY) {
-    privateKey = process.env.PRIVATE_KEY;
+    deployerKey = process.env.PRIVATE_KEY;
   } else {
     throw new Error(
-      "Private key is required. Provide either --private-key-file or set DEPLOYER_PRIVATE_KEY/PRIVATE_KEY environment variable"
+      "Deployer key is required. Provide either --private-key-file or set DEPLOYER_PRIVATE_KEY/PRIVATE_KEY environment variable"
     );
   }
 
-  return { chainConfig, rpcUrl, privateKey };
+  // AVS owner key — owns the ProxyAdmin and the ServiceManager contract.
+  // All upgrade operations (proxy upgrade + version update) must be signed by the AVS owner.
+  const avsOwnerKey = process.env.AVS_OWNER_PRIVATE_KEY;
+  if (!avsOwnerKey) {
+    throw new Error(
+      "AVS_OWNER_PRIVATE_KEY environment variable is required to perform upgrades"
+    );
+  }
+
+  return { chainConfig, rpcUrl, deployerKey, avsOwnerKey };
 };
 
 /**
@@ -114,36 +123,33 @@ export const contractsUpgrade = async (options: ContractsUpgradeOptions) => {
     }
 
     const upgradeOptions = { ...options, rpcUrl: resolvedRpcUrl };
-    const { rpcUrl, privateKey } = resolveUpgradeContext(upgradeOptions);
+    const { rpcUrl, deployerKey, avsOwnerKey } = resolveUpgradeContext(upgradeOptions);
 
-    // Determine version FIRST (before any upgrade operations)
-    const targetVersion = await resolveTargetVersion(options.version || "latest");
+    // Resolve target version:
+    // - If an explicit version is provided, write it to contracts/VERSION and use it.
+    // - Otherwise read the current version from contracts/VERSION.
+    const targetVersion = await resolveTargetVersion(options.version);
     logger.info(`🎯 Target version: ${targetVersion}`);
-
-    // Validate that contracts match the target version's checksum
-    await validateVersionChecksum(targetVersion);
 
     // Build contracts first
     await buildContracts();
 
-    // Deploy new implementation contracts
+    // Deploy new implementation contracts (signed by deployer — any funded account)
     const serviceManagerImplAddress = await deployImplementationContracts(
       options.chain,
       rpcUrl,
-      privateKey
+      deployerKey
     );
 
-    // Update proxy contracts to point to new implementations AND update version in one transaction
+    // Update proxy contracts to point to new implementations AND update version in one transaction.
+    // Must be signed by the AVS owner, who owns both the ProxyAdmin and the ServiceManager.
     await updateProxyContracts(
       options.chain,
       rpcUrl,
-      privateKey,
+      avsOwnerKey,
       serviceManagerImplAddress,
       targetVersion
     );
-
-    // Update versions-matrix.json with deployment info
-    await updateVersionsMatrix(options.chain, targetVersion);
 
     // Verify contracts if requested
     if (options.verify) {
@@ -206,7 +212,6 @@ const deployServiceManagerImplementation = async (
 
   const actualDeployments = await parseDeploymentsFile(chain);
 
-  // Use environment variables to avoid command injection and process list exposure
   // Note: Private key is passed via PRIVATE_KEY environment variable (not command-line)
   // to prevent it from appearing in system process lists (security best practice)
   const env = {
@@ -261,7 +266,7 @@ const deployServiceManagerImplementation = async (
 const updateProxyContracts = async (
   chain: string,
   rpcUrl: string,
-  privateKey: string,
+  avsOwnerKey: string,
   serviceManagerImplAddress: string,
   version: string
 ) => {
@@ -273,7 +278,7 @@ const updateProxyContracts = async (
   await updateServiceManagerProxyWithVersion(
     deployments,
     rpcUrl,
-    privateKey,
+    avsOwnerKey,
     serviceManagerImplAddress,
     version
   );
@@ -282,20 +287,18 @@ const updateProxyContracts = async (
 };
 
 /**
- * Updates ServiceManager proxy to point to new implementation and updates version in one transaction
- * This saves gas by combining upgrade and version update
+ * Updates ServiceManager proxy to point to new implementation and updates version in one transaction.
+ * Signed by the AVS owner, who owns both the ProxyAdmin and the ServiceManager.
  */
 const updateServiceManagerProxyWithVersion = async (
   deployments: any,
   rpcUrl: string,
-  privateKey: string,
+  avsOwnerKey: string,
   serviceManagerImplAddress: string,
   version: string
 ) => {
   logger.info(`🔄 Updating ServiceManager proxy and setting version to ${version}...`);
 
-  // Note: Private key is passed via PRIVATE_KEY environment variable (not command-line)
-  // to prevent it from appearing in system process lists (security best practice)
   const proxyAdmin = (deployments as any).ProxyAdmin ?? process.env.PROXY_ADMIN;
   if (!proxyAdmin) {
     throw new Error(
@@ -303,15 +306,40 @@ const updateServiceManagerProxyWithVersion = async (
     );
   }
 
+  // #region agent log
+  try {
+    const { createPublicClient, http } = await import("viem");
+    const client = createPublicClient({ transport: http(rpcUrl) });
+    const ownerResult = await client.readContract({
+      address: proxyAdmin as `0x${string}`,
+      abi: [{ name: "owner", type: "function", stateMutability: "view", inputs: [], outputs: [{ type: "address" }] }],
+      functionName: "owner"
+    });
+    const { privateKeyToAccount } = await import("viem/accounts");
+    const avsOwnerAddress = privateKeyToAccount(avsOwnerKey as `0x${string}`).address;
+    fetch('http://127.0.0.1:7307/ingest/cc6c7d19-fa70-4ab7-95bd-540b130c2f0d',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'252775'},body:JSON.stringify({sessionId:'252775',location:'upgrade.ts:proxyAdminOwnerCheck',message:'ProxyAdmin owner vs AVS owner',data:{proxyAdminAddress:proxyAdmin,proxyAdminOwner:ownerResult,avsOwnerAddress,keysMatch:ownerResult?.toLowerCase()===avsOwnerAddress?.toLowerCase()},runId:'post-fix',hypothesisId:'H-A',timestamp:Date.now()})}).catch(()=>{});
+  } catch(e) {
+    fetch('http://127.0.0.1:7307/ingest/cc6c7d19-fa70-4ab7-95bd-540b130c2f0d',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'252775'},body:JSON.stringify({sessionId:'252775',location:'upgrade.ts:proxyAdminOwnerCheck',message:'Failed to read ProxyAdmin owner',data:{error:String(e)},runId:'post-fix',hypothesisId:'H-A',timestamp:Date.now()})}).catch(()=>{});
+  }
+  // #endregion
+
+  // AVS_OWNER_PRIVATE_KEY is passed via environment variable (not command-line)
+  // to prevent it from appearing in system process lists (security best practice)
   const env = {
     ...process.env,
-    PRIVATE_KEY: privateKey,
+    AVS_OWNER_PRIVATE_KEY: avsOwnerKey,
     RPC_URL: rpcUrl,
     SERVICE_MANAGER: deployments.ServiceManager,
     SERVICE_MANAGER_IMPL: serviceManagerImplAddress,
     PROXY_ADMIN: proxyAdmin,
     NEW_VERSION: version
   };
+
+  // Derive the sender address from the AVS owner key so forge doesn't complain
+  // about using the default sender when vm.broadcast is called with a key loaded
+  // from an environment variable rather than --private-key.
+  const { privateKeyToAccount } = await import("viem/accounts");
+  const avsOwnerAddress = privateKeyToAccount(avsOwnerKey as `0x${string}`).address;
 
   const updateArgs = [
     "script",
@@ -320,6 +348,8 @@ const updateServiceManagerProxyWithVersion = async (
     "updateServiceManagerProxyWithVersion()",
     "--rpc-url",
     rpcUrl,
+    "--sender",
+    avsOwnerAddress,
     "--broadcast",
     "--non-interactive"
   ];
@@ -336,14 +366,18 @@ const updateServiceManagerProxyWithVersion = async (
 };
 
 /**
- * Resolves the target version for upgrade
- * "latest" reads from VERSION file, otherwise uses provided semver
+ * Resolves the target version for upgrade.
+ *
+ * - If an explicit semver string is provided, it is written to contracts/VERSION and returned.
+ * - If undefined/empty, the current value of contracts/VERSION is read and returned unchanged.
  */
-const resolveTargetVersion = async (versionSpec: string): Promise<string> => {
-  if (versionSpec === "latest") {
-    const cwd = process.cwd();
-    const repoRoot = path.basename(cwd) === "test" ? path.join(cwd, "..") : cwd;
-    const versionFile = path.join(repoRoot, "contracts", "VERSION");
+const resolveTargetVersion = async (versionSpec: string | undefined): Promise<string> => {
+  const cwd = process.cwd();
+  const repoRoot = path.basename(cwd) === "test" ? path.join(cwd, "..") : cwd;
+  const versionFile = path.join(repoRoot, "contracts", "VERSION");
+
+  if (!versionSpec) {
+    // No version provided — read from VERSION file
     const version = readFileSync(versionFile, "utf8").trim();
     logger.info(`📖 Reading version from VERSION file: ${version}`);
     return version;
@@ -355,65 +389,9 @@ const resolveTargetVersion = async (versionSpec: string): Promise<string> => {
     throw new Error(`Invalid version format: ${versionSpec}. Expected X.Y.Z`);
   }
 
+  // Write the new version to the VERSION file
+  writeFileSync(versionFile, versionSpec);
+  logger.info(`📝 Updated contracts/VERSION to ${versionSpec}`);
+
   return versionSpec;
-};
-
-/**
- * Validates that current contracts match the expected checksum for target version
- */
-const validateVersionChecksum = async (version: string): Promise<void> => {
-  const cwd = process.cwd();
-  const repoRoot = path.basename(cwd) === "test" ? path.join(cwd, "..") : cwd;
-  const matrixFile = path.join(repoRoot, "contracts", "versions-matrix.json");
-  const contractsPath = path.join(repoRoot, "contracts", "src");
-
-  // Read versions matrix
-  const matrixContent = readFileSync(matrixFile, "utf8");
-  const matrix = JSON.parse(matrixContent);
-
-  // Calculate current checksum
-  const { generateContractsChecksum } = await import("../../../scripts/contracts-checksum");
-  const currentChecksum = generateContractsChecksum(contractsPath);
-
-  // Check if version matches code version in matrix
-  if (matrix.code.version !== version) {
-    throw new Error(
-      `Version mismatch: VERSION file says ${version} but versions-matrix.json code.version is ${matrix.code.version}. ` +
-        "Run 'bun cli contracts apply-changesets' or update VERSION file manually."
-    );
-  }
-
-  // Validate checksum matches
-  if (matrix.code.checksum !== currentChecksum) {
-    throw new Error(
-      `Checksum mismatch: versions-matrix.json says ${matrix.code.checksum} but current contracts checksum is ${currentChecksum}. ` +
-        "Either contracts changed without version bump, or versions-matrix.json is stale."
-    );
-  }
-
-  logger.success(`Contracts checksum validated for version ${version}`);
-};
-
-/**
- * Updates versions-matrix.json with new deployment info
- */
-const updateVersionsMatrix = async (chain: string, version: string): Promise<void> => {
-  const cwd = process.cwd();
-  const repoRoot = path.basename(cwd) === "test" ? path.join(cwd, "..") : cwd;
-  const matrixFile = path.join(repoRoot, "contracts", "versions-matrix.json");
-
-  const matrixContent = readFileSync(matrixFile, "utf8");
-  const matrix = JSON.parse(matrixContent);
-
-  // Update deployment info
-  if (!matrix.deployments) {
-    matrix.deployments = {};
-  }
-  matrix.deployments[chain] = {
-    version,
-    lastDeployed: new Date().toISOString()
-  };
-
-  writeFileSync(matrixFile, JSON.stringify(matrix, null, 2));
-  logger.info(`📝 Updated versions-matrix.json for chain ${chain}`);
 };

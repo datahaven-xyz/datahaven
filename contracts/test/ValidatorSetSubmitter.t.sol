@@ -198,8 +198,7 @@ contract ValidatorSetSubmitterTest is SnowbridgeAndAVSDeployer {
                         emptyStrategies,
                         address(snowbridgeGatewayMock),
                         address(0),
-                        "v-test",
-                        versionUpdater
+                        "v-test"
                     )
                 )
             )

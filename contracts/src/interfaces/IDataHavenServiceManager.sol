@@ -106,11 +106,6 @@ interface IDataHavenServiceManagerEvents {
     /// @param newVersion The new version string
     event VersionUpdated(string oldVersion, string newVersion);
 
-    /// @notice Emitted when the version updater address is set or changed
-    /// @param oldVersionUpdater The previous version updater address
-    /// @param newVersionUpdater The new version updater address
-    event VersionUpdaterSet(address indexed oldVersionUpdater, address indexed newVersionUpdater);
-
     /// @notice Emitted when a validator set message is submitted for a target era
     /// @param targetEra The target era for the validator set
     /// @param payloadHash The keccak256 hash of the encoded message payload
@@ -181,14 +176,13 @@ interface IDataHavenServiceManager is
 
     /**
      * @notice Initializes the DataHaven Service Manager
-     * @param initialOwner Address of the initial owner
+     * @param initialOwner Address of the initial owner (AVS owner)
      * @param rewardsInitiator Address authorized to initiate rewards
      * @param validatorsStrategiesAndMultipliers Array of strategy-multiplier pairs for the validators
      *        operator set. Each multiplier must be non-zero.
      * @param _snowbridgeGatewayAddress Address of the Snowbridge Gateway
      * @param _validatorSetSubmitter Address authorized to submit validator set messages
      * @param initialVersion The initial semantic version string (e.g., "1.0.0")
-     * @param _versionUpdater Address authorized to update the contract version
      */
     function initialize(
         address initialOwner,
@@ -196,8 +190,7 @@ interface IDataHavenServiceManager is
         IRewardsCoordinatorTypes.StrategyAndMultiplier[] memory validatorsStrategiesAndMultipliers,
         address _snowbridgeGatewayAddress,
         address _validatorSetSubmitter,
-        string memory initialVersion,
-        address _versionUpdater
+        string memory initialVersion
     ) external;
 
     /**
@@ -379,18 +372,10 @@ interface IDataHavenServiceManager is
     /**
      * @notice Updates the contract version (typically called after upgrades)
      * @param newVersion The new version string (e.g., "1.1.0")
-     * @dev Only callable by the version updater or owner
+     * @dev Only callable by the ProxyAdmin. Version changes are always bundled with
+     *      a proxy upgrade via upgradeAndCall. Trust chain: AVS owner → ProxyAdmin → updateVersion.
      */
     function updateVersion(
         string memory newVersion
-    ) external;
-
-    /**
-     * @notice Sets the address authorized to update the contract version
-     * @param newVersionUpdater The new version updater address
-     * @dev Only callable by the owner
-     */
-    function setVersionUpdater(
-        address newVersionUpdater
     ) external;
 }

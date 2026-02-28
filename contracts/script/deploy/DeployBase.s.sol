@@ -49,7 +49,6 @@ struct ServiceManagerInitParams {
     address gateway;
     address validatorSetSubmitter;
     string initialVersion;
-    address versionUpdater;
 }
 
 // Struct to store more detailed strategy information
@@ -274,8 +273,7 @@ abstract contract DeployBase is Script, DeployParams, Accounts {
             validatorsStrategiesAndMultipliers: strategiesAndMultipliers,
             gateway: address(gateway),
             validatorSetSubmitter: avsConfig.validatorSetSubmitter,
-            initialVersion: version,
-            versionUpdater: _deployer
+            initialVersion: version
         });
 
         // Create the service manager proxy (different logic for local vs testnet)

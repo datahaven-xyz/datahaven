@@ -227,8 +227,7 @@ const contractsCommand = program
 
     Versioning:
     - contracts/VERSION is the single source of truth for code version.
-    - contracts/versions-matrix.json tracks code version and per-chain deployments.
-    - bun cli contracts deploy/upgrade update versions-matrix.json deployment info.
+    - bun cli contracts upgrade --target X.Y.Z writes the new version to contracts/VERSION and upgrades on-chain.
     `
   )
   .description("Deploy and manage DataHaven AVS contracts on supported chains");
@@ -286,9 +285,8 @@ contractsCommand
   .option("--private-key-file <value>", "Path to file containing private key for deployment")
   .option("--verify", "Verify upgraded contracts on block explorer", false)
   .option(
-    "--target-version <value>",
-    "Version to upgrade to (default: 'latest' from VERSION file)",
-    "latest"
+    "--target <value>",
+    "Version to upgrade to (X.Y.Z). Writes to contracts/VERSION. Omit to use the current contracts/VERSION value."
   )
   .hook("preAction", contractsPreActionHook)
   .action(async (options: any, command: any) => {
@@ -304,14 +302,12 @@ contractsCommand
     printHeader(`Upgrading DataHaven Contracts on ${chain}`);
 
     try {
-      await versioningPreChecks({ chain, rpcUrl: options.rpcUrl });
-
       await contractsUpgrade({
         chain: chain,
         rpcUrl: options.rpcUrl,
         privateKeyFile: options.privateKeyFile,
         verify: options.verify,
-        version: options.targetVersion
+        version: options.target
       });
 
       await versioningPostChecks({

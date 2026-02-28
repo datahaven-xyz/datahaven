@@ -182,12 +182,12 @@ contract DeployLocal is DeployBase {
         _deployStrategies(pauserRegistry, proxyAdmin);
         Logging.logStep("Strategy contracts deployed successfully");
 
-        // Transfer ownership of core contracts
+        // Transfer ownership of core contracts to AVS owner so upgrades can be performed by AVS owner
         vm.broadcast(_deployerPrivateKey);
-        proxyAdmin.transferOwnership(eigenLayerConfig.executorMultisig);
+        proxyAdmin.transferOwnership(_avsOwner);
         vm.broadcast(_deployerPrivateKey);
         eigenPodBeacon.transferOwnership(eigenLayerConfig.executorMultisig);
-        Logging.logStep("Ownership transferred to multisig");
+        Logging.logStep("ProxyAdmin ownership transferred to AVS owner");
 
         Logging.logFooter();
         return proxyAdmin;
@@ -209,8 +209,7 @@ contract DeployLocal is DeployBase {
             params.validatorsStrategiesAndMultipliers,
             params.gateway,
             params.validatorSetSubmitter,
-            params.initialVersion,
-            params.versionUpdater
+            params.initialVersion
         );
 
         TransparentUpgradeableProxy proxy =

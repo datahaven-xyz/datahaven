@@ -2174,7 +2174,6 @@ export const dataHavenServiceManagerAbi = [
         type: 'address',
       },
       { name: 'initialVersion', internalType: 'string', type: 'string' },
-      { name: '_versionUpdater', internalType: 'address', type: 'address' },
     ],
     name: 'initialize',
     outputs: [],
@@ -2293,15 +2292,6 @@ export const dataHavenServiceManagerAbi = [
       { name: 'newSubmitter', internalType: 'address', type: 'address' },
     ],
     name: 'setValidatorSetSubmitter',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'newVersionUpdater', internalType: 'address', type: 'address' },
-    ],
-    name: 'setVersionUpdater',
     outputs: [],
     stateMutability: 'nonpayable',
   },
@@ -2457,13 +2447,6 @@ export const dataHavenServiceManagerAbi = [
     outputs: [
       { name: '', internalType: 'contract IStrategy[]', type: 'address[]' },
     ],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'versionUpdater',
-    outputs: [{ name: '', internalType: 'address', type: 'address' }],
     stateMutability: 'view',
   },
   {
@@ -2711,25 +2694,6 @@ export const dataHavenServiceManagerAbi = [
       },
     ],
     name: 'VersionUpdated',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'oldVersionUpdater',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-      {
-        name: 'newVersionUpdater',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-    ],
-    name: 'VersionUpdaterSet',
   },
   { type: 'error', inputs: [], name: 'CallerIsNotValidator' },
   { type: 'error', inputs: [], name: 'CantDeregisterFromMultipleOperatorSets' },
@@ -11019,15 +10983,6 @@ export const readDataHavenServiceManagerValidatorsSupportedStrategies =
   })
 
 /**
- * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"versionUpdater"`
- */
-export const readDataHavenServiceManagerVersionUpdater =
-  /*#__PURE__*/ createReadContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'versionUpdater',
-  })
-
-/**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__
  */
 export const writeDataHavenServiceManager = /*#__PURE__*/ createWriteContract({
@@ -11158,15 +11113,6 @@ export const writeDataHavenServiceManagerSetValidatorSetSubmitter =
   /*#__PURE__*/ createWriteContract({
     abi: dataHavenServiceManagerAbi,
     functionName: 'setValidatorSetSubmitter',
-  })
-
-/**
- * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"setVersionUpdater"`
- */
-export const writeDataHavenServiceManagerSetVersionUpdater =
-  /*#__PURE__*/ createWriteContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'setVersionUpdater',
   })
 
 /**
@@ -11353,15 +11299,6 @@ export const simulateDataHavenServiceManagerSetValidatorSetSubmitter =
   /*#__PURE__*/ createSimulateContract({
     abi: dataHavenServiceManagerAbi,
     functionName: 'setValidatorSetSubmitter',
-  })
-
-/**
- * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"setVersionUpdater"`
- */
-export const simulateDataHavenServiceManagerSetVersionUpdater =
-  /*#__PURE__*/ createSimulateContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'setVersionUpdater',
   })
 
 /**
@@ -11557,15 +11494,6 @@ export const watchDataHavenServiceManagerVersionUpdatedEvent =
   /*#__PURE__*/ createWatchContractEvent({
     abi: dataHavenServiceManagerAbi,
     eventName: 'VersionUpdated',
-  })
-
-/**
- * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `eventName` set to `"VersionUpdaterSet"`
- */
-export const watchDataHavenServiceManagerVersionUpdaterSetEvent =
-  /*#__PURE__*/ createWatchContractEvent({
-    abi: dataHavenServiceManagerAbi,
-    eventName: 'VersionUpdaterSet',
   })
 
 /**

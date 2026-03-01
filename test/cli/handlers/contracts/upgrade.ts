@@ -1,8 +1,9 @@
 import { spawn } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { logger, printDivider, printHeader } from "utils";
+import { logger, printDivider } from "utils";
 import { parseDeploymentsFile } from "utils/contracts";
+import { encodeFunctionData } from "viem";
 import { CHAIN_CONFIGS } from "../../../configs/contracts/config";
 import { buildContracts } from "../../../scripts/deploy-contracts";
 import { verifyContracts } from "./verify";
@@ -13,6 +14,7 @@ interface ContractsUpgradeOptions {
   privateKeyFile?: string;
   verify?: boolean;
   version?: string; // Explicit version to upgrade to (writes to VERSION file); omit to read from VERSION file
+  execute?: boolean; // When false (default), output calldata for multisig; when true, broadcast on-chain
 }
 
 const resolveUpgradeContext = (options: ContractsUpgradeOptions) => {
@@ -38,10 +40,12 @@ const resolveUpgradeContext = (options: ContractsUpgradeOptions) => {
   }
 
   // AVS owner key — owns the ProxyAdmin and the ServiceManager contract.
-  // All upgrade operations (proxy upgrade + version update) must be signed by the AVS owner.
+  // Required only when --execute is set; in dry-run mode the calldata is printed for manual multisig execution.
   const avsOwnerKey = process.env.AVS_OWNER_PRIVATE_KEY;
-  if (!avsOwnerKey) {
-    throw new Error("AVS_OWNER_PRIVATE_KEY environment variable is required to perform upgrades");
+  if (options.execute && !avsOwnerKey) {
+    throw new Error(
+      "AVS_OWNER_PRIVATE_KEY environment variable is required when using --execute to perform upgrades"
+    );
   }
 
   return { chainConfig, rpcUrl, deployerKey, avsOwnerKey };
@@ -101,14 +105,29 @@ const executeCommand = async (
 
 /**
  * Handles contract upgrade by deploying only implementation contracts
- * and updating proxy contracts to point to new implementations
+ * and updating proxy contracts to point to new implementations.
+ *
+ * Dry-run mode (default, --execute not set):
+ *   Deploys the new implementation, then prints the ProxyAdmin.upgradeAndCall
+ *   calldata so the multisig team can execute it manually. No AVS owner key needed.
+ *
+ * Execute mode (--execute):
+ *   Full on-chain upgrade — deploys the implementation and broadcasts the proxy
+ *   upgrade + version update transaction signed by the AVS owner.
  */
 export const contractsUpgrade = async (options: ContractsUpgradeOptions) => {
-  printHeader(`Upgrading DataHaven Contracts on ${options.chain}`);
+
+  const isDryRun = !options.execute;
 
   try {
     logger.info("🔄 Starting contract upgrade...");
     logger.info(`📡 Using chain: ${options.chain}`);
+    if (isDryRun) {
+      logger.info(
+        "ℹ️  Dry-run mode: the proxy upgrade transaction will NOT be broadcast. Calldata will be printed for manual multisig execution."
+      );
+      logger.info("   Pass --execute to broadcast the upgrade on-chain.");
+    }
 
     // For anvil, auto-detect RPC URL from Kurtosis if not provided
     let resolvedRpcUrl = options.rpcUrl;
@@ -139,28 +158,37 @@ export const contractsUpgrade = async (options: ContractsUpgradeOptions) => {
       deployerKey
     );
 
-    // Update proxy contracts to point to new implementations AND update version in one transaction.
-    // Must be signed by the AVS owner, who owns both the ProxyAdmin and the ServiceManager.
-    await updateProxyContracts(
-      options.chain,
-      rpcUrl,
-      avsOwnerKey,
-      serviceManagerImplAddress,
-      targetVersion
-    );
-
-    // Verify contracts if requested
-    if (options.verify) {
-      logger.info("🔍 Verifying upgraded contracts...");
-      await verifyContracts({
-        chain: options.chain,
+    if (isDryRun) {
+      // Print the calldata for the proxy upgrade so the multisig team can execute it
+      await printProxyUpgradeCalldata(options.chain, serviceManagerImplAddress, targetVersion);
+    } else {
+      // Update proxy contracts to point to new implementations AND update version in one transaction.
+      // Must be signed by the AVS owner, who owns both the ProxyAdmin and the ServiceManager.
+      await updateProxyContracts(
+        options.chain,
         rpcUrl,
-        skipVerification: false
-      });
+        avsOwnerKey as string,
+        serviceManagerImplAddress,
+        targetVersion
+      );
+
+      // Verify contracts if requested
+      if (options.verify) {
+        logger.info("🔍 Verifying upgraded contracts...");
+        await verifyContracts({
+          chain: options.chain,
+          rpcUrl,
+          skipVerification: false
+        });
+      }
     }
 
     printDivider();
-    logger.success("Contract upgrade completed successfully");
+    logger.success(
+      isDryRun
+        ? "Dry-run complete. Submit the transaction above via your multisig to finalize the upgrade."
+        : "Contract upgrade completed successfully"
+    );
   } catch (error) {
     logger.error(`❌ Contract upgrade failed: ${error}`);
     throw error;
@@ -222,6 +250,10 @@ const deployServiceManagerImplementation = async (
     ETHERSCAN_API_KEY: process.env.ETHERSCAN_API_KEY
   };
 
+  const { privateKeyToAccount } = await import("viem/accounts");
+  const normalizedKey = (privateKey.startsWith("0x") ? privateKey : `0x${privateKey}`) as `0x${string}`;
+  const deployerAddress = privateKeyToAccount(normalizedKey).address;
+
   const deployArgs = [
     "script",
     "script/deploy/DeployImplementation.s.sol:DeployImplementation",
@@ -229,6 +261,8 @@ const deployServiceManagerImplementation = async (
     "deployServiceManagerImpl()",
     "--rpc-url",
     rpcUrl,
+    "--sender",
+    deployerAddress,
     "--broadcast",
     "--non-interactive"
   ];
@@ -256,6 +290,88 @@ const deployServiceManagerImplementation = async (
     logger.error(`❌ Failed to deploy ServiceManager implementation: ${error}`);
     throw error;
   }
+};
+
+/**
+ * Minimal ABI for ProxyAdmin.upgradeAndCall — the only function needed to upgrade a
+ * TransparentUpgradeableProxy and call an initializer in a single transaction.
+ */
+const PROXY_ADMIN_ABI = [
+  {
+    name: "upgradeAndCall",
+    type: "function",
+    stateMutability: "payable",
+    inputs: [
+      { name: "proxy", type: "address" },
+      { name: "implementation", type: "address" },
+      { name: "data", type: "bytes" }
+    ],
+    outputs: []
+  }
+] as const;
+
+/**
+ * Prints the ProxyAdmin.upgradeAndCall calldata for manual multisig execution (dry-run).
+ *
+ * The upgrader team should submit this transaction from the multisig that owns the ProxyAdmin.
+ * The call combines the proxy upgrade and the version update in one atomic transaction.
+ */
+const printProxyUpgradeCalldata = async (
+  chain: string,
+  serviceManagerImplAddress: string,
+  version: string
+) => {
+  const deployments = await parseDeploymentsFile(chain);
+
+  const proxyAdmin = (deployments as any).ProxyAdmin ?? process.env.PROXY_ADMIN;
+  if (!proxyAdmin) {
+    throw new Error(
+      "ProxyAdmin address is required to generate upgrade calldata. Add `ProxyAdmin` to the deployments file or set the PROXY_ADMIN environment variable."
+    );
+  }
+
+  const serviceManager = deployments.ServiceManager;
+  if (!serviceManager) {
+    throw new Error("ServiceManager address not found in deployments file");
+  }
+
+  // Encode the updateVersion(string) call that will be passed as the `data` argument
+  // to upgradeAndCall, so the version is set atomically with the proxy upgrade.
+  const updateVersionData = encodeFunctionData({
+    abi: [
+      {
+        name: "updateVersion",
+        type: "function",
+        stateMutability: "nonpayable",
+        inputs: [{ name: "newVersion", type: "string" }],
+        outputs: []
+      }
+    ] as const,
+    functionName: "updateVersion",
+    args: [version]
+  });
+
+  const calldata = encodeFunctionData({
+    abi: PROXY_ADMIN_ABI,
+    functionName: "upgradeAndCall",
+    args: [serviceManager as `0x${string}`, serviceManagerImplAddress as `0x${string}`, updateVersionData]
+  });
+
+  logger.info("");
+  logger.info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+  logger.info("🔐 PROXY UPGRADE TRANSACTION (submit via multisig)");
+  logger.info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+  const payload = {
+    to: proxyAdmin,
+    value: "0",
+    data: calldata,
+    description: `Upgrade ServiceManager proxy to ${serviceManagerImplAddress} and set version to ${version}`
+  };
+  logger.info(JSON.stringify(payload, null, 2));
+  logger.info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+  logger.info("");
+
+  return payload;
 };
 
 /**

@@ -227,6 +227,14 @@ const contractsCommand = program
     Versioning:
     - contracts/VERSION is the single source of truth for code version.
     - bun cli contracts upgrade --target X.Y.Z writes the new version to contracts/VERSION and upgrades on-chain.
+
+    Upgrade dry-run (production default):
+    - bun cli contracts upgrade --chain hoodi --target X.Y.Z
+      Deploys the new implementation, then prints the ProxyAdmin.upgradeAndCall calldata
+      for the multisig team to execute manually. No AVS owner key required.
+    - bun cli contracts upgrade --chain hoodi --target X.Y.Z --execute
+      Full on-chain upgrade: deploys the implementation AND broadcasts the proxy upgrade
+      + version update transaction. Requires AVS_OWNER_PRIVATE_KEY.
     `
   )
   .description("Deploy and manage DataHaven AVS contracts on supported chains");
@@ -287,6 +295,11 @@ contractsCommand
     "--target <value>",
     "Version to upgrade to (X.Y.Z). Writes to contracts/VERSION. Omit to use the current contracts/VERSION value."
   )
+  .option(
+    "--execute",
+    "Execute the proxy upgrade transaction on-chain. Without this flag the command outputs the calldata for manual multisig execution (dry-run mode).",
+    false
+  )
   .hook("preAction", contractsPreActionHook)
   .action(async (options: any, command: any) => {
     // Try to get chain from options or command
@@ -306,13 +319,16 @@ contractsCommand
         rpcUrl: options.rpcUrl,
         privateKeyFile: options.privateKeyFile,
         verify: options.verify,
-        version: options.target
+        version: options.target,
+        execute: options.execute
       });
 
-      await versioningPostChecks({
-        chain,
-        rpcUrl: options.rpcUrl
-      });
+      if (options.execute) {
+        await versioningPostChecks({
+          chain,
+          rpcUrl: options.rpcUrl
+        });
+      }
     } catch (error) {
       logger.error(`❌ Upgrade failed: ${error}`);
     }

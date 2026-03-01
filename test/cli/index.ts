@@ -225,8 +225,9 @@ const contractsCommand = program
     --skip-verification: Skip contract verification
 
     Versioning:
-    - contracts/VERSION is the single source of truth for code version.
-    - bun cli contracts upgrade --target X.Y.Z writes the new version to contracts/VERSION and upgrades on-chain.
+    - contracts/VERSION is the single source of truth for the code version and must be updated in source control.
+    - bun cli contracts upgrade --target X.Y.Z upgrades on-chain to that version WITHOUT writing to contracts/VERSION.
+    - Omit --target to use the current contracts/VERSION value (the common case after bumping the file in a commit).
 
     Upgrade dry-run (production default):
     - bun cli contracts upgrade --chain hoodi --target X.Y.Z
@@ -293,7 +294,7 @@ contractsCommand
   .option("--verify", "Verify upgraded contracts on block explorer", false)
   .option(
     "--target <value>",
-    "Version to upgrade to (X.Y.Z). Writes to contracts/VERSION. Omit to use the current contracts/VERSION value."
+    "Version to upgrade to (X.Y.Z). Omit to use the current contracts/VERSION value. Does NOT write to contracts/VERSION — update that file in source control separately."
   )
   .option(
     "--execute",

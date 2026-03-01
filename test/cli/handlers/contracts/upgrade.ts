@@ -467,30 +467,38 @@ const updateServiceManagerProxyWithVersion = async (
 /**
  * Resolves the target version for upgrade.
  *
- * - If an explicit semver string is provided, it is written to contracts/VERSION and returned.
- * - If undefined/empty, the current value of contracts/VERSION is read and returned unchanged.
+ * - If an explicit semver string is provided via --target, it is validated and used as-is.
+ *   contracts/VERSION is NOT written — it is a source-controlled file that must be bumped
+ *   in a commit, not mutated as a side-effect of targeting a specific chain.
+ * - If undefined/empty, the current value of contracts/VERSION is read and returned.
+ *
+ * When --target differs from contracts/VERSION a warning is emitted so the operator
+ * knows the file and the on-chain state will diverge until the file is updated in source control.
  */
 const resolveTargetVersion = async (versionSpec: string | undefined): Promise<string> => {
   const cwd = process.cwd();
   const repoRoot = path.basename(cwd) === "test" ? path.join(cwd, "..") : cwd;
   const versionFile = path.join(repoRoot, "contracts", "VERSION");
 
+  const fileVersion = readFileSync(versionFile, "utf8").trim();
+
   if (!versionSpec) {
-    // No version provided — read from VERSION file
-    const version = readFileSync(versionFile, "utf8").trim();
-    logger.info(`📖 Reading version from VERSION file: ${version}`);
-    return version;
+    logger.info(`📖 Reading version from contracts/VERSION: ${fileVersion}`);
+    return fileVersion;
   }
 
-  // Validate semver format
   const semverRegex = /^\d+\.\d+\.\d+$/;
   if (!semverRegex.test(versionSpec)) {
     throw new Error(`Invalid version format: ${versionSpec}. Expected X.Y.Z`);
   }
 
-  // Write the new version to the VERSION file
-  writeFileSync(versionFile, versionSpec);
-  logger.info(`📝 Updated contracts/VERSION to ${versionSpec}`);
+  if (versionSpec !== fileVersion) {
+    logger.warn(
+      `⚠️  --target ${versionSpec} differs from contracts/VERSION (${fileVersion}). ` +
+        "The on-chain version will be set to the --target value. " +
+        "Remember to update contracts/VERSION in source control to keep it in sync."
+    );
+  }
 
   return versionSpec;
 };

@@ -491,27 +491,27 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         IRewardsCoordinatorTypes.OperatorReward[] memory translated =
             new IRewardsCoordinatorTypes.OperatorReward[](len);
         uint256 totalAmount = 0;
-        uint256 writeIdx = 0;
+        uint256 resolvedCount = 0;
         for (uint256 i = 0; i < len; i++) {
             address ethOp = validatorSolochainAddressToEthAddress[
                 translatedSubmission.operatorRewards[i].operator
             ];
             if (ethOp == address(0)) continue;
-            translated[writeIdx] = translatedSubmission.operatorRewards[i];
-            translated[writeIdx].operator = ethOp;
-            totalAmount += translated[writeIdx].amount;
-            writeIdx++;
+            translated[resolvedCount] = translatedSubmission.operatorRewards[i];
+            translated[resolvedCount].operator = ethOp;
+            totalAmount += translated[resolvedCount].amount;
+            resolvedCount++;
         }
 
         // Resize to the number of successfully resolved operators
         assembly {
-            mstore(translated, writeIdx)
+            mstore(translated, resolvedCount)
         }
         translatedSubmission.operatorRewards = translated;
 
-        emit RewardsSubmitted(totalAmount, submission.operatorRewards.length);
+        emit RewardsSubmitted(totalAmount, resolvedCount);
 
-        if (writeIdx == 0) return;
+        if (resolvedCount == 0) return;
 
         _sortOperatorRewards(translatedSubmission.operatorRewards);
 

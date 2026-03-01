@@ -353,10 +353,10 @@ contract RewardsSubmitterTest is AVSDeployer {
         IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission memory submission =
             _buildSubmission(1000e18, unknownSolochainOperator);
 
-        // Unknown solochain address is silently skipped; RewardsSubmitted is emitted with zero amount
+        // Unknown solochain address is silently skipped; RewardsSubmitted is emitted with zero amount and zero operator count
         vm.prank(snowbridgeAgent);
         vm.expectEmit();
-        emit IDataHavenServiceManagerEvents.RewardsSubmitted(0, submission.operatorRewards.length);
+        emit IDataHavenServiceManagerEvents.RewardsSubmitted(0, 0);
         serviceManager.submitRewards(submission);
     }
 

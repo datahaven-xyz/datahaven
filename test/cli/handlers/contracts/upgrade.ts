@@ -2,7 +2,7 @@ import { spawn } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { logger, printDivider } from "utils";
-import { parseDeploymentsFile } from "utils/contracts";
+import { type Deployments, parseDeploymentsFile } from "utils/contracts";
 import { encodeFunctionData } from "viem";
 import { CHAIN_CONFIGS } from "../../../configs/contracts/config";
 import { buildContracts } from "../../../scripts/deploy-contracts";
@@ -51,9 +51,6 @@ const resolveUpgradeContext = (options: ContractsUpgradeOptions) => {
   return { chainConfig, rpcUrl, deployerKey, avsOwnerKey };
 };
 
-/**
- * Reads private key from file
- */
 const readPrivateKeyFromFile = (filePath: string): string => {
   const privateKey = readFileSync(filePath, "utf8").trim();
   if (!privateKey) {
@@ -116,7 +113,6 @@ const executeCommand = async (
  *   upgrade + version update transaction signed by the AVS owner.
  */
 export const contractsUpgrade = async (options: ContractsUpgradeOptions) => {
-
   const isDryRun = !options.execute;
 
   try {
@@ -217,8 +213,8 @@ const deployImplementationContracts = async (
   const deploymentPath = `../contracts/deployments/${chain}.json`;
   const currentDeployments = await parseDeploymentsFile(chain);
   const updatedDeployments = {
-    ...(currentDeployments as any),
-    ServiceManagerImplementation: serviceManagerImplAddress
+    ...currentDeployments,
+    ServiceManagerImplementation: serviceManagerImplAddress as `0x${string}`
   };
   writeFileSync(deploymentPath, JSON.stringify(updatedDeployments, null, 2));
   logger.info(`📝 Updated ${deploymentPath} with new ServiceManagerImplementation`);
@@ -251,7 +247,9 @@ const deployServiceManagerImplementation = async (
   };
 
   const { privateKeyToAccount } = await import("viem/accounts");
-  const normalizedKey = (privateKey.startsWith("0x") ? privateKey : `0x${privateKey}`) as `0x${string}`;
+  const normalizedKey = (
+    privateKey.startsWith("0x") ? privateKey : `0x${privateKey}`
+  ) as `0x${string}`;
   const deployerAddress = privateKeyToAccount(normalizedKey).address;
 
   const deployArgs = [
@@ -323,7 +321,7 @@ const printProxyUpgradeCalldata = async (
 ) => {
   const deployments = await parseDeploymentsFile(chain);
 
-  const proxyAdmin = (deployments as any).ProxyAdmin ?? process.env.PROXY_ADMIN;
+  const proxyAdmin = deployments.ProxyAdmin ?? process.env.PROXY_ADMIN;
   if (!proxyAdmin) {
     throw new Error(
       "ProxyAdmin address is required to generate upgrade calldata. Add `ProxyAdmin` to the deployments file or set the PROXY_ADMIN environment variable."
@@ -354,7 +352,11 @@ const printProxyUpgradeCalldata = async (
   const calldata = encodeFunctionData({
     abi: PROXY_ADMIN_ABI,
     functionName: "upgradeAndCall",
-    args: [serviceManager as `0x${string}`, serviceManagerImplAddress as `0x${string}`, updateVersionData]
+    args: [
+      serviceManager as `0x${string}`,
+      serviceManagerImplAddress as `0x${string}`,
+      updateVersionData
+    ]
   });
 
   logger.info("");
@@ -405,7 +407,7 @@ const updateProxyContracts = async (
  * Signed by the AVS owner, who owns both the ProxyAdmin and the ServiceManager.
  */
 const updateServiceManagerProxyWithVersion = async (
-  deployments: any,
+  deployments: Deployments,
   rpcUrl: string,
   avsOwnerKey: string,
   serviceManagerImplAddress: string,
@@ -413,7 +415,7 @@ const updateServiceManagerProxyWithVersion = async (
 ) => {
   logger.info(`🔄 Updating ServiceManager proxy and setting version to ${version}...`);
 
-  const proxyAdmin = (deployments as any).ProxyAdmin ?? process.env.PROXY_ADMIN;
+  const proxyAdmin = deployments.ProxyAdmin ?? process.env.PROXY_ADMIN;
   if (!proxyAdmin) {
     throw new Error(
       "ProxyAdmin address is required for proxy updates. Add `ProxyAdmin` to the deployments file or set the PROXY_ADMIN environment variable."

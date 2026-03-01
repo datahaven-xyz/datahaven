@@ -231,8 +231,6 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         emit ValidatorSetSubmitterUpdated(oldSubmitter, newSubmitter);
     }
 
-    // ============ External Functions ============
-
     /// @inheritdoc IDataHavenServiceManager
     function sendNewValidatorSetForEra(
         uint64 targetEra,

@@ -144,7 +144,7 @@ contract SlashingTest is AVSDeployer {
         serviceManager.slashValidatorsOperator(slashings);
     }
 
-    function test_fulfilSlashingRequest_revertsIfUnknownSolochainAddress() public {
+    function test_fulfilSlashingRequest_skipsUnknownSolochainAddress() public {
         // Configure the rewards initiator (because only the reward agent can submit slashing request)
         vm.prank(avsOwner);
         serviceManager.setRewardsInitiator(snowbridgeAgent);
@@ -159,8 +159,10 @@ contract SlashingTest is AVSDeployer {
             "Testing unknown solochain operator"
         );
 
+        // Unknown solochain address is silently skipped; SlashingComplete is still emitted
         vm.prank(snowbridgeAgent);
-        vm.expectRevert(abi.encodeWithSignature("UnknownSolochainAddress()"));
+        vm.expectEmit();
+        emit IDataHavenServiceManagerEvents.SlashingComplete();
         serviceManager.slashValidatorsOperator(slashings);
     }
 }

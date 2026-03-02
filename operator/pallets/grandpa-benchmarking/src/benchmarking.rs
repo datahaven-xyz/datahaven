@@ -93,9 +93,8 @@ fn setup_equivocation<T: Config>(
 
     // ValidatorId = AccountId in all DataHaven runtimes; the reporter went through set_keys
     // successfully so the conversion is guaranteed to succeed.
-    let reporter_validator_id: T::ValidatorId =
-        T::ValidatorIdOf::convert(reporter.clone())
-            .ok_or_else(|| BenchmarkError::Stop("could not convert reporter to ValidatorId"))?;
+    let reporter_validator_id: T::ValidatorId = T::ValidatorIdOf::convert(reporter.clone())
+        .ok_or_else(|| BenchmarkError::Stop("could not convert reporter to ValidatorId"))?;
 
     // Build the full validator + queued-keys lists: the real offender first, then
     // `extra_validators` background validators. Each gets a unique GRANDPA key so the session

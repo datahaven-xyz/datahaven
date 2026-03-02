@@ -687,7 +687,6 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         address solochainAddress
     ) internal view returns (address) {
         address ethOperator = validatorSolochainAddressToEthAddress[solochainAddress];
-        address avsAddress = address(this);
         require(ethOperator != address(0), UnknownSolochainAddress());
         return ethOperator;
     }

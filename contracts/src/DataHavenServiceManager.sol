@@ -171,7 +171,7 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         require(initialOwner != address(0), ZeroAddress());
         require(_rewardsInitiator != address(0), ZeroAddress());
         require(_snowbridgeGatewayAddress != address(0), ZeroAddress());
-        require(bytes(initialVersion).length > 0, "Version cannot be empty");
+        require(bytes(initialVersion).length > 0, EmptyVersion());
 
         __Ownable_init();
         _transferOwnership(initialOwner);

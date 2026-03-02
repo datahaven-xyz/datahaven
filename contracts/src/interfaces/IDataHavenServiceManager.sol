@@ -45,6 +45,9 @@ interface IDataHavenServiceManagerErrors {
 
     /// @notice Thrown when a strategy is not registered in the operator set
     error StrategyNotInOperatorSet();
+
+    /// @notice Thrown when an empty version string is provided
+    error EmptyVersion();
 }
 
 /**

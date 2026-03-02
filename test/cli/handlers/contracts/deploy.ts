@@ -136,19 +136,8 @@ export const SUPPORTED_NETWORKS = [
 ] as const;
 
 export const contractsPreActionHook = async (thisCommand: any) => {
-  // Skip validation for commands that don't need chain
-  // Check if the command is one of the versioning commands by looking at args
   const args = thisCommand.args || [];
   const subcommand = args[0];
-
-  const skipChainValidation = ["bump", "apply-changesets", "validate-changesets"].includes(
-    subcommand
-  );
-
-  if (skipChainValidation) {
-    return; // Skip all validation for these commands
-  }
-
   let chain = thisCommand.getOptionValue("chain");
   let environment = thisCommand.getOptionValue("environment");
 

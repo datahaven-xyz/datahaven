@@ -168,6 +168,16 @@ mod benchmarks {
     /// the session trie has `v + 1` leaves and `key_owner_proof.validator_count()` equals `v + 1`.
     /// This means the trie verification path actually grows with `v`, giving the linear regression
     /// a real signal and producing a meaningful slope coefficient in the generated weight function.
+    ///
+    /// # Disclaimer: setup over-counts `v` cost
+    ///
+    /// The `v` slope in the generated weights is dominated by `Session::NextKeys` reads, because
+    /// `Historical::prove` (called during setup) reads all `v` validators to build the full trie.
+    /// In production, `Historical::check_proof` (called during dispatch) only traverses the O(log v)
+    /// Merkle path nodes — it does not read all validators. The generated weights therefore
+    /// over-count the per-validator cost and are conservative/safe (they overcharge rather than
+    /// undercharge), but this is a known tension inherent to benchmarking session historical
+    /// proofs: the setup must call `prove`, which is more expensive than `check_proof`.
     #[benchmark]
     fn report_equivocation(v: Linear<0, 1000>, n: Linear<0, 1>) -> Result<(), BenchmarkError> {
         let (proof, key_owner_proof, reporter) = setup_equivocation::<T>(v)?;

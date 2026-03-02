@@ -101,8 +101,12 @@ const abiMap = {
   PermissionController: generated.permissionControllerAbi,
   ETHPOSDeposit: generated.iethposDepositAbi,
   BaseStrategyImplementation: generated.strategyBaseTvlLimitsAbi,
+  ProxyAdmin: generated.proxyAdminAbi,
   DeployedStrategies: erc20Abi
-} as const satisfies Record<keyof Omit<Deployments, "network">, Abi>;
+} as const satisfies Record<
+  keyof Omit<Deployments, "network" | "version" | "deps" | "RewardsAgent">,
+  Abi
+>;
 
 type ContractName = keyof typeof abiMap;
 type AbiFor<C extends ContractName> = (typeof abiMap)[C];

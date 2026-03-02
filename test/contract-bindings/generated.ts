@@ -2699,9 +2699,11 @@ export const dataHavenServiceManagerAbi = [
   { type: 'error', inputs: [], name: 'CantDeregisterFromMultipleOperatorSets' },
   { type: 'error', inputs: [], name: 'CantRegisterToMultipleOperatorSets' },
   { type: 'error', inputs: [], name: 'EmptyValidatorSet' },
+  { type: 'error', inputs: [], name: 'EmptyVersion' },
   { type: 'error', inputs: [], name: 'IncorrectAVSAddress' },
   { type: 'error', inputs: [], name: 'InvalidOperatorSetId' },
   { type: 'error', inputs: [], name: 'InvalidSolochainAddressLength' },
+  { type: 'error', inputs: [], name: 'NotProxyAdmin' },
   { type: 'error', inputs: [], name: 'OnlyAllocationManager' },
   { type: 'error', inputs: [], name: 'OnlyRewardsInitiator' },
   { type: 'error', inputs: [], name: 'OnlyValidatorSetSubmitter' },
@@ -6383,6 +6385,122 @@ export const permissionControllerAbi = [
     type: 'error',
     inputs: [{ name: 'str', internalType: 'string', type: 'string' }],
     name: 'StringTooLong',
+  },
+] as const
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// ProxyAdmin
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+export const proxyAdminAbi = [
+  {
+    type: 'function',
+    inputs: [
+      {
+        name: 'proxy',
+        internalType: 'contract ITransparentUpgradeableProxy',
+        type: 'address',
+      },
+      { name: 'newAdmin', internalType: 'address', type: 'address' },
+    ],
+    name: 'changeProxyAdmin',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      {
+        name: 'proxy',
+        internalType: 'contract ITransparentUpgradeableProxy',
+        type: 'address',
+      },
+    ],
+    name: 'getProxyAdmin',
+    outputs: [{ name: '', internalType: 'address', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      {
+        name: 'proxy',
+        internalType: 'contract ITransparentUpgradeableProxy',
+        type: 'address',
+      },
+    ],
+    name: 'getProxyImplementation',
+    outputs: [{ name: '', internalType: 'address', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'owner',
+    outputs: [{ name: '', internalType: 'address', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'renounceOwnership',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'newOwner', internalType: 'address', type: 'address' }],
+    name: 'transferOwnership',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      {
+        name: 'proxy',
+        internalType: 'contract ITransparentUpgradeableProxy',
+        type: 'address',
+      },
+      { name: 'implementation', internalType: 'address', type: 'address' },
+    ],
+    name: 'upgrade',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      {
+        name: 'proxy',
+        internalType: 'contract ITransparentUpgradeableProxy',
+        type: 'address',
+      },
+      { name: 'implementation', internalType: 'address', type: 'address' },
+      { name: 'data', internalType: 'bytes', type: 'bytes' },
+    ],
+    name: 'upgradeAndCall',
+    outputs: [],
+    stateMutability: 'payable',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'previousOwner',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'newOwner',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+    ],
+    name: 'OwnershipTransferred',
   },
 ] as const
 
@@ -14403,6 +14521,155 @@ export const watchPermissionControllerPendingAdminRemovedEvent =
   /*#__PURE__*/ createWatchContractEvent({
     abi: permissionControllerAbi,
     eventName: 'PendingAdminRemoved',
+  })
+
+/**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link proxyAdminAbi}__
+ */
+export const readProxyAdmin = /*#__PURE__*/ createReadContract({
+  abi: proxyAdminAbi,
+})
+
+/**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link proxyAdminAbi}__ and `functionName` set to `"getProxyAdmin"`
+ */
+export const readProxyAdminGetProxyAdmin = /*#__PURE__*/ createReadContract({
+  abi: proxyAdminAbi,
+  functionName: 'getProxyAdmin',
+})
+
+/**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link proxyAdminAbi}__ and `functionName` set to `"getProxyImplementation"`
+ */
+export const readProxyAdminGetProxyImplementation =
+  /*#__PURE__*/ createReadContract({
+    abi: proxyAdminAbi,
+    functionName: 'getProxyImplementation',
+  })
+
+/**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link proxyAdminAbi}__ and `functionName` set to `"owner"`
+ */
+export const readProxyAdminOwner = /*#__PURE__*/ createReadContract({
+  abi: proxyAdminAbi,
+  functionName: 'owner',
+})
+
+/**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link proxyAdminAbi}__
+ */
+export const writeProxyAdmin = /*#__PURE__*/ createWriteContract({
+  abi: proxyAdminAbi,
+})
+
+/**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link proxyAdminAbi}__ and `functionName` set to `"changeProxyAdmin"`
+ */
+export const writeProxyAdminChangeProxyAdmin =
+  /*#__PURE__*/ createWriteContract({
+    abi: proxyAdminAbi,
+    functionName: 'changeProxyAdmin',
+  })
+
+/**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link proxyAdminAbi}__ and `functionName` set to `"renounceOwnership"`
+ */
+export const writeProxyAdminRenounceOwnership =
+  /*#__PURE__*/ createWriteContract({
+    abi: proxyAdminAbi,
+    functionName: 'renounceOwnership',
+  })
+
+/**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link proxyAdminAbi}__ and `functionName` set to `"transferOwnership"`
+ */
+export const writeProxyAdminTransferOwnership =
+  /*#__PURE__*/ createWriteContract({
+    abi: proxyAdminAbi,
+    functionName: 'transferOwnership',
+  })
+
+/**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link proxyAdminAbi}__ and `functionName` set to `"upgrade"`
+ */
+export const writeProxyAdminUpgrade = /*#__PURE__*/ createWriteContract({
+  abi: proxyAdminAbi,
+  functionName: 'upgrade',
+})
+
+/**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link proxyAdminAbi}__ and `functionName` set to `"upgradeAndCall"`
+ */
+export const writeProxyAdminUpgradeAndCall = /*#__PURE__*/ createWriteContract({
+  abi: proxyAdminAbi,
+  functionName: 'upgradeAndCall',
+})
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link proxyAdminAbi}__
+ */
+export const simulateProxyAdmin = /*#__PURE__*/ createSimulateContract({
+  abi: proxyAdminAbi,
+})
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link proxyAdminAbi}__ and `functionName` set to `"changeProxyAdmin"`
+ */
+export const simulateProxyAdminChangeProxyAdmin =
+  /*#__PURE__*/ createSimulateContract({
+    abi: proxyAdminAbi,
+    functionName: 'changeProxyAdmin',
+  })
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link proxyAdminAbi}__ and `functionName` set to `"renounceOwnership"`
+ */
+export const simulateProxyAdminRenounceOwnership =
+  /*#__PURE__*/ createSimulateContract({
+    abi: proxyAdminAbi,
+    functionName: 'renounceOwnership',
+  })
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link proxyAdminAbi}__ and `functionName` set to `"transferOwnership"`
+ */
+export const simulateProxyAdminTransferOwnership =
+  /*#__PURE__*/ createSimulateContract({
+    abi: proxyAdminAbi,
+    functionName: 'transferOwnership',
+  })
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link proxyAdminAbi}__ and `functionName` set to `"upgrade"`
+ */
+export const simulateProxyAdminUpgrade = /*#__PURE__*/ createSimulateContract({
+  abi: proxyAdminAbi,
+  functionName: 'upgrade',
+})
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link proxyAdminAbi}__ and `functionName` set to `"upgradeAndCall"`
+ */
+export const simulateProxyAdminUpgradeAndCall =
+  /*#__PURE__*/ createSimulateContract({
+    abi: proxyAdminAbi,
+    functionName: 'upgradeAndCall',
+  })
+
+/**
+ * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link proxyAdminAbi}__
+ */
+export const watchProxyAdminEvent = /*#__PURE__*/ createWatchContractEvent({
+  abi: proxyAdminAbi,
+})
+
+/**
+ * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link proxyAdminAbi}__ and `eventName` set to `"OwnershipTransferred"`
+ */
+export const watchProxyAdminOwnershipTransferredEvent =
+  /*#__PURE__*/ createWatchContractEvent({
+    abi: proxyAdminAbi,
+    eventName: 'OwnershipTransferred',
   })
 
 /**

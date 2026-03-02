@@ -24,7 +24,8 @@ export default defineConfig({
         "DelegationManager.sol/**",
         "PermissionController.sol/**",
         "IETHPOSDeposit.sol/**",
-        "StrategyBaseTVLLimits.sol/**"
+        "StrategyBaseTVLLimits.sol/**",
+        "ProxyAdmin.sol/**"
       ]
     })
   ]

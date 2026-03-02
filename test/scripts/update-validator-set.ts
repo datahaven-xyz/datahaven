@@ -46,6 +46,7 @@ export const updateValidatorSet = async (options: UpdateValidatorSetOptions): Pr
   const serviceManagerAddress = deployments.ServiceManager;
   invariant(serviceManagerAddress, "ServiceManager address not found in deployments");
 
+  // Security Note: Private key is passed via PRIVATE_KEY env var (not in argv) to avoid exposure in process lists.
   // Using cast to send the transaction
   const executionFee = "100000000000000000"; // 0.1 ETH
   const relayerFee = "200000000000000000"; // 0.2 ETH
@@ -58,11 +59,14 @@ export const updateValidatorSet = async (options: UpdateValidatorSetOptions): Pr
     );
   }
 
-  const sendCommand = `${castExecutable} send --private-key ${ownerPrivateKey} --value ${value} ${serviceManagerAddress} "sendNewValidatorSetForEra(uint64,uint128,uint128)" ${targetEra} ${executionFee} ${relayerFee} --rpc-url ${rpcUrl}`;
+  const sendCommand = `${castExecutable} send --private-key $PRIVATE_KEY --value ${value} ${serviceManagerAddress} "sendNewValidatorSetForEra(uint64,uint128,uint128)" ${targetEra} ${executionFee} ${relayerFee} --rpc-url ${rpcUrl}`;
 
   logger.debug(`Running command: ${sendCommand}`);
 
-  const { exitCode, stderr } = await $`sh -c ${sendCommand}`.nothrow().quiet();
+  const { exitCode, stderr } = await $`sh -c ${sendCommand}`
+    .env({ ...process.env, PRIVATE_KEY: ownerPrivateKey })
+    .nothrow()
+    .quiet();
 
   if (exitCode !== 0) {
     logger.error(`Failed to send validator set: ${stderr.toString()}`);

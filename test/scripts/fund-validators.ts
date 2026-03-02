@@ -162,7 +162,7 @@ export const fundValidators = async (options: FundValidatorsOptions): Promise<bo
     // Tests use locally-signed transactions so funding works in CI (no TTY, no unlocked accounts).
     for (const validator of validators) {
       if (validator.publicKey !== tokenCreator) {
-        const transferCmdSigned = `${castExecutable} send --private-key "\${PRIVATE_KEY}" ${underlyingTokenAddress} "transfer(address,uint256)" ${validator.publicKey} ${erc20TransferAmount} --rpc-url ${rpcUrl}`;
+        const transferCmdSigned = `${castExecutable} send --private-key $PRIVATE_KEY ${underlyingTokenAddress} "transfer(address,uint256)" ${validator.publicKey} ${erc20TransferAmount} --rpc-url ${rpcUrl}`;
         const { exitCode: transferExitCodeSigned, stderr: transferStderrSigned } =
           await $`sh -c ${transferCmdSigned}`
             .env({ ...process.env, PRIVATE_KEY: creatorPrivateKey })
@@ -198,7 +198,7 @@ export const fundValidators = async (options: FundValidatorsOptions): Promise<bo
 
         // Transfer ETH only if the validator has no ETH
         if (BigInt(validatorEthBalance) === BigInt(0)) {
-          const ethTransferCmdSigned = `${castExecutable} send --private-key "\${PRIVATE_KEY}" ${validator.publicKey} --value ${ethTransferAmount} --rpc-url ${rpcUrl}`;
+          const ethTransferCmdSigned = `${castExecutable} send --private-key $PRIVATE_KEY ${validator.publicKey} --value ${ethTransferAmount} --rpc-url ${rpcUrl}`;
           const { exitCode: ethExitCodeSigned, stderr: ethStderrSigned } =
             await $`sh -c ${ethTransferCmdSigned}`
               .env({ ...process.env, PRIVATE_KEY: creatorPrivateKey })

@@ -182,12 +182,12 @@ contract DeployLocal is DeployBase {
         _deployStrategies(pauserRegistry, proxyAdmin);
         Logging.logStep("Strategy contracts deployed successfully");
 
-        // Transfer ownership of core contracts
+        // Transfer ownership of core contracts to AVS owner so upgrades can be performed by AVS owner
         vm.broadcast(_deployerPrivateKey);
-        proxyAdmin.transferOwnership(eigenLayerConfig.executorMultisig);
+        proxyAdmin.transferOwnership(_avsOwner);
         vm.broadcast(_deployerPrivateKey);
         eigenPodBeacon.transferOwnership(eigenLayerConfig.executorMultisig);
-        Logging.logStep("Ownership transferred to multisig");
+        Logging.logStep("ProxyAdmin ownership transferred to AVS owner");
 
         Logging.logFooter();
         return proxyAdmin;
@@ -208,7 +208,8 @@ contract DeployLocal is DeployBase {
             params.rewardsInitiator,
             params.validatorsStrategiesAndMultipliers,
             params.gateway,
-            params.validatorSetSubmitter
+            params.validatorSetSubmitter,
+            params.initialVersion
         );
 
         TransparentUpgradeableProxy proxy =
@@ -223,7 +224,8 @@ contract DeployLocal is DeployBase {
         IGatewayV2 gateway,
         DataHavenServiceManager serviceManager,
         DataHavenServiceManager serviceManagerImplementation,
-        address rewardsAgent
+        address rewardsAgent,
+        ProxyAdmin proxyAdmin
     ) internal override {
         Logging.logHeader("DEPLOYMENT SUMMARY");
 
@@ -284,6 +286,7 @@ contract DeployLocal is DeployBase {
             vm.toString(address(serviceManagerImplementation)),
             '",'
         );
+        json = string.concat(json, '"ProxyAdmin": "', vm.toString(address(proxyAdmin)), '",');
         json = string.concat(json, '"RewardsAgent": "', vm.toString(rewardsAgent), '",');
 
         // EigenLayer contracts

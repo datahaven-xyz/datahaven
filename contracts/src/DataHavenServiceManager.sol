@@ -334,16 +334,13 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
     ) external onlyValidator {
         require(solochainAddress != address(0), ZeroAddress());
 
-        address existingEthOperator = validatorSolochainAddressToEthAddress[solochainAddress];
-        require(
-            existingEthOperator == address(0) || existingEthOperator == msg.sender,
-            SolochainAddressAlreadyAssigned()
-        );
-
         address oldSolochainAddress = validatorEthAddressToSolochainAddress[msg.sender];
-        if (oldSolochainAddress != address(0) && oldSolochainAddress != solochainAddress) {
-            delete validatorSolochainAddressToEthAddress[oldSolochainAddress];
-        }
+        require(oldSolochainAddress != solochainAddress, SolochainAddressAlreadyAssigned());
+
+        address existingEthOperator = validatorSolochainAddressToEthAddress[solochainAddress];
+        require(existingEthOperator == address(0), SolochainAddressAlreadyAssigned());
+
+        delete validatorSolochainAddressToEthAddress[oldSolochainAddress];
 
         validatorEthAddressToSolochainAddress[msg.sender] = solochainAddress;
         validatorSolochainAddressToEthAddress[solochainAddress] = msg.sender;
@@ -377,18 +374,16 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         require(operatorSetIds.length == 1, CantRegisterToMultipleOperatorSets());
         require(operatorSetIds[0] == VALIDATORS_SET_ID, InvalidOperatorSetId());
         require(validatorsAllowlist[operator], OperatorNotInAllowlist());
-
-        address solochainAddress = _toAddress(data);
-        address existingEthOperator = validatorSolochainAddressToEthAddress[solochainAddress];
         require(
-            existingEthOperator == address(0) || existingEthOperator == operator,
-            SolochainAddressAlreadyAssigned()
+            validatorEthAddressToSolochainAddress[operator] == address(0),
+            OperatorAlreadyRegistered()
         );
 
-        address oldSolochainAddress = validatorEthAddressToSolochainAddress[operator];
-        if (oldSolochainAddress != address(0) && oldSolochainAddress != solochainAddress) {
-            delete validatorSolochainAddressToEthAddress[oldSolochainAddress];
-        }
+        address solochainAddress = _toAddress(data);
+        require(
+            validatorSolochainAddressToEthAddress[solochainAddress] == address(0),
+            SolochainAddressAlreadyAssigned()
+        );
 
         validatorEthAddressToSolochainAddress[operator] = solochainAddress;
         validatorSolochainAddressToEthAddress[solochainAddress] = operator;
@@ -405,12 +400,13 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         require(avsAddress == address(this), IncorrectAVSAddress());
         require(operatorSetIds.length == 1, CantDeregisterFromMultipleOperatorSets());
         require(operatorSetIds[0] == VALIDATORS_SET_ID, InvalidOperatorSetId());
+        require(
+            validatorEthAddressToSolochainAddress[operator] != address(0), OperatorNotRegistered()
+        );
 
         address oldSolochainAddress = validatorEthAddressToSolochainAddress[operator];
         delete validatorEthAddressToSolochainAddress[operator];
-        if (oldSolochainAddress != address(0)) {
-            delete validatorSolochainAddressToEthAddress[oldSolochainAddress];
-        }
+        delete validatorSolochainAddressToEthAddress[oldSolochainAddress];
 
         emit OperatorDeregistered(operator, operatorSetIds[0]);
     }
@@ -529,12 +525,32 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
     ) external override onlyRewardsInitiator {
         IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission memory translatedSubmission =
         submission;
+
+        uint256 len = translatedSubmission.operatorRewards.length;
+        IRewardsCoordinatorTypes.OperatorReward[] memory translated =
+            new IRewardsCoordinatorTypes.OperatorReward[](len);
         uint256 totalAmount = 0;
-        for (uint256 i = 0; i < translatedSubmission.operatorRewards.length; i++) {
-            translatedSubmission.operatorRewards[i].operator =
-                _ethOperatorFromSolochain(translatedSubmission.operatorRewards[i].operator);
-            totalAmount += translatedSubmission.operatorRewards[i].amount;
+        uint256 resolvedCount = 0;
+        for (uint256 i = 0; i < len; i++) {
+            address ethOp = validatorSolochainAddressToEthAddress[
+                translatedSubmission.operatorRewards[i].operator
+            ];
+            if (ethOp == address(0)) continue;
+            translated[resolvedCount] = translatedSubmission.operatorRewards[i];
+            translated[resolvedCount].operator = ethOp;
+            totalAmount += translated[resolvedCount].amount;
+            resolvedCount++;
         }
+
+        // Resize to the number of successfully resolved operators
+        assembly {
+            mstore(translated, resolvedCount)
+        }
+        translatedSubmission.operatorRewards = translated;
+
+        emit RewardsSubmitted(totalAmount, resolvedCount);
+
+        if (resolvedCount == 0) return;
 
         _sortOperatorRewards(translatedSubmission.operatorRewards);
 
@@ -548,8 +564,6 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         _REWARDS_COORDINATOR.createOperatorDirectedOperatorSetRewardsSubmission(
             operatorSet, submissions
         );
-
-        emit RewardsSubmitted(totalAmount, submission.operatorRewards.length);
     }
 
     /// @inheritdoc IDataHavenServiceManager
@@ -593,7 +607,8 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         SlashingRequest[] calldata slashings
     ) external onlyRewardsInitiator {
         for (uint256 i = 0; i < slashings.length; i++) {
-            address ethOperator = _ethOperatorFromSolochain(slashings[i].operator);
+            address ethOperator = validatorSolochainAddressToEthAddress[slashings[i].operator];
+            if (ethOperator == address(0)) continue;
             IAllocationManagerTypes.SlashingParams memory slashingParams =
                 IAllocationManagerTypes.SlashingParams({
                     operator: ethOperator,
@@ -681,17 +696,5 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
             return stakeA > stakeB;
         }
         return opA < opB;
-    }
-
-    /**
-     * @notice Returns the EigenLayer operator address for a Solochain validator address
-     * @dev Reverts if the Solochain address has not been mapped to an operator
-     */
-    function _ethOperatorFromSolochain(
-        address solochainAddress
-    ) internal view returns (address) {
-        address ethOperator = validatorSolochainAddressToEthAddress[solochainAddress];
-        require(ethOperator != address(0), UnknownSolochainAddress());
-        return ethOperator;
     }
 }

@@ -123,36 +123,63 @@ contract OperatorAddressMappingsTest is AVSDeployer {
         );
     }
 
-    function test_registerOperator_replacesSolochainAndClearsOldReverseMapping() public {
-        address soloOld = address(0xBEEF);
-        address soloNew = address(0xCAFE);
+    function test_registerOperator_revertsIfAlreadyRegistered() public {
+        address solo1 = address(0xBEEF);
+        address solo2 = address(0xCAFE);
 
-        _registerOperator(operator1, soloOld);
+        _registerOperator(operator1, solo1);
 
-        // simulate allocationManager registering operator1 again with a new solochain address
+        // operator1 cannot register again, even with a different solochain address
         uint32[] memory operatorSetIds = new uint32[](1);
         operatorSetIds[0] = serviceManager.VALIDATORS_SET_ID();
 
         vm.prank(address(allocationManager));
+        vm.expectRevert(abi.encodeWithSignature("OperatorAlreadyRegistered()"));
         serviceManager.registerOperator(
-            operator1, address(serviceManager), operatorSetIds, abi.encodePacked(soloNew)
+            operator1, address(serviceManager), operatorSetIds, abi.encodePacked(solo2)
         );
+    }
+
+    function test_deregisterOperator_clearsBothMappings() public {
+        address solo1 = address(0xBEEF);
+
+        _registerOperator(operator1, solo1);
+
+        uint32[] memory operatorSetIds = new uint32[](1);
+        operatorSetIds[0] = serviceManager.VALIDATORS_SET_ID();
+
+        vm.prank(address(allocationManager));
+        serviceManager.deregisterOperator(operator1, address(serviceManager), operatorSetIds);
 
         assertEq(
             serviceManager.validatorEthAddressToSolochainAddress(operator1),
-            soloNew,
-            "forward mapping should update"
-        );
-        assertEq(
-            serviceManager.validatorSolochainAddressToEthAddress(soloNew),
-            operator1,
-            "reverse mapping should update"
-        );
-        assertEq(
-            serviceManager.validatorSolochainAddressToEthAddress(soloOld),
             address(0),
-            "old reverse mapping should be cleared"
+            "forward mapping should be cleared"
         );
+        assertEq(
+            serviceManager.validatorSolochainAddressToEthAddress(solo1),
+            address(0),
+            "reverse mapping should be cleared"
+        );
+    }
+
+    function test_deregisterOperator_revertsIfNotRegistered() public {
+        uint32[] memory operatorSetIds = new uint32[](1);
+        operatorSetIds[0] = serviceManager.VALIDATORS_SET_ID();
+
+        vm.prank(address(allocationManager));
+        vm.expectRevert(abi.encodeWithSignature("OperatorNotRegistered()"));
+        serviceManager.deregisterOperator(operator1, address(serviceManager), operatorSetIds);
+    }
+
+    function test_updateSolochainAddressForValidator_revertsIfSameAddress() public {
+        address solo1 = address(0xBEEF);
+
+        _registerOperator(operator1, solo1);
+
+        vm.prank(operator1);
+        vm.expectRevert(abi.encodeWithSignature("SolochainAddressAlreadyAssigned()"));
+        serviceManager.updateSolochainAddressForValidator(solo1);
     }
 }
 

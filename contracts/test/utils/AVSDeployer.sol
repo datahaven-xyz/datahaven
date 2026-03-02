@@ -249,7 +249,8 @@ contract AVSDeployer is Test {
                         rewardsInitiator,
                         defaultStrategyAndMultipliers,
                         address(snowbridgeGatewayMock),
-                        avsOwner
+                        avsOwner,
+                        "v-mock"
                     )
                 )
             )

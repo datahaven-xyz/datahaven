@@ -118,11 +118,15 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
     ///      bundled with an actual proxy upgrade (via upgradeAndCall). The ProxyAdmin
     ///      is owned by the AVS owner, so the trust chain is: AVS owner → ProxyAdmin → updateVersion.
     modifier onlyProxyAdmin() {
+        _checkProxyAdmin();
+        _;
+    }
+
+    function _checkProxyAdmin() internal view {
         // EIP-1967 admin slot: keccak256("eip1967.proxy.admin") - 1
         bytes32 adminSlot = 0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103;
         address proxyAdmin = StorageSlot.getAddressSlot(adminSlot).value;
-        require(msg.sender == proxyAdmin, "Caller is not the proxy admin");
-        _;
+        require(msg.sender == proxyAdmin, NotProxyAdmin());
     }
 
     function _checkRewardsInitiator() internal view {

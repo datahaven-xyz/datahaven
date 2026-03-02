@@ -48,6 +48,9 @@ interface IDataHavenServiceManagerErrors {
 
     /// @notice Thrown when an empty version string is provided
     error EmptyVersion();
+
+    /// @notice Thrown when the caller is not the ProxyAdmin
+    error NotProxyAdmin();
 }
 
 /**

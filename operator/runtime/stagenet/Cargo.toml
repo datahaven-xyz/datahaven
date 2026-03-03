@@ -72,6 +72,7 @@ pallet-referenda = { workspace = true }
 pallet-safe-mode = { workspace = true }
 pallet-scheduler = { workspace = true }
 pallet-session = { workspace = true }
+pallet-grandpa-benchmarking = { workspace = true, optional = true }
 pallet-session-benchmarking = { workspace = true, optional = true }
 pallet-sudo = { workspace = true }
 pallet-timestamp = { workspace = true }
@@ -197,6 +198,7 @@ std = [
     "frame-metadata-hash-extension/std",
     "frame-support/std",
     "frame-system-benchmarking?/std",
+    "pallet-grandpa-benchmarking?/std",
     "pallet-session-benchmarking?/std",
     "frame-system-rpc-runtime-api/std",
     "frame-system/std",
@@ -344,6 +346,7 @@ runtime-benchmarks = [
     "pallet-referenda/runtime-benchmarks",
     "pallet-proxy/runtime-benchmarks",
     "pallet-scheduler/runtime-benchmarks",
+    "pallet-grandpa-benchmarking/runtime-benchmarks",
     "pallet-session-benchmarking/runtime-benchmarks",
     "pallet-sudo/runtime-benchmarks",
     "pallet-timestamp/runtime-benchmarks",

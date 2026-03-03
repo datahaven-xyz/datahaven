@@ -1670,7 +1670,6 @@ impl datahaven_runtime_common::slashes_adapter::SlashesSubmissionConfig for Test
 
     fn slashes_agent_origin() -> H256 {
         runtime_params::dynamic_params::runtime_config::AgentOrigin::get()
-        // TODO: Can we use the same as reward and just rename the config to `AgentOrigin` ?
     }
 
     fn strategies() -> Vec<Address> {

@@ -1,0 +1,56 @@
+[package]
+authors = { workspace = true }
+description = "Benchmarking helpers for pallet-grandpa in DataHaven runtimes."
+edition = { workspace = true }
+license = { workspace = true }
+name = "pallet-grandpa-benchmarking"
+version = { workspace = true }
+
+[package.metadata.docs.rs]
+targets = ["x86_64-unknown-linux-gnu"]
+
+[lints]
+workspace = true
+
+[dependencies]
+codec = { workspace = true }
+frame-benchmarking = { workspace = true, optional = true }
+frame-support = { workspace = true }
+frame-system = { workspace = true }
+finality-grandpa = { version = "0.16.3", default-features = false }
+pallet-grandpa = { workspace = true }
+pallet-session = { workspace = true, features = ["historical"] }
+sp-consensus-grandpa = { workspace = true }
+sp-application-crypto = { workspace = true }
+sp-core = { workspace = true }
+sp-runtime = { workspace = true }
+sp-session = { workspace = true }
+sp-std = { workspace = true }
+
+[features]
+default = ["std"]
+std = [
+    "codec/std",
+    "frame-benchmarking?/std",
+    "frame-support/std",
+    "frame-system/std",
+    "finality-grandpa/std",
+    "pallet-grandpa/std",
+    "pallet-session/std",
+    "sp-consensus-grandpa/std",
+    "sp-application-crypto/std",
+    "sp-core/std",
+    "sp-runtime/std",
+    "sp-session/std",
+    "sp-std/std",
+]
+runtime-benchmarks = [
+    "frame-benchmarking/runtime-benchmarks",
+    "frame-support/runtime-benchmarks",
+    "frame-system/runtime-benchmarks",
+    "pallet-grandpa/runtime-benchmarks",
+    "sp-runtime/runtime-benchmarks",
+]
+
+[dev-dependencies]
+sp-core = { workspace = true, features = ["full_crypto"] }

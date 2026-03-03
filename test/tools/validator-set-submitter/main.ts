@@ -22,11 +22,13 @@ program
     "--submitter-private-key <key>",
     "Override submitter private key (or use SUBMITTER_PRIVATE_KEY env var)"
   )
+  .option("--metrics-port <port>", "Override metrics server port (or use METRICS_PORT env var)")
   .option("--dry-run", "Log what would be submitted without sending transactions", false)
   .action(async (opts) => {
     const config = await loadConfig(opts.config, {
       dryRun: opts.dryRun,
-      submitterPrivateKey: opts.submitterPrivateKey
+      submitterPrivateKey: opts.submitterPrivateKey,
+      metricsPort: opts.metricsPort
     });
 
     // Start metrics server early so /healthz is available during init

@@ -314,10 +314,7 @@ contractsCommand
     "--environment <value>",
     "Deployment environment (stagenet, testnet, mainnet). Config and deployment files will be prefixed with this value."
   )
-  .option(
-    "--rpc-url <value>",
-    "WebSocket RPC URL of the DataHaven chain to fetch AgentOrigin from"
-  )
+  .option("--rpc-url <value>", "WebSocket RPC URL of the DataHaven chain to fetch AgentOrigin from")
   .option(
     "--genesis-hash <value>",
     "Chain genesis hash (32 bytes hex). If not provided, will be fetched from the chain."

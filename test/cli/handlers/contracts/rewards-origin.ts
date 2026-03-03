@@ -193,9 +193,9 @@ const fetchGenesisHash = async (rpcUrl: string): Promise<Hex> => {
  * Updates the config file with the rewards message origin.
  *
  * @param networkId - The network identifier (e.g., "hoodi", "stagenet-hoodi")
- * @param rewardsMessageOrigin - The rewards message origin (Agent ID)
+ * @param messageOrigin - The rewards message origin (Agent ID)
  */
-const updateConfigFile = async (networkId: string, rewardsMessageOrigin: Hex): Promise<void> => {
+const updateConfigFile = async (networkId: string, messageOrigin: Hex): Promise<void> => {
   const configFilePath = `../contracts/config/${networkId}.json`;
   const configFile = Bun.file(configFilePath);
 
@@ -211,15 +211,15 @@ const updateConfigFile = async (networkId: string, rewardsMessageOrigin: Hex): P
     configJson.snowbridge = {};
   }
 
-  const oldOrigin = configJson.snowbridge.rewardsMessageOrigin;
-  configJson.snowbridge.rewardsMessageOrigin = rewardsMessageOrigin;
+  const oldOrigin = configJson.snowbridge.messageOrigin;
+  configJson.snowbridge.messageOrigin = messageOrigin;
 
   await Bun.write(configFilePath, `${JSON.stringify(configJson, null, 2)}\n`);
 
   logger.success(`Config file updated: ${configFilePath}`);
 
-  if (oldOrigin !== rewardsMessageOrigin) {
-    logger.info(`  rewardsMessageOrigin: ${oldOrigin ?? "unset"} -> ${rewardsMessageOrigin}`);
+  if (oldOrigin !== messageOrigin) {
+    logger.info(`  messageOrigin: ${oldOrigin ?? "unset"} -> ${messageOrigin}`);
   }
 };
 
@@ -247,11 +247,11 @@ export const updateRewardsOrigin = async (options: UpdateRewardsOriginOptions): 
 
   try {
     // Step 1: Try to fetch AgentOrigin from the chain
-    let rewardsMessageOrigin = await fetchAgentOrigin(options.rpcUrl);
+    let messageOrigin = await fetchAgentOrigin(options.rpcUrl);
 
     printDivider();
 
-    if (rewardsMessageOrigin) {
+    if (messageOrigin) {
       // Use the value from the chain
       logger.info("✅ Using AgentOrigin from chain runtime parameters");
     } else {
@@ -274,20 +274,20 @@ export const updateRewardsOrigin = async (options: UpdateRewardsOriginOptions): 
       logger.warn(
         "⚠️  Note: Computed Agent ID may need verification. Prefer setting AgentOrigin on-chain."
       );
-      rewardsMessageOrigin = await computeAgentId(genesisHash, rewardsAccount);
-      logger.info(`   Agent ID: ${rewardsMessageOrigin}`);
+      messageOrigin = await computeAgentId(genesisHash, rewardsAccount);
+      logger.info(`   Agent ID: ${messageOrigin}`);
     }
 
     printDivider();
 
     // Display the final value
     logger.info("📝 Rewards Message Origin:");
-    logger.info(`   ${rewardsMessageOrigin}`);
+    logger.info(`   ${messageOrigin}`);
 
     printDivider();
 
     // Update the config file
-    await updateConfigFile(networkId, rewardsMessageOrigin);
+    await updateConfigFile(networkId, messageOrigin);
 
     printDivider();
     logger.success(`Rewards message origin updated successfully for ${networkId}`);

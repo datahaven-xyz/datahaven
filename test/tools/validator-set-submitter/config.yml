@@ -19,3 +19,6 @@ network_id: "anvil"
 # Fees (in ETH, sent as msg.value to cover Snowbridge relay costs)
 execution_fee: "0.1"
 relayer_fee: "0.2"
+
+# Prometheus metrics server port (default: 8080)
+# metrics_port: 8080

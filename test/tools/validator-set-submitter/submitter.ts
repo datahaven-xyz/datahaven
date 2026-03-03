@@ -254,7 +254,6 @@ async function submitForEra(
 
     logger.info("OutboundMessageAccepted confirmed");
     metrics.submissionsTotal.inc({ outcome: "success" });
-    metrics.lastSubmittedEra.set(Number(targetEraValue));
     return true;
   } catch (err: unknown) {
     if (signal.aborted) return false;

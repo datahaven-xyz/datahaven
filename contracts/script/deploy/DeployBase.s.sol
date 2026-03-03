@@ -48,6 +48,7 @@ struct ServiceManagerInitParams {
     IRewardsCoordinatorTypes.StrategyAndMultiplier[] validatorsStrategiesAndMultipliers;
     address gateway;
     address validatorSetSubmitter;
+    string initialVersion;
 }
 
 // Struct to store more detailed strategy information
@@ -149,7 +150,8 @@ abstract contract DeployBase is Script, DeployParams, Accounts {
             gateway,
             serviceManager,
             serviceManagerImplementation,
-            agentAddress
+            agentAddress,
+            proxyAdmin
         );
 
         _outputAgentInfo(agentAddress, snowbridgeConfig.messageOrigin);
@@ -261,13 +263,18 @@ abstract contract DeployBase is Script, DeployParams, Accounts {
             });
         }
 
+        // Read version from environment variable (passed by TypeScript wrapper)
+        string memory version = vm.envOr("DATAHAVEN_VERSION", string("0.1.0"));
+        console.log("|  Version: %s", version);
+
         // Create service manager initialisation parameters struct
         ServiceManagerInitParams memory initParams = ServiceManagerInitParams({
             avsOwner: avsConfig.avsOwner,
             rewardsInitiator: agentAddress,
             validatorsStrategiesAndMultipliers: strategiesAndMultipliers,
             gateway: address(gateway),
-            validatorSetSubmitter: avsConfig.validatorSetSubmitter
+            validatorSetSubmitter: avsConfig.validatorSetSubmitter,
+            initialVersion: version
         });
 
         // Create the service manager proxy (different logic for local vs testnet)
@@ -307,7 +314,8 @@ abstract contract DeployBase is Script, DeployParams, Accounts {
         IGatewayV2 gateway,
         DataHavenServiceManager serviceManager,
         DataHavenServiceManager serviceManagerImplementation,
-        address agent
+        address agent,
+        ProxyAdmin proxyAdmin
     ) internal virtual;
 
     /**

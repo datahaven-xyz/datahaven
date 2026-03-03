@@ -197,7 +197,8 @@ contract ValidatorSetSubmitterTest is SnowbridgeAndAVSDeployer {
                         rewardsInitiator,
                         emptyStrategies,
                         address(snowbridgeGatewayMock),
-                        address(0)
+                        address(0),
+                        "v-test"
                     )
                 )
             )

@@ -1,6 +1,9 @@
 #!/bin/bash
-# DataHaven Benchmarking Script using frame-omni-bencher
-# Automatically discovers and benchmarks all pallets in the runtime
+# DataHaven Benchmarking Script
+# Uses frame-omni-bencher for most pallets.
+# Pallets listed in NODE_PALLETS are benchmarked via the native node binary instead,
+# because frame-omni-bencher's WASM host lacks the crypto primitives they require
+# (e.g. pallet_grandpa needs a real ed25519 verifier for report_equivocation).
 
 set -e
 
@@ -9,6 +12,11 @@ RUNTIME=${1:-testnet}
 STEPS=${2:-50}
 REPEAT=${3:-20}
 FEATURES="runtime-benchmarks"
+
+# Pallets that must be benchmarked via the native node binary instead of frame-omni-bencher.
+# Add pallet names here (space-separated) when their benchmarks require crypto or host
+# functions that the WASM execution environment cannot provide.
+NODE_PALLETS=("pallet_grandpa")
 
 # Color codes for output
 RED='\033[0;31m'
@@ -52,9 +60,17 @@ if [ ! -f "$TEMPLATE_PATH" ]; then
     exit 1
 fi
 
-# Build the runtime WASM
-echo -e "${YELLOW}Building runtime $RUNTIME (production profile) with features: $FEATURES${NC}"
-cargo build --profile production --features "$FEATURES" -p datahaven-$RUNTIME-runtime
+# Build the runtime WASM and the node binary
+echo -e "${YELLOW}Building runtime $RUNTIME and node (production profile) with features: $FEATURES${NC}"
+cargo build --profile production --features "$FEATURES" \
+    -p datahaven-$RUNTIME-runtime \
+    -p datahaven-node
+
+NODE_BIN="target/production/datahaven-node"
+if [ ! -f "$NODE_BIN" ]; then
+    echo -e "${RED}Error: Node binary not found at $NODE_BIN${NC}"
+    exit 1
+fi
 
 # Get the WASM path
 WASM_PATH="target/production/wbuild/datahaven-$RUNTIME-runtime/datahaven_${RUNTIME}_runtime.compact.compressed.wasm"
@@ -97,6 +113,48 @@ mkdir -p "$WEIGHTS_DIR"
 # Run benchmarks for each pallet using frame-omni-bencher
 echo -e "${GREEN}Starting benchmarks...${NC}\n"
 
+# Returns 0 if the given pallet should be benchmarked via the node binary, 1 otherwise.
+requires_node_benchmark() {
+    local PALLET=$1
+    for node_pallet in "${NODE_PALLETS[@]}"; do
+        if [ "$node_pallet" == "$PALLET" ]; then
+            return 0
+        fi
+    done
+    return 1
+}
+
+# Benchmark a pallet via the native node binary.
+# Used for pallets whose benchmarks require host functions unavailable in WASM
+# (e.g. real ed25519 verification for pallet_grandpa::report_equivocation).
+benchmark_pallet_via_node() {
+    local PALLET=$1
+    local OUTPUT_FILE=$2
+
+    echo -e "${YELLOW}Benchmarking $PALLET (via node binary)...${NC}"
+
+    "$NODE_BIN" benchmark pallet \
+        --runtime "$WASM_PATH" \
+        --genesis-builder runtime \
+        --pallet "$PALLET" \
+        --extrinsic "*" \
+        --header ../file_header.txt \
+        --template "$TEMPLATE_PATH" \
+        --output "$WEIGHTS_DIR/$OUTPUT_FILE.rs" \
+        --steps "$STEPS" \
+        --repeat "$REPEAT" 2>&1 | tee "benchmark_${PALLET}.log"
+
+    local exit_code=${PIPESTATUS[0]}
+
+    if [ $exit_code -eq 0 ]; then
+        echo -e "${GREEN}✓ $PALLET benchmarked successfully (node)${NC}"
+        return 0
+    else
+        echo -e "${RED}✗ Error benchmarking $PALLET (node)${NC}"
+        return 1
+    fi
+}
+
 # Function to run benchmark for a pallet
 benchmark_pallet() {
     local PALLET=$1
@@ -131,10 +189,18 @@ benchmark_pallet() {
 for PALLET in "${PALLETS[@]}"; do
     # Use the pallet name directly as the output file name
     OUTPUT_FILE="$PALLET"
-    if benchmark_pallet "$PALLET" "$OUTPUT_FILE"; then
-        RESULTS[$PALLET]="SUCCESS"
+    if requires_node_benchmark "$PALLET"; then
+        if benchmark_pallet_via_node "$PALLET" "$OUTPUT_FILE"; then
+            RESULTS[$PALLET]="SUCCESS"
+        else
+            RESULTS[$PALLET]="FAILED"
+        fi
     else
-        RESULTS[$PALLET]="FAILED"
+        if benchmark_pallet "$PALLET" "$OUTPUT_FILE"; then
+            RESULTS[$PALLET]="SUCCESS"
+        else
+            RESULTS[$PALLET]="FAILED"
+        fi
     fi
     echo ""
 done

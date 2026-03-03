@@ -1,12 +1,15 @@
 #!/usr/bin/env bun
 import { Command, InvalidArgumentError } from "@commander-js/extra-typings";
 import type { DeployEnvironment } from "utils";
+import { logger, printHeader } from "utils";
 import {
   contractsCheck,
+  contractsChecks,
   contractsDeploy,
   contractsPreActionHook,
   contractsUpdateBeefyCheckpoint,
   contractsUpdateRewardsOrigin,
+  contractsUpgrade,
   contractsVerify,
   deploy,
   deployPreActionHook,
@@ -14,7 +17,8 @@ import {
   launchPreActionHook,
   stop,
   stopPreActionHook,
-  updateAVSMetadataURI
+  updateAVSMetadataURI,
+  versioningPostChecks
 } from "./handlers";
 
 // Function to parse integer
@@ -205,6 +209,7 @@ const contractsCommand = program
     Commands:
     - status: Show deployment plan, configuration, and status (default)
     - deploy: Deploy contracts to specified chain
+    - upgrade: Upgrade contracts by deploying new implementations
     - verify: Verify deployed contracts on block explorer
     - update-beefy-checkpoint: Fetch BEEFY authorities from a live chain and update config
     - update-rewards-origin: Fetch or compute the AgentOrigin and update config
@@ -218,6 +223,19 @@ const contractsCommand = program
     --rpc-url: Chain RPC URL (optional, defaults based on chain)
     --private-key: Private key for deployment
     --skip-verification: Skip contract verification
+
+    Versioning:
+    - contracts/VERSION is the single source of truth for the code version and must be updated in source control.
+    - bun cli contracts upgrade --target X.Y.Z upgrades on-chain to that version WITHOUT writing to contracts/VERSION.
+    - Omit --target to use the current contracts/VERSION value (the common case after bumping the file in a commit).
+
+    Upgrade dry-run (production default):
+    - bun cli contracts upgrade --chain hoodi --target X.Y.Z
+      Deploys the new implementation, then prints the ProxyAdmin.upgradeAndCall calldata
+      for the multisig team to execute manually. No AVS owner key required.
+    - bun cli contracts upgrade --chain hoodi --target X.Y.Z --execute
+      Full on-chain upgrade: deploys the implementation AND broadcasts the proxy upgrade
+      + version update transaction. Requires AVS_OWNER_PRIVATE_KEY.
     `
   )
   .description("Deploy and manage DataHaven AVS contracts on supported chains");
@@ -265,6 +283,66 @@ contractsCommand
   .option("--skip-verification", "Skip contract verification", false)
   .hook("preAction", contractsPreActionHook)
   .action(contractsDeploy);
+
+// Contracts Upgrade
+contractsCommand
+  .command("upgrade")
+  .description("Upgrade DataHaven AVS contracts by deploying new implementations")
+  .option("--chain <value>", "Target chain (hoodi, mainnet, anvil)")
+  .option("--rpc-url <value>", "Chain RPC URL (optional, defaults based on chain)")
+  .option("--private-key-file <value>", "Path to file containing private key for deployment")
+  .option("--verify", "Verify upgraded contracts on block explorer", false)
+  .option(
+    "--target <value>",
+    "Version to upgrade to (X.Y.Z). Omit to use the current contracts/VERSION value. Does NOT write to contracts/VERSION — update that file in source control separately."
+  )
+  .option(
+    "--execute",
+    "Execute the proxy upgrade transaction on-chain. Without this flag the command outputs the calldata for manual multisig execution (dry-run mode).",
+    false
+  )
+  .hook("preAction", contractsPreActionHook)
+  .action(async (options: any, command: any) => {
+    // Try to get chain from options or command
+    let chain = options.chain;
+    if (!chain && command.parent) {
+      chain = command.parent.getOptionValue("chain");
+    }
+    if (!chain) {
+      chain = command.getOptionValue("chain");
+    }
+
+    printHeader(`Upgrading DataHaven Contracts on ${chain}`);
+
+    try {
+      await contractsUpgrade({
+        chain: chain,
+        rpcUrl: options.rpcUrl,
+        privateKeyFile: options.privateKeyFile,
+        verify: options.verify,
+        version: options.target,
+        execute: options.execute
+      });
+
+      if (options.execute) {
+        await versioningPostChecks({
+          chain,
+          rpcUrl: options.rpcUrl
+        });
+      }
+    } catch (error) {
+      logger.error(`❌ Upgrade failed: ${error}`);
+    }
+  });
+
+// Contracts Version Check
+contractsCommand
+  .command("version-check")
+  .description("Run contract version checks")
+  .option("--chain <value>", "Target chain (hoodi, mainnet, anvil)")
+  .option("--rpc-url <value>", "Chain RPC URL (optional, defaults based on chain)")
+  .hook("preAction", contractsPreActionHook)
+  .action(contractsChecks);
 
 // Contracts Verify
 contractsCommand

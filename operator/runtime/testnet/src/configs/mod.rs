@@ -1949,7 +1949,7 @@ mod tests {
     /// is correctly computed from the chain's genesis hash and the ExternalValidatorRewardsAccount.
     ///
     /// This test verifies the value that should be set as `AgentOrigin` in runtime parameters
-    /// and as `rewardsMessageOrigin` in the AVS contract configuration.
+    /// and as `messageOrigin` in the AVS contract configuration.
     ///
     /// The Agent ID is computed following Snowbridge's pattern for GlobalConsensus locations:
     /// blake2_256(SCALE_ENCODE("GlobalConsensus", ByGenesis(genesis_hash), compact_len, "AccountKey20", account_key))
@@ -2001,7 +2001,7 @@ mod tests {
             "Computed Rewards Agent ID must match expected value.\n\
              This value should be set as:\n\
              - AgentOrigin in runtime_params.rs\n\
-             - rewardsMessageOrigin in AVS contract config\n\
+             - messageOrigin in AVS contract config\n\
              \n\
              Rewards account: 0x{}\n\
              Genesis hash: 0x{}\n\

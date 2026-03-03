@@ -169,7 +169,7 @@ describe("test uploading file to storage hub", () => {
     const owner = registry.createType("AccountId20", account.address);
     const bucketIdH256 = registry.createType("H256", bucketId);
     const fingerprint = await fileManager.getFingerprint();
-    const fileKey = await fileManager.computeFileKey(owner, bucketIdH256, location);
+    const _fileKey = await fileManager.computeFileKey(owner, bucketIdH256, location);
 
     // Set up EVM clients
     const httpUrl = aliceUrl.replace("ws://", "http://");
@@ -211,22 +211,17 @@ describe("test uploading file to storage hub", () => {
     }
     console.log("issueStorageRequest() txReceipt:", receipt);
 
-    // Probably need for it to be accepted by someone before uploading.
+    // Authenticate with the backend via SIWE and upload the file
+    const mspClient = await MspClient.connect({ baseUrl: backendUrl }, async () =>
+      sessionToken
+        ? ({ token: sessionToken, user: { address: account.address } } as const)
+        : undefined
+    );
 
-    // // Authenticate with the backend via SIWE and upload the file
-    // let sessionToken: string | undefined = undefined;
-    // const mspClient = await MspClient.connect(
-    //   { baseUrl: backendUrl },
-    //   async () =>
-    //     sessionToken
-    //       ? ({ token: sessionToken, user: { address: account.address } } as const)
-    //       : undefined
-    // );
-
-    // const domain = new URL(backendUrl).host;
-    // const siweSession = await mspClient.auth.SIWE(walletClient, domain, backendUrl);
-    // sessionToken = (siweSession as { token: string }).token;
-    // expect(sessionToken).toBeDefined();
+    const domain = new URL(backendUrl).host;
+    const siweSession = await mspClient.auth.SIWE(walletClient, domain, backendUrl);
+    const sessionToken = (siweSession as { token: string }).token;
+    expect(sessionToken).toBeDefined();
 
     // const uploadReceipt = await mspClient.files.uploadFile(
     //   bucketId,

@@ -192,32 +192,41 @@ groups:
 
 ## Docker
 
-Build the image from the repository root:
+A pre-built image is published to Docker Hub on every push to `main`:
 
-```bash
-docker build -f test/tools/validator-set-submitter/Dockerfile \
-  -t datahavenxyz/validator-set-submitter:local .
+```
+datahavenxyz/validator-set-submitter:latest
+datahavenxyz/validator-set-submitter:sha-<short>
 ```
 
-Run the submitter with mounted config and env private key:
+Run the submitter with a mounted config and private key:
 
 ```bash
 docker run --rm \
-  -v "$(pwd)/test/tools/validator-set-submitter/config.yml:/config/config.yml:ro" \
+  -v "$(pwd)/config.yml:/config/config.yml:ro" \
   -e SUBMITTER_PRIVATE_KEY=0x... \
-  datahavenxyz/validator-set-submitter:local
+  datahavenxyz/validator-set-submitter:latest
 ```
 
 Dry run:
 
 ```bash
 docker run --rm \
-  -v "$(pwd)/test/tools/validator-set-submitter/config.yml:/config/config.yml:ro" \
+  -v "$(pwd)/config.yml:/config/config.yml:ro" \
   -e SUBMITTER_PRIVATE_KEY=0x... \
-  datahavenxyz/validator-set-submitter:local --dry-run
+  datahavenxyz/validator-set-submitter:latest --dry-run
 ```
 
-The Docker image does not include `contracts/deployments/*.json`. In containerized runs, set `service_manager_address` in your config.
+The Docker image does not include `contracts/deployments/*.json`. Set `service_manager_address` explicitly in your config.
+
+### Building locally
+
+To build the image from the repository root:
+
+```bash
+docker build -f test/tools/validator-set-submitter/Dockerfile \
+  -t datahavenxyz/validator-set-submitter:local .
+```
 
 ## Startup checks
 

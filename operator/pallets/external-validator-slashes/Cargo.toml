@@ -18,7 +18,6 @@ frame-support = { workspace = true }
 frame-system = { workspace = true }
 log = { workspace = true }
 pallet-session = { workspace = true }
-pallet-staking = { workspace = true }
 parity-scale-codec = { workspace = true, features = ["derive", "max-encoded-len"] }
 scale-info = { workspace = true }
 snowbridge-core = { workspace = true }
@@ -42,7 +41,6 @@ std = [
     "frame-system/std",
     "log/std",
     "pallet-session/std",
-    "pallet-staking/std",
     "pallet-timestamp/std",
     "parity-scale-codec/std",
     "pallet-external-validators/std",
@@ -58,7 +56,6 @@ runtime-benchmarks = [
     "frame-benchmarking/runtime-benchmarks",
     "frame-support/runtime-benchmarks",
     "frame-system/runtime-benchmarks",
-    "pallet-staking/runtime-benchmarks",
     "pallet-timestamp/runtime-benchmarks",
     "pallet-external-validators/runtime-benchmarks",
     "snowbridge-core/runtime-benchmarks",
@@ -70,7 +67,6 @@ try-runtime = [
     "frame-support/try-runtime",
     "frame-system/try-runtime",
     "pallet-session/try-runtime",
-    "pallet-staking/try-runtime",
     "pallet-timestamp/try-runtime",
     "sp-runtime/try-runtime",
 ]

@@ -24,8 +24,7 @@ contract DeployParams is Script, Config {
         config.minNumRequiredSignatures =
             vm.parseJsonUint(configJson, ".snowbridge.minNumRequiredSignatures");
         config.startBlock = vm.parseJsonUint(configJson, ".snowbridge.startBlock").toUint64();
-        config.rewardsMessageOrigin =
-            vm.parseJsonBytes32(configJson, ".snowbridge.rewardsMessageOrigin");
+        config.messageOrigin = vm.parseJsonBytes32(configJson, ".snowbridge.messageOrigin");
 
         // Load validators from file or generate placeholder ones in dev mode
         bool isDevMode = keccak256(abi.encodePacked(vm.envOr("DEV_MODE", string("false"))))

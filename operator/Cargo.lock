@@ -9142,7 +9142,6 @@ dependencies = [
  "log",
  "pallet-external-validators",
  "pallet-session",
- "pallet-staking",
  "pallet-timestamp",
  "parity-scale-codec",
  "scale-info",

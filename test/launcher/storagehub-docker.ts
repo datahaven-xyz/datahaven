@@ -124,7 +124,7 @@ export const injectStorageHubKey = async (
   // Use Bun's $ directly with docker exec (no sh -c wrapper needed)
   // This properly handles the spaces in the seed phrase
   try {
-    await $`docker exec ${containerName} datahaven-node key insert --base-path /data --key-type bcsv --scheme ecdsa --suri ${secretKey}`;
+    await $`docker exec ${containerName} datahaven-node key insert --chain local --key-type bcsv --scheme ecdsa --suri ${secretKey}`;
     logger.success("Key injected successfully");
   } catch (error) {
     logger.error(`Failed to inject key : ${error}`);
@@ -141,7 +141,7 @@ export const injectStorageHubKey = async (
 export const launchMspNode = async (
   options: DataHavenOptions,
   launchedNetwork: LaunchedNetwork
-): Promise<void> => {
+): Promise<string> => {
   logger.info("🚀 Launching StorageHub MSP node...");
 
   const containerName = `storagehub-msp-${options.networkId}`;
@@ -182,7 +182,10 @@ export const launchMspNode = async (
     "--max-storage-capacity",
     "10737418240", // 10 GiB
     "--jump-capacity",
-    "1073741824" // 1 GiB
+    "1073741824", // 1 GiB
+    "--trusted-file-transfer-server",
+    "--trusted-file-transfer-server-host",
+    "0.0.0.0" // Listen on all interfaces so the backend container can reach it
   ];
 
   logger.debug(`Executing: ${command.join(" ")}`);
@@ -217,6 +220,8 @@ export const launchMspNode = async (
   launchedNetwork.addContainer(containerName, { ws: wsPort }, { ws: DEFAULT_SUBSTRATE_WS_PORT });
 
   logger.success(`MSP node started on port ${wsPort}`);
+
+  return `ws://127.0.0.1:${wsPort}`;
 };
 
 /**
@@ -457,11 +462,12 @@ export const launchFishermanNode = async (
  *
  * @param options - Configuration options for launching the network
  * @param launchedNetwork - The launched network instance to track the node
+ * @returns The HTTP URL of the backend API (e.g. "http://127.0.0.1:8080")
  */
 export const launchBackend = async (
   options: DataHavenOptions,
   launchedNetwork: LaunchedNetwork
-): Promise<void> => {
+): Promise<string> => {
   logger.info("🚀 Launching StorageHub Backend...");
 
   const backendImage = "moonsonglabs/storage-hub-msp-backend:latest";
@@ -484,8 +490,10 @@ export const launchBackend = async (
     "-e",
     "RUST_LOG=info",
     backendImage,
-    "--chain",
-    "local",
+    "--host",
+    "0.0.0.0",
+    "--port",
+    "8080",
     "--log-format",
     "text",
     "--database-url",
@@ -507,6 +515,8 @@ export const launchBackend = async (
   launchedNetwork.addContainer(containerName, { http: apiPort }, { http: apiPort });
 
   logger.success(`StorageHub Backend container started on port ${apiPort}`);
+
+  return `http://127.0.0.1:${apiPort}`;
 };
 
 /**

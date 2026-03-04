@@ -25,7 +25,7 @@ use {
     core::cell::RefCell,
     frame_support::{
         parameter_types,
-        traits::{ConstU16, ConstU32, ConstU64, Get},
+        traits::{ConstU128, ConstU16, ConstU32, ConstU64, Get},
         weights::constants::RocksDbWeight,
     },
     frame_system as system,
@@ -132,7 +132,9 @@ thread_local! {
     pub static ERA_INDEX: RefCell<EraIndex> = const { RefCell::new(0) };
     pub static DEFER_PERIOD: RefCell<EraIndex> = const { RefCell::new(2) };
     pub static SENT_ETHEREUM_MESSAGE_NONCE: RefCell<u64> = const { RefCell::new(0) };
-
+    pub static MOCK_REPORT_OFFENCE_SHOULD_FAIL: RefCell<bool> = const { RefCell::new(false) };
+    pub static MOCK_REPORT_OFFENCE_CALLED: RefCell<bool> = const { RefCell::new(false) };
+    pub static LAST_SENT_SLASHES: RefCell<Vec<crate::SlashData<AccountId>>> = RefCell::new(Vec::new());
 }
 
 impl MockEraIndexProvider {
@@ -215,10 +217,16 @@ impl DeferPeriodGetter {
 }
 
 pub struct MockOkOutboundQueue;
+impl MockOkOutboundQueue {
+    pub fn last_sent_slashes() -> Vec<crate::SlashData<AccountId>> {
+        LAST_SENT_SLASHES.with(|r| r.borrow().clone())
+    }
+}
 impl crate::SendMessage<AccountId> for MockOkOutboundQueue {
     type Ticket = ();
     type Message = ();
-    fn build(_: &Vec<crate::SlashData<AccountId>>, _: u32) -> Option<Self::Ticket> {
+    fn build(slashes: &Vec<crate::SlashData<AccountId>>, _: u32) -> Option<Self::Ticket> {
+        LAST_SENT_SLASHES.with(|r| *r.borrow_mut() = slashes.clone());
         Some(())
     }
     fn validate(_: Self::Ticket) -> Result<Self::Ticket, SendError> {
@@ -258,6 +266,7 @@ impl external_validator_slashes::Config for Test {
     type EraIndexProvider = MockEraIndexProvider;
     type InvulnerablesProvider = MockInvulnerableProvider;
     type ExternalIndexProvider = TimestampProvider;
+    type MaxSlashWad = ConstU128<50_000_000_000_000_000>;
     type QueuedSlashesProcessedPerBlock = ConstU32<20>;
     type WeightInfo = ();
     type SendMessage = MockOkOutboundQueue;
@@ -288,6 +297,75 @@ impl sp_runtime::traits::Convert<u64, Option<u64>> for IdentityValidator {
         Some(a)
     }
 }
+
+// --- Mock infrastructure for testing EquivocationReportWrapper ---
+
+use sp_staking::offence::{Offence, OffenceError, ReportOffence};
+
+/// A mock inner ReportOffence that can be configured to succeed or fail.
+pub struct MockInnerReporter;
+
+impl MockInnerReporter {
+    pub fn set_should_fail(fail: bool) {
+        MOCK_REPORT_OFFENCE_SHOULD_FAIL.with(|r| *r.borrow_mut() = fail);
+    }
+    pub fn was_called() -> bool {
+        MOCK_REPORT_OFFENCE_CALLED.with(|r| *r.borrow())
+    }
+    pub fn reset() {
+        MOCK_REPORT_OFFENCE_SHOULD_FAIL.with(|r| *r.borrow_mut() = false);
+        MOCK_REPORT_OFFENCE_CALLED.with(|r| *r.borrow_mut() = false);
+    }
+}
+
+impl<R, Id, O: Offence<Id>> ReportOffence<R, Id, O> for MockInnerReporter {
+    fn report_offence(_reporters: Vec<R>, _offence: O) -> Result<(), OffenceError> {
+        MOCK_REPORT_OFFENCE_CALLED.with(|r| *r.borrow_mut() = true);
+        if MOCK_REPORT_OFFENCE_SHOULD_FAIL.with(|r| *r.borrow()) {
+            Err(OffenceError::DuplicateReport)
+        } else {
+            Ok(())
+        }
+    }
+    fn is_known_offence(_offenders: &[Id], _time_slot: &O::TimeSlot) -> bool {
+        false
+    }
+}
+
+/// A minimal mock Offence for testing the wrapper.
+pub struct MockOffence {
+    pub session_index: SessionIndex,
+    pub offenders: Vec<(u64, ())>,
+}
+
+impl Offence<(u64, ())> for MockOffence {
+    const ID: sp_staking::offence::Kind = *b"mock:offence0000";
+    type TimeSlot = u128;
+
+    fn offenders(&self) -> Vec<(u64, ())> {
+        self.offenders.clone()
+    }
+    fn session_index(&self) -> SessionIndex {
+        self.session_index
+    }
+    fn validator_set_count(&self) -> u32 {
+        3
+    }
+    fn time_slot(&self) -> Self::TimeSlot {
+        self.session_index as u128
+    }
+    fn slash_fraction(&self, _offenders_count: u32) -> sp_runtime::Perbill {
+        sp_runtime::Perbill::from_percent(50)
+    }
+}
+
+/// Type alias for the wrapper using the mock reporter with BabeEquivocation kind.
+pub type MockBabeWrapper =
+    crate::EquivocationReportWrapper<Test, MockInnerReporter, crate::BabeEquivocation>;
+
+/// Type alias for the wrapper using the mock reporter with GrandpaEquivocation kind.
+pub type MockGrandpaWrapper =
+    crate::EquivocationReportWrapper<Test, MockInnerReporter, crate::GrandpaEquivocation>;
 
 pub fn run_block() {
     run_to_block(System::block_number() + 1);

@@ -106,9 +106,11 @@ export async function launchSubmitter(options: LaunchSubmitterOptions): Promise<
       timeoutSeconds: SUBMITTER_READY_TIMEOUT_SECONDS
     });
   } catch (error) {
+    const logResult = await $`docker logs --tail ${SUBMITTER_LOG_TAIL_LINES} ${containerName}`
+      .nothrow()
+      .quiet();
     const logs =
-      (await $`docker logs --tail ${SUBMITTER_LOG_TAIL_LINES} ${containerName}`.nothrow().text()) ||
-      "<no logs captured>";
+      `${logResult.stdout.toString()}${logResult.stderr.toString()}`.trim() || "<no logs captured>";
     await stopSubmitter(containerName);
     throw new Error(
       `Submitter did not become ready. Expected log "${SUBMITTER_READY_LOG}". Last ${SUBMITTER_LOG_TAIL_LINES} log lines:\n${logs}`,

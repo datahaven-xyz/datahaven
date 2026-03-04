@@ -1,6 +1,6 @@
 # Validator Set Submitter
 
-Long-running daemon that automatically submits validator-set updates from Ethereum to DataHaven each era via Snowbridge.
+Daemon process that automatically submits validator-set updates from Ethereum to DataHaven each era via Snowbridge.
 
 ## How it works
 
@@ -11,7 +11,14 @@ The submitter subscribes to finalized `Session.CurrentIndex` changes on DataHave
 3. Is `ExternalIndex` already at or past `targetEra`?
 4. Is the current session the last session of the era?
 
-If all preconditions are met, it calls `sendNewValidatorSetForEra` on the ServiceManager contract. Each era gets a single submission attempt — if it fails, the era is missed and the submitter moves on to the next.
+If all preconditions are met, it calls `sendNewValidatorSetForEra` on the ServiceManager contract. Submission attempt tracking is in-memory, so each era gets a single submission attempt per process run. If an attempt fails, that era is marked missed for this run and the submitter moves on to the next era.
+
+### Runtime and restart behavior
+
+- The submitter does not implement automatic reconnect/backoff for DataHaven session-subscription failures.
+- On a subscription error, it logs the error, stops the watcher, and the process exits.
+- Run it under a restart policy (for example `systemd` with `Restart=always` or Kubernetes with `restartPolicy: Always`).
+- After a restart, a previously failed era may be attempted again if `ExternalIndex` has not advanced past that target era.
 
 ## Prerequisites
 
@@ -264,6 +271,12 @@ When the submitter fails to submit for an era, `missed_eras_total` increments an
 - **Already confirmed** — if another process submitted the era, the submitter skips it (this is normal, not an error).
 
 Check `LOG_LEVEL=debug` output for detailed tick-by-tick reasoning.
+
+### Process exits after running for a while
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| `Session subscription error: ...` followed by process exit | DataHaven WebSocket subscription dropped and the submitter has no built-in reconnect loop | Ensure WebSocket stability and run the submitter with automatic restarts (`systemd`/Kubernetes) |
 
 ### Enabling debug logs
 

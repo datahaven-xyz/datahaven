@@ -424,6 +424,16 @@ pub mod dynamic_params {
             BoundedVec::truncate_from(vec![]);
 
         // ╚══════════════════════ EigenLayer Rewards V2 ═══════════════════════╝
+
+        // ╔══════════════════════ EigenLayer Slashing ═══════════════════════╗
+
+        #[codec(index = 46)]
+        #[allow(non_upper_case_globals)]
+        /// Maximum WAD value for EigenLayer slashing. Maps Perbill(100%) to this value.
+        /// 5e16 = 5% in WAD format (1e18 = 100%).
+        pub static MaxSlashWad: u128 = 50_000_000_000_000_000u128;
+
+        // ╚══════════════════════ EigenLayer Slashing ═══════════════════════╝
     }
 }
 

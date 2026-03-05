@@ -103,7 +103,8 @@ const LOCAL_RELAYER_SOURCE_DIR = path.resolve(
   "relayer"
 );
 
-const isLocalRelayerImage = (relayerImageTag: string): boolean => relayerImageTag.endsWith(":local");
+const isLocalRelayerImage = (relayerImageTag: string): boolean =>
+  relayerImageTag.endsWith(":local");
 
 const ensureLocalRelayerImage = async (relayerImageTag: string): Promise<void> => {
   if (!isLocalRelayerImage(relayerImageTag)) {

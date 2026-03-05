@@ -3,10 +3,10 @@ import readline from "node:readline";
 import { isCI } from "launcher/network";
 import { logger } from "utils";
 import { launchNetwork } from "../../launcher";
+import { getDefaultRelayerImageTag } from "../../launcher/network";
 import type { LaunchNetworkResult } from "../../launcher/types";
 import { ConnectorFactory, type TestConnectors } from "./connectors";
 import { TestSuiteManager } from "./manager";
-import { getDefaultRelayerImageTag } from "../../launcher/network";
 
 export interface TestSuiteOptions {
   /** Unique name for the test suite */
@@ -57,7 +57,8 @@ export abstract class BaseTestSuite {
           networkId: this.networkId,
           datahavenImageTag:
             this.options.networkOptions?.datahavenImageTag || "datahavenxyz/datahaven:local",
-          relayerImageTag: this.options.networkOptions?.relayerImageTag || getDefaultRelayerImageTag(),
+          relayerImageTag:
+            this.options.networkOptions?.relayerImageTag || getDefaultRelayerImageTag(),
           buildDatahaven: false, // default to false in the test suite so we can speed up the CI
           ...this.options.networkOptions
         });

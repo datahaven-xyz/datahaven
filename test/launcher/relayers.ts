@@ -93,6 +93,46 @@ export const RELAYER_CONFIG_PATHS = {
   SOLOCHAIN: path.join(RELAYER_CONFIG_DIR, "solochain-relay.json")
 };
 
+const LOCAL_RELAYER_SOURCE_DIR = path.resolve(
+  import.meta.dir,
+  "..",
+  "..",
+  "contracts",
+  "lib",
+  "snowbridge",
+  "relayer"
+);
+
+const isLocalRelayerImage = (relayerImageTag: string): boolean => relayerImageTag.endsWith(":local");
+
+const ensureLocalRelayerImage = async (relayerImageTag: string): Promise<void> => {
+  if (!isLocalRelayerImage(relayerImageTag)) {
+    return;
+  }
+
+  const localImageExists = await $`docker image inspect ${relayerImageTag}`.nothrow().quiet();
+  if (localImageExists.exitCode === 0) {
+    logger.debug(`Local relayer image already available: ${relayerImageTag}`);
+    return;
+  }
+
+  const dockerfilePath = path.join(LOCAL_RELAYER_SOURCE_DIR, "Dockerfile");
+  const dockerfileExists = await Bun.file(dockerfilePath).exists();
+  invariant(
+    dockerfileExists,
+    `❌ Local relayer Dockerfile not found at ${dockerfilePath}. Cannot build ${relayerImageTag}`
+  );
+
+  logger.info(
+    `🐳 Local relayer image ${relayerImageTag} not found. Building from ${LOCAL_RELAYER_SOURCE_DIR} for ${process.arch}...`
+  );
+  await runShellCommandWithLogger(`docker build -f Dockerfile -t ${relayerImageTag} .`, {
+    cwd: LOCAL_RELAYER_SOURCE_DIR,
+    logLevel: "debug"
+  });
+  logger.success(`✅ Built local relayer image: ${relayerImageTag}`);
+};
+
 /**
  * Generates configuration files for relayers.
  *
@@ -278,16 +318,16 @@ export const initEthClientPallet = async (
     process.platform === "linux" ? "--add-host host.docker.internal:host-gateway" : "";
 
   // Opportunistic pull - pull the image from Docker Hub only if it's not a local image
-  const isLocal = relayerImageTag.endsWith(":local");
+  const isLocal = isLocalRelayerImage(relayerImageTag);
+  const platformParam = isLocal ? "" : "--platform linux/amd64";
 
   logger.debug("Generating beacon checkpoint");
   const datastoreHostPath = path.resolve(datastorePath);
-  const command = `docker run \
+  const command = `docker run ${platformParam} \
       -v ${beaconConfigHostPath}:${beaconConfigContainerPath}:ro \
       -v ${checkpointHostPath}:${checkpointContainerPath} \
       -v ${datastoreHostPath}:/data \
       --name generate-beacon-checkpoint-${networkId} \
-      --platform linux/amd64 \
       --workdir /app \
       ${addHostParam} \
       ${launchedNetwork.networkName ? `--network ${launchedNetwork.networkName}` : ""} \
@@ -400,6 +440,7 @@ export const launchRelayers = async (
   const { relayerImageTag, kurtosisEnclaveName } = options;
 
   invariant(relayerImageTag, "❌ relayerImageTag is required");
+  await ensureLocalRelayerImage(relayerImageTag);
 
   await killExistingContainers("snowbridge-");
 
@@ -623,7 +664,7 @@ const launchRelayerContainers = async (
   launchedNetwork: LaunchedNetwork,
   networkId: string
 ): Promise<void> => {
-  const isLocal = relayerImageTag.endsWith(":local");
+  const isLocal = isLocalRelayerImage(relayerImageTag);
   const networkName = launchedNetwork.networkName;
   invariant(networkName, "❌ Docker network name not found in LaunchedNetwork instance");
   const restartArgs = ["--restart", "on-failure:5"];
@@ -641,8 +682,7 @@ const launchRelayerContainers = async (
         "docker",
         "run",
         "-d",
-        "--platform",
-        "linux/amd64",
+        ...(isLocal ? [] : ["--platform", "linux/amd64"]),
         "--add-host",
         "host.docker.internal:host-gateway",
         "--name",

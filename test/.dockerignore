@@ -1,0 +1,15 @@
+# Keep submitter image build context minimal.
+*
+
+!package.json
+!bun.lock
+!tsconfig.json
+!bunfig.toml
+!.papi/
+!.papi/**
+!tools/validator-set-submitter/
+!tools/validator-set-submitter/**
+!contract-bindings/
+!contract-bindings/**
+!utils/
+!utils/**

@@ -178,6 +178,13 @@ export async function waitForLog(opts: {
 
   const { readable } = Transform.toWeb(pass);
   const decoder = new TextDecoder();
+  let bufferedLogs = "";
+  const hasHit = (text: string): boolean => {
+    if (typeof opts.search === "string") return text.includes(opts.search);
+    // Avoid stateful regex surprises with /g or /y across multiple checks.
+    opts.search.lastIndex = 0;
+    return opts.search.test(text);
+  };
   const timer = setTimeout(
     () =>
       pass.destroy(
@@ -190,13 +197,15 @@ export async function waitForLog(opts: {
 
   try {
     for await (const chunk of readable) {
-      const text = decoder.decode(chunk as Uint8Array, { stream: false });
-
-      const hit =
-        typeof opts.search === "string" ? text.includes(opts.search) : opts.search.test(text);
-
-      if (hit) return text.trim();
+      bufferedLogs += decoder.decode(chunk as Uint8Array, { stream: true });
+      if (hasHit(bufferedLogs)) return bufferedLogs.trim();
+      if (bufferedLogs.length > 64_000) {
+        bufferedLogs = bufferedLogs.slice(-64_000);
+      }
     }
+
+    bufferedLogs += decoder.decode();
+    if (hasHit(bufferedLogs)) return bufferedLogs.trim();
 
     throw new Error(
       `Log stream ended before "${opts.search}" appeared for container ${opts.containerName}`

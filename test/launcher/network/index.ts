@@ -144,6 +144,7 @@ export const launchNetwork = async (
   options: NetworkLaunchOptions
 ): Promise<LaunchNetworkResult> => {
   const networkId = options.networkId;
+  const relayerImageTag = options.relayerImageTag || getDefaultRelayerImageTag();
   const launchedNetwork = new LaunchedNetwork();
   launchedNetwork.networkName = networkId;
   let injectContracts = false;
@@ -177,7 +178,7 @@ export const launchNetwork = async (
       {
         networkId,
         datahavenImageTag: options.datahavenImageTag || "datahavenxyz/datahaven:local",
-        relayerImageTag: options.relayerImageTag || "datahavenxyz/snowbridge-relay:latest",
+        relayerImageTag,
         authorityIds: TEST_AUTHORITY_IDS,
         buildDatahaven: options.buildDatahaven ?? !isCI, // if not specified, default to false for CI, true for local testing
         datahavenBuildExtraArgs: options.datahavenBuildExtraArgs || "--features=fast-runtime"
@@ -248,14 +249,10 @@ export const launchNetwork = async (
 
     // 7. Launch relayers
     logger.info("❄️ Launching Snowbridge relayers...");
-    if (!options.relayerImageTag) {
-      throw new Error("Relayer image tag not specified");
-    }
-
     await launchRelayers(
       {
         networkId,
-        relayerImageTag: options.relayerImageTag,
+        relayerImageTag,
         kurtosisEnclaveName
       },
       launchedNetwork
@@ -295,6 +292,15 @@ export const launchNetwork = async (
 
     throw error;
   }
+};
+
+export const getDefaultRelayerImageTag = (): string => {
+  if (process.env.RELAYER_IMAGE_TAG) {
+    return process.env.RELAYER_IMAGE_TAG;
+  }
+  return process.arch === "arm64"
+    ? "datahavenxyz/snowbridge-relay:local"
+    : "datahavenxyz/snowbridge-relay:latest";
 };
 
 export const isCI = process.env.CI === "true" || process.env.GITHUB_ACTIONS === "true";

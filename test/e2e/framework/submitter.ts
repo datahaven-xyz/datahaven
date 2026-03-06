@@ -17,13 +17,13 @@ const SUBMITTER_READY_TIMEOUT_SECONDS = 30;
 const SUBMITTER_LOG_TAIL_LINES = 200;
 
 /**
- * Builds the validator-set-submitter Docker image from the repo root.
+ * Builds the validator-set-submitter Docker image from the test directory.
  */
 export async function buildSubmitterImage(): Promise<void> {
   logger.debug("Building validator-set-submitter Docker image...");
-  const repoRoot = path.resolve(import.meta.dir, "../../..");
-  await $`docker build -f test/tools/validator-set-submitter/Dockerfile -t ${SUBMITTER_IMAGE} .`
-    .cwd(repoRoot)
+  const testRoot = path.resolve(import.meta.dir, "../..");
+  await $`docker build -f tools/validator-set-submitter/Dockerfile -t ${SUBMITTER_IMAGE} .`
+    .cwd(testRoot)
     .quiet();
   logger.debug("Validator-set-submitter image built successfully");
 }
@@ -106,9 +106,11 @@ export async function launchSubmitter(options: LaunchSubmitterOptions): Promise<
       timeoutSeconds: SUBMITTER_READY_TIMEOUT_SECONDS
     });
   } catch (error) {
+    const logResult = await $`docker logs --tail ${SUBMITTER_LOG_TAIL_LINES} ${containerName}`
+      .nothrow()
+      .quiet();
     const logs =
-      (await $`docker logs --tail ${SUBMITTER_LOG_TAIL_LINES} ${containerName}`.nothrow().text()) ||
-      "<no logs captured>";
+      `${logResult.stdout.toString()}${logResult.stderr.toString()}`.trim() || "<no logs captured>";
     await stopSubmitter(containerName);
     throw new Error(
       `Submitter did not become ready. Expected log "${SUBMITTER_READY_LOG}". Last ${SUBMITTER_LOG_TAIL_LINES} log lines:\n${logs}`,

@@ -123,7 +123,7 @@ abstract contract DeployBase is Script, DeployParams, Accounts {
             BeefyClient beefyClient,
             AgentExecutor agentExecutor,
             IGatewayV2 gateway,
-            address payable rewardsAgentAddress
+            address payable agentAddress
         ) = _deploySnowbridge(snowbridgeConfig);
         Logging.logFooter();
         _logProgress();
@@ -132,14 +132,14 @@ abstract contract DeployBase is Script, DeployParams, Accounts {
         (
             DataHavenServiceManager serviceManager,
             DataHavenServiceManager serviceManagerImplementation
-        ) = _deployDataHavenContracts(avsConfig, proxyAdmin, gateway);
+        ) = _deployDataHavenContracts(avsConfig, proxyAdmin, gateway, agentAddress);
 
         Logging.logFooter();
         _logProgress();
 
         // Final configuration (same for both modes)
         Logging.logHeader("FINAL CONFIGURATION");
-        Logging.logContractDeployed("Rewards Agent Address", rewardsAgentAddress);
+        Logging.logContractDeployed("Agent Address", agentAddress);
         Logging.logFooter();
         _logProgress();
 
@@ -150,11 +150,11 @@ abstract contract DeployBase is Script, DeployParams, Accounts {
             gateway,
             serviceManager,
             serviceManagerImplementation,
-            rewardsAgentAddress,
+            agentAddress,
             proxyAdmin
         );
 
-        _outputRewardsAgentInfo(rewardsAgentAddress, snowbridgeConfig.rewardsMessageOrigin);
+        _outputAgentInfo(agentAddress, snowbridgeConfig.messageOrigin);
     }
 
     /**
@@ -201,11 +201,11 @@ abstract contract DeployBase is Script, DeployParams, Accounts {
         // Create Agent
         Logging.logSection("Creating Snowbridge Agent");
         vm.broadcast(_deployerPrivateKey);
-        gateway.v2_createAgent(config.rewardsMessageOrigin);
-        address payable rewardsAgentAddress = payable(gateway.agentOf(config.rewardsMessageOrigin));
-        Logging.logContractDeployed("Rewards Agent", rewardsAgentAddress);
+        gateway.v2_createAgent(config.messageOrigin);
+        address payable agentAddress = payable(gateway.agentOf(config.messageOrigin));
+        Logging.logContractDeployed("Rewards Agent", agentAddress);
 
-        return (beefyClient, agentExecutor, gateway, rewardsAgentAddress);
+        return (beefyClient, agentExecutor, gateway, agentAddress);
     }
 
     /**
@@ -240,7 +240,8 @@ abstract contract DeployBase is Script, DeployParams, Accounts {
     function _deployDataHavenContracts(
         AVSConfig memory avsConfig,
         ProxyAdmin proxyAdmin,
-        IGatewayV2 gateway
+        IGatewayV2 gateway,
+        address agentAddress
     ) internal returns (DataHavenServiceManager, DataHavenServiceManager) {
         Logging.logHeader("DATAHAVEN CUSTOM CONTRACTS DEPLOYMENT");
 
@@ -269,7 +270,7 @@ abstract contract DeployBase is Script, DeployParams, Accounts {
         // Create service manager initialisation parameters struct
         ServiceManagerInitParams memory initParams = ServiceManagerInitParams({
             avsOwner: avsConfig.avsOwner,
-            rewardsInitiator: avsConfig.rewardsInitiator,
+            rewardsInitiator: agentAddress,
             validatorsStrategiesAndMultipliers: strategiesAndMultipliers,
             gateway: address(gateway),
             validatorSetSubmitter: avsConfig.validatorSetSubmitter,
@@ -313,38 +314,38 @@ abstract contract DeployBase is Script, DeployParams, Accounts {
         IGatewayV2 gateway,
         DataHavenServiceManager serviceManager,
         DataHavenServiceManager serviceManagerImplementation,
-        address rewardsAgent,
+        address agent,
         ProxyAdmin proxyAdmin
     ) internal virtual;
 
     /**
-     * @notice Output rewards agent info (shared across all deployment types)
+     * @notice Output agent info (shared across all deployment types)
      */
-    function _outputRewardsAgentInfo(
-        address rewardsAgent,
-        bytes32 rewardsAgentOrigin
+    function _outputAgentInfo(
+        address agent,
+        bytes32 agentOrigin
     ) internal {
-        Logging.logHeader("REWARDS AGENT INFO");
-        Logging.logContractDeployed("RewardsAgent", rewardsAgent);
-        Logging.logAgentOrigin("RewardsAgentOrigin", vm.toString(rewardsAgentOrigin));
+        Logging.logHeader("AGENT INFO");
+        Logging.logContractDeployed("Agent", agent);
+        Logging.logAgentOrigin("AgentOrigin", vm.toString(agentOrigin));
         Logging.logFooter();
 
         // Write to deployment file for future reference
         string memory network = _getNetworkName();
-        string memory rewardsInfoPath =
-            string.concat(vm.projectRoot(), "/deployments/", network, "-rewards-info.json");
+        string memory agentInfoPath =
+            string.concat(vm.projectRoot(), "/deployments/", network, "-agent-info.json");
 
         // Create directory if it doesn't exist
         vm.createDir(string.concat(vm.projectRoot(), "/deployments"), true);
 
         // Create JSON with rewards info
         string memory json = "{";
-        json = string.concat(json, '"RewardsAgent": "', vm.toString(rewardsAgent), '",');
-        json = string.concat(json, '"RewardsAgentOrigin": "', vm.toString(rewardsAgentOrigin), '"');
+        json = string.concat(json, '"Agent": "', vm.toString(agent), '",');
+        json = string.concat(json, '"AgentOrigin": "', vm.toString(agentOrigin), '"');
         json = string.concat(json, "}");
 
         // Write to file
-        vm.writeFile(rewardsInfoPath, json);
-        Logging.logInfo(string.concat("Rewards info saved to: ", rewardsInfoPath));
+        vm.writeFile(agentInfoPath, json);
+        Logging.logInfo(string.concat("Agent info saved to: ", agentInfoPath));
     }
 }

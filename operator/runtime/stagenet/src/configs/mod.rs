@@ -1514,7 +1514,7 @@ impl datahaven_runtime_common::rewards_adapter::RewardsSubmissionConfig for Stag
     }
 
     fn rewards_agent_origin() -> H256 {
-        runtime_params::dynamic_params::runtime_config::RewardsAgentOrigin::get()
+        runtime_params::dynamic_params::runtime_config::AgentOrigin::get()
     }
 
     fn strategies_and_multipliers() -> Vec<(H160, u128)> {
@@ -1691,7 +1691,7 @@ impl datahaven_runtime_common::slashes_adapter::SlashesSubmissionConfig for Stag
     }
 
     fn slashes_agent_origin() -> H256 {
-        runtime_params::dynamic_params::runtime_config::RewardsAgentOrigin::get()
+        runtime_params::dynamic_params::runtime_config::AgentOrigin::get()
         // TODO: Can we use the same as reward and just rename the config to `AgentOrigin` ?
     }
 
@@ -1953,8 +1953,8 @@ mod tests {
     /// Test that the Rewards Agent ID (used for Snowbridge outbound messages from the rewards pallet)
     /// is correctly computed from the chain's genesis hash and the ExternalValidatorRewardsAccount.
     ///
-    /// This test verifies the value that should be set as `RewardsAgentOrigin` in runtime parameters
-    /// and as `rewardsMessageOrigin` in the AVS contract configuration.
+    /// This test verifies the value that should be set as `AgentOrigin` in runtime parameters
+    /// and as `messageOrigin` in the AVS contract configuration.
     ///
     /// The Agent ID is computed following Snowbridge's pattern for GlobalConsensus locations:
     /// blake2_256(SCALE_ENCODE("GlobalConsensus", ByGenesis(genesis_hash), compact_len, "AccountKey20", account_key))
@@ -1994,8 +1994,8 @@ mod tests {
         // Hash with blake2_256
         let computed_agent_id = H256(blake2_256(&encoded));
 
-        // Expected Agent ID - this value must match RewardsAgentOrigin in runtime_params.rs
-        // If this test fails, update RewardsAgentOrigin to match the computed value.
+        // Expected Agent ID - this value must match AgentOrigin in runtime_params.rs
+        // If this test fails, update AgentOrigin to match the computed value.
         let expected_agent_id = H256(hex_literal::hex!(
             "56490bd3f367447bfaf57bb18e7a45e1b2db7d538fe42098e87d2aa106c6afdd"
         ));
@@ -2005,8 +2005,8 @@ mod tests {
             expected_agent_id,
             "Computed Rewards Agent ID must match expected value.\n\
              This value should be set as:\n\
-             - RewardsAgentOrigin in runtime_params.rs\n\
-             - rewardsMessageOrigin in AVS contract config\n\
+             - AgentOrigin in runtime_params.rs\n\
+             - messageOrigin in AVS contract config\n\
              \n\
              Rewards account: 0x{}\n\
              Genesis hash: 0x{}\n\

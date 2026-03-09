@@ -3,8 +3,9 @@ import { $ } from "bun";
 import { Binary, FixedSizeBinary } from "polkadot-api";
 import { CROSS_CHAIN_TIMEOUTS, getPapiSigner, logger } from "utils";
 import type { Address } from "viem";
+import { gatewayAbi } from "../../contract-bindings";
 import { getContractInstance, parseDeploymentsFile } from "../../utils/contracts";
-import { waitForDataHavenEvent } from "../../utils/events";
+import { waitForDataHavenEvent, waitForEthereumEvent } from "../../utils/events";
 import { waitFor } from "../../utils/waits";
 import { BaseTestSuite } from "../framework";
 
@@ -122,6 +123,8 @@ describe("Should slash an operator", () => {
   }, 40000);
 
   it("use sudo to slash operator", async () => {
+    const { publicClient } = suite.getTestConnectors();
+
     // get era number
     const activeEra = await dhApi.query.ExternalValidators.ActiveEra.getValue();
 
@@ -168,6 +171,19 @@ describe("Should slash an operator", () => {
       throw new Error("SlashesMessageSent event not found");
     }
     logger.info("Slashes message sent");
+
+    const fromBlock = await publicClient.getBlockNumber();
+    const deployments = await parseDeploymentsFile();
+    const _ethEvent = await waitForEthereumEvent({
+      client: publicClient,
+      address: deployments.Gateway,
+      abi: gatewayAbi,
+      eventName: "SlashingComplete",
+      fromBlock: fromBlock > 0n ? fromBlock - 1n : fromBlock,
+      timeout: CROSS_CHAIN_TIMEOUTS.DH_TO_ETH_MS
+    });
+
+    logger.info("Got Ethereum event!");
   }, 560000);
 
   it("should detect and slash an unresponsive validator (liveness)", async () => {

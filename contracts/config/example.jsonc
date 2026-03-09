@@ -99,9 +99,9 @@
     /// Initial BEEFY block number. Set to latest finalized block by update-beefy-checkpoint.
     /// The BeefyClient will only accept BEEFY commitments with block numbers > startBlock.
     "startBlock": 1,
-    /// The origin linked to the Rewards Agent, the Agent contract who's allowed to submit
-    /// new reward merkle roots to the RewardsRegistry contract.
-    "rewardsMessageOrigin": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    /// The origin linked to the Agent, the Agent contract who's allowed to submit
+    /// new reward merkle roots or slashes.
+    "messageOrigin": "0x0000000000000000000000000000000000000000000000000000000000000000",
     /// The BEEFY validator set ID for the initial validators.
     /// This is fetched from Beefy.ValidatorSetId on the DataHaven chain.
     "initialValidatorSetId": 0,

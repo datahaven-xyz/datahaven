@@ -184,7 +184,7 @@ export const parseJsonToBeaconCheckpoint = (jsonInput: any): BeaconCheckpoint =>
 const DATAHAVEN_PARAM_NAMES = [
   "EthereumGatewayAddress",
   "RewardsUpdateSelector",
-  "RewardsAgentOrigin",
+  "AgentOrigin",
   "DatahavenServiceManagerAddress"
 ] as const;
 

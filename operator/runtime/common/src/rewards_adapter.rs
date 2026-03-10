@@ -104,9 +104,6 @@ pub trait RewardsSubmissionConfig {
         Vec::new()
     }
 
-    /// Get the rewards duration in seconds (typically 86400 = 1 day).
-    fn rewards_duration() -> u32;
-
     /// Get the wHAVE ERC20 token address on Ethereum.
     fn whave_token_address() -> H160;
 
@@ -193,7 +190,7 @@ fn build_rewards_message<C: RewardsSubmissionConfig>(
         &strategies_and_multipliers,
         &operator_rewards,
         rewards_utils.era_start_timestamp,
-        C::rewards_duration(),
+        rewards_utils.duration,
         REWARDS_DESCRIPTION,
     )
     .map_err(|e| log::warn!(target: LOG_TARGET, "Skipping: {:?}", e))
@@ -354,6 +351,7 @@ mod tests {
 
     /// Test era start timestamp used consistently across test cases.
     const TEST_ERA_START_TIMESTAMP: u32 = 1_700_000_000;
+    const TEST_REWARDS_DURATION: u32 = 86_400;
 
     struct HappyPathConfig;
 
@@ -362,10 +360,6 @@ mod tests {
 
         fn strategies_and_multipliers() -> Vec<(H160, u128)> {
             vec![(H160::from_low_u64_be(0x9999), 1u128)]
-        }
-
-        fn rewards_duration() -> u32 {
-            86_400
         }
 
         fn whave_token_address() -> H160 {
@@ -390,10 +384,6 @@ mod tests {
     impl RewardsSubmissionConfig for ZeroServiceManagerConfig {
         type OutboundQueue = TestOutboundQueue;
 
-        fn rewards_duration() -> u32 {
-            HappyPathConfig::rewards_duration()
-        }
-
         fn whave_token_address() -> H160 {
             HappyPathConfig::whave_token_address()
         }
@@ -415,10 +405,6 @@ mod tests {
 
     impl RewardsSubmissionConfig for ZeroTokenConfig {
         type OutboundQueue = TestOutboundQueue;
-
-        fn rewards_duration() -> u32 {
-            HappyPathConfig::rewards_duration()
-        }
 
         fn whave_token_address() -> H160 {
             H160::zero()
@@ -445,10 +431,6 @@ mod tests {
         fn strategies_and_multipliers() -> Vec<(H160, u128)> {
             const MAX_UINT96: u128 = (1u128 << 96) - 1;
             vec![(H160::from_low_u64_be(0x9999), MAX_UINT96 + 1)]
-        }
-
-        fn rewards_duration() -> u32 {
-            HappyPathConfig::rewards_duration()
         }
 
         fn whave_token_address() -> H160 {
@@ -741,6 +723,7 @@ mod tests {
         let rewards_utils = EraRewardsUtils {
             era_index: 7,
             era_start_timestamp: TEST_ERA_START_TIMESTAMP,
+            duration: TEST_REWARDS_DURATION,
             total_points: 100u128,
             individual_points: vec![
                 (H160::from_low_u64_be(2), 40),
@@ -773,7 +756,7 @@ mod tests {
             &HappyPathConfig::strategies_and_multipliers(),
             &expected_operator_rewards,
             rewards_utils.era_start_timestamp,
-            HappyPathConfig::rewards_duration(),
+            rewards_utils.duration,
             REWARDS_DESCRIPTION,
         )
         .expect("Calldata should encode");
@@ -799,6 +782,7 @@ mod tests {
         let rewards_utils = EraRewardsUtils {
             era_index: 7,
             era_start_timestamp: TEST_ERA_START_TIMESTAMP,
+            duration: TEST_REWARDS_DURATION,
             total_points: 3u128,
             individual_points: vec![(H160::from_low_u64_be(1), 1), (H160::from_low_u64_be(2), 2)],
             inflation_amount: 100u128,
@@ -821,7 +805,7 @@ mod tests {
             &HappyPathConfig::strategies_and_multipliers(),
             &operator_rewards,
             rewards_utils.era_start_timestamp,
-            HappyPathConfig::rewards_duration(),
+            rewards_utils.duration,
             REWARDS_DESCRIPTION,
         )
         .expect("Calldata should encode");
@@ -837,6 +821,7 @@ mod tests {
         let rewards_utils = EraRewardsUtils {
             era_index: 7,
             era_start_timestamp: TEST_ERA_START_TIMESTAMP,
+            duration: TEST_REWARDS_DURATION,
             total_points: 1u128,
             individual_points: vec![(H160::from_low_u64_be(1), 1)],
             inflation_amount: 100u128,
@@ -852,6 +837,7 @@ mod tests {
         let rewards_utils = EraRewardsUtils {
             era_index: 7,
             era_start_timestamp: TEST_ERA_START_TIMESTAMP,
+            duration: TEST_REWARDS_DURATION,
             total_points: 1000u128,
             individual_points: vec![(H160::from_low_u64_be(1), 1)],
             inflation_amount: 1u128,
@@ -866,6 +852,7 @@ mod tests {
         let rewards_utils = EraRewardsUtils {
             era_index: 7,
             era_start_timestamp: TEST_ERA_START_TIMESTAMP,
+            duration: TEST_REWARDS_DURATION,
             total_points: 0u128,
             individual_points: vec![(H160::from_low_u64_be(1), 1)],
             inflation_amount: 100u128,
@@ -880,6 +867,7 @@ mod tests {
         let rewards_utils = EraRewardsUtils {
             era_index: 7,
             era_start_timestamp: TEST_ERA_START_TIMESTAMP,
+            duration: TEST_REWARDS_DURATION,
             total_points: 1u128,
             individual_points: vec![(H160::from_low_u64_be(1), u32::MAX)],
             inflation_amount: u128::MAX,
@@ -894,6 +882,7 @@ mod tests {
         let rewards_utils = EraRewardsUtils {
             era_index: 7,
             era_start_timestamp: TEST_ERA_START_TIMESTAMP,
+            duration: TEST_REWARDS_DURATION,
             total_points: 1u128,
             individual_points: vec![(H160::from_low_u64_be(1), 1)],
             inflation_amount: 100u128,
@@ -908,6 +897,7 @@ mod tests {
         let rewards_utils = EraRewardsUtils {
             era_index: 7,
             era_start_timestamp: TEST_ERA_START_TIMESTAMP,
+            duration: TEST_REWARDS_DURATION,
             total_points: 100u128,
             individual_points: vec![
                 (H160::from_low_u64_be(2), 40),

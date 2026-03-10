@@ -67,6 +67,88 @@ fn can_reward_validators() {
 }
 
 #[test]
+fn window_mode_attributes_points_to_aligned_window() {
+    new_test_ext().execute_with(|| {
+        run_to_block(5); // now = 35s
+
+        RewardsWindowGenesisTimestamp::set(20);
+        RewardsWindowDuration::set(10);
+
+        Mock::mutate(|mock| {
+            mock.active_era = Some(ActiveEraInfo {
+                index: 1,
+                start: Some(20_000),
+            })
+        });
+
+        ExternalValidatorsRewards::reward_by_ids([
+            (H160::from_low_u64_be(1), 10),
+            (H160::from_low_u64_be(2), 20),
+        ]);
+
+        let window_start = 30u32;
+        let points =
+            pallet_external_validators_rewards::WindowOperatorPoints::<Test>::get(window_start);
+        assert_eq!(points.get(&H160::from_low_u64_be(1)), Some(&10));
+        assert_eq!(points.get(&H160::from_low_u64_be(2)), Some(&20));
+    })
+}
+
+#[test]
+fn window_mode_submits_closed_windows_and_advances_pointer() {
+    new_test_ext().execute_with(|| {
+        run_to_block(5); // now = 35s
+
+        RewardsWindowGenesisTimestamp::set(20);
+        RewardsWindowDuration::set(10);
+
+        Mock::mutate(|mock| {
+            mock.active_era = Some(ActiveEraInfo {
+                index: 1,
+                start: Some(20_000),
+            })
+        });
+
+        ExternalValidatorsRewards::reward_by_ids([
+            (H160::from_low_u64_be(1), 10),
+            (H160::from_low_u64_be(2), 20),
+        ]);
+
+        for _ in 0..600 {
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(1));
+        }
+
+        run_to_block(15); // now = 45s, window [30,40) is closed
+        ExternalValidatorsRewards::on_era_end(1);
+
+        let events = System::events();
+        assert!(
+            events.iter().any(|record| matches!(
+                &record.event,
+                RuntimeEvent::ExternalValidatorsRewards(
+                    crate::Event::RewardsWindowSubmitted {
+                        window_start: 30,
+                        window_index: 1,
+                        total_points: 30,
+                        inflation_amount: 16,
+                        ..
+                    }
+                )
+            )),
+            "expected closed window submission event"
+        );
+
+        assert_eq!(
+            pallet_external_validators_rewards::NextWindowToSubmit::<Test>::get(),
+            40
+        );
+        assert!(
+            pallet_external_validators_rewards::WindowOperatorPoints::<Test>::get(30).is_empty()
+        );
+    })
+}
+
+#[test]
 fn history_limit() {
     new_test_ext().execute_with(|| {
         Mock::mutate(|mock| {
@@ -133,7 +215,7 @@ fn test_on_era_end() {
         Mock::mutate(|mock| {
             mock.active_era = Some(ActiveEraInfo {
                 index: 1,
-                start: None,
+                start: Some(30_000),
             })
         });
         let points = vec![10u32, 30u32, 50u32];
@@ -155,18 +237,16 @@ fn test_on_era_end() {
             ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(1));
         }
 
+        run_to_block(10);
         ExternalValidatorsRewards::on_era_end(1);
 
-        let era_rewards = pallet_external_validators_rewards::RewardPointsForEra::<Test>::get(1);
         let inflation =
             <Test as pallet_external_validators_rewards::Config>::EraInflationProvider::get();
-        // Use 0 for era_start_timestamp in tests
-        let rewards_utils = era_rewards.generate_era_rewards_utils(1, inflation, 0);
-        assert!(rewards_utils.is_some());
         System::assert_last_event(RuntimeEvent::ExternalValidatorsRewards(
-            crate::Event::RewardsMessageSent {
+            crate::Event::RewardsWindowSubmitted {
                 message_id: Default::default(),
-                era_index: 1,
+                window_start: 30,
+                window_index: 3,
                 total_points: total_points as u128,
                 inflation_amount: inflation,
             },
@@ -182,7 +262,7 @@ fn test_on_era_end_with_zero_inflation() {
         Mock::mutate(|mock| {
             mock.active_era = Some(ActiveEraInfo {
                 index: 1,
-                start: None,
+                start: Some(30_000),
             });
             mock.era_inflation = Some(0);
         });
@@ -198,21 +278,20 @@ fn test_on_era_end_with_zero_inflation() {
             .zip(points.iter().cloned())
             .collect();
         ExternalValidatorsRewards::reward_by_ids(accounts_points);
+        run_to_block(10);
         ExternalValidatorsRewards::on_era_end(1);
 
-        let era_rewards = pallet_external_validators_rewards::RewardPointsForEra::<Test>::get(1);
-        let inflation =
-            <Test as pallet_external_validators_rewards::Config>::EraInflationProvider::get();
-        let rewards_utils = era_rewards.generate_era_rewards_utils(1, inflation, 0);
-        assert!(rewards_utils.is_some());
-        // With zero inflation, no RewardsMessageSent event should be emitted
+        // With zero inflation, the window should be skipped instead of submitted.
         let events = System::events();
         assert!(
-            !events.iter().any(|record| matches!(
+            events.iter().any(|record| matches!(
                 &record.event,
-                RuntimeEvent::ExternalValidatorsRewards(crate::Event::RewardsMessageSent { .. })
+                RuntimeEvent::ExternalValidatorsRewards(crate::Event::RewardsWindowSkipped {
+                    window_start: 30,
+                    window_index: 3,
+                })
             )),
-            "event should not have been thrown",
+            "window should have been skipped",
         );
     })
 }
@@ -225,7 +304,7 @@ fn test_on_era_end_with_zero_points() {
         Mock::mutate(|mock| {
             mock.active_era = Some(ActiveEraInfo {
                 index: 1,
-                start: None,
+                start: Some(30_000),
             });
         });
         let points = vec![0u32, 0u32, 0u32];
@@ -240,27 +319,20 @@ fn test_on_era_end_with_zero_points() {
             .zip(points.iter().cloned())
             .collect();
         ExternalValidatorsRewards::reward_by_ids(accounts_points);
+        run_to_block(10);
         ExternalValidatorsRewards::on_era_end(1);
 
-        // When all validators have zero points, generate_era_rewards_utils should return None
-        // to prevent inflation from being minted with no way to distribute it
-        let era_rewards = pallet_external_validators_rewards::RewardPointsForEra::<Test>::get(1);
-        let inflation =
-            <Test as pallet_external_validators_rewards::Config>::EraInflationProvider::get();
-        let rewards_utils = era_rewards.generate_era_rewards_utils(1, inflation, 0);
-        assert!(
-            rewards_utils.is_none(),
-            "generate_era_rewards_utils should return None when total_points is zero"
-        );
-
-        // Verify no RewardsMessageSent event was emitted
+        // Zero-point windows should not be submitted.
         let events = System::events();
         assert!(
-            !events.iter().any(|record| matches!(
+            events.iter().any(|record| matches!(
                 &record.event,
-                RuntimeEvent::ExternalValidatorsRewards(crate::Event::RewardsMessageSent { .. })
+                RuntimeEvent::ExternalValidatorsRewards(crate::Event::RewardsWindowSkipped {
+                    window_start: 30,
+                    window_index: 3,
+                })
             )),
-            "RewardsMessageSent event should not have been thrown when total_points is zero",
+            "zero-point window should have been skipped",
         );
     })
 }

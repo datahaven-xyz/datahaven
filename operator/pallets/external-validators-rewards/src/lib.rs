@@ -35,12 +35,12 @@ pub use pallet::*;
 
 use {
     crate::types::{EraRewardsUtils, HandleInflation, SendMessage},
-    frame_support::traits::{Get, ValidatorSet},
+    frame_support::traits::{Get, UnixTime, ValidatorSet},
     pallet_external_validators::traits::{ExternalIndexProvider, OnEraEnd, OnEraStart},
     parity_scale_codec::{Decode, Encode},
     sp_core::{H160, H256},
     sp_runtime::{
-        traits::{Hash, Zero},
+        traits::{Hash, SaturatedConversion},
         Perbill,
     },
     sp_staking::SessionIndex,
@@ -67,12 +67,13 @@ pub mod pallet {
     pub use crate::weights::WeightInfo;
     use {
         super::*, frame_support::pallet_prelude::*,
-        pallet_external_validators::traits::EraIndexProvider, sp_runtime::Saturating,
+        pallet_external_validators::traits::EraIndexProvider,
+        sp_runtime::traits::Saturating,
         sp_std::collections::btree_map::BTreeMap,
     };
 
     /// The current storage version.
-    const STORAGE_VERSION: StorageVersion = StorageVersion::new(0);
+    const STORAGE_VERSION: StorageVersion = StorageVersion::new(1);
 
     pub type RewardPoints = u32;
     pub type EraIndex = u32;
@@ -159,6 +160,17 @@ pub mod pallet {
         /// Ethereum Sovereign Account where rewards will be minted
         type RewardsEthereumSovereignAccount: Get<Self::AccountId>;
 
+        /// EigenLayer rewards window genesis timestamp (seconds).
+        type RewardsWindowGenesisTimestamp: Get<u32>;
+
+        /// EigenLayer rewards window duration (seconds).
+        /// Must be a positive multiple of EigenLayer `CALCULATION_INTERVAL_SECONDS`
+        /// and not exceed EigenLayer `MAX_REWARDS_DURATION`.
+        type RewardsWindowDuration: Get<u32>;
+
+        /// Unix time provider used to place points and submissions in aligned windows.
+        type UnixTime: UnixTime;
+
         /// The weight information of this pallet.
         type WeightInfo: WeightInfo;
 
@@ -178,12 +190,23 @@ pub mod pallet {
     #[pallet::event]
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
     pub enum Event<T: Config> {
-        /// The rewards message was sent correctly.
-        RewardsMessageSent {
+        /// The rewards window submission was sent correctly.
+        RewardsWindowSubmitted {
             message_id: H256,
-            era_index: EraIndex,
+            window_start: u32,
+            window_index: u32,
             total_points: u128,
             inflation_amount: u128,
+        },
+        /// Window submission failed. Window data has been cleared.
+        RewardsWindowSubmissionFailed {
+            window_start: u32,
+            window_index: u32,
+        },
+        /// Closed window had no distributable rewards and was skipped.
+        RewardsWindowSkipped {
+            window_start: u32,
+            window_index: u32,
         },
     }
 
@@ -192,43 +215,6 @@ pub mod pallet {
     pub struct EraRewardPoints<AccountId> {
         pub total: RewardPoints,
         pub individual: BTreeMap<AccountId, RewardPoints>,
-    }
-
-    impl<AccountId: Ord + sp_runtime::traits::Debug + Parameter> EraRewardPoints<AccountId> {
-        /// Generate utils needed for EigenLayer rewards submission:
-        ///  - total_points: number of total points of the era_index specified.
-        ///  - individual_points: (address, points) tuples for each validator.
-        ///  - inflation_amount: total inflation tokens to distribute.
-        ///  - era_start_timestamp: timestamp when the era started (seconds since Unix epoch).
-        pub fn generate_era_rewards_utils(
-            &self,
-            era_index: EraIndex,
-            inflation_amount: u128,
-            era_start_timestamp: u32,
-        ) -> Option<EraRewardsUtils> {
-            let mut individual_points = Vec::with_capacity(self.individual.len());
-
-            for (account_id, reward_points) in self.individual.iter() {
-                // Convert AccountId to H160 for EigenLayer rewards submission.
-                // In DataHaven, AccountId is H160, so encode() produces exactly 20 bytes.
-                individual_points
-                    .push((H160::from_slice(&account_id.encode()[..20]), *reward_points));
-            }
-
-            let total_points: u128 = individual_points.iter().map(|(_, pts)| *pts as u128).sum();
-
-            if total_points.is_zero() {
-                return None;
-            }
-
-            Some(EraRewardsUtils {
-                era_index,
-                era_start_timestamp,
-                total_points,
-                individual_points,
-                inflation_amount,
-            })
-        }
     }
 
     impl<AccountId> Default for EraRewardPoints<AccountId> {
@@ -260,16 +246,186 @@ pub mod pallet {
     pub type BlocksProducedInEra<T: Config> =
         StorageMap<_, Twox64Concat, EraIndex, u32, ValueQuery>;
 
+    /// Per-window operator points accumulated from session-end rewards.
+    #[pallet::storage]
+    #[pallet::unbounded]
+    pub type WindowOperatorPoints<T: Config> =
+        StorageMap<_, Twox64Concat, u32, BTreeMap<H160, RewardPoints>, ValueQuery>;
+
+    /// Total inflation allocated to a given aligned window.
+    #[pallet::storage]
+    pub type WindowInflationAmount<T: Config> = StorageMap<_, Twox64Concat, u32, u128, ValueQuery>;
+
+    /// Pointer to the next window start to submit.
+    #[pallet::storage]
+    pub type NextWindowToSubmit<T: Config> = StorageValue<_, u32, ValueQuery>;
+
     impl<T: Config> Pallet<T> {
+        fn now_seconds() -> u32 {
+            T::UnixTime::now().as_secs().saturated_into::<u32>()
+        }
+
+        fn rewards_window_config() -> (u32, u32) {
+            (
+                T::RewardsWindowGenesisTimestamp::get(),
+                T::RewardsWindowDuration::get(),
+            )
+        }
+
+        fn window_start_for(timestamp: u32, genesis: u32, interval: u32) -> u32 {
+            genesis + (timestamp.saturating_sub(genesis) / interval) * interval
+        }
+
+        fn account_to_h160(account_id: &T::AccountId) -> H160 {
+            H160::from_slice(&account_id.encode()[..20])
+        }
+
+        fn clear_window(window_start: u32) {
+            WindowInflationAmount::<T>::remove(window_start);
+            WindowOperatorPoints::<T>::remove(window_start);
+        }
+
+        fn earliest_window_with_state() -> Option<u32> {
+            let mut earliest = None;
+
+            for window in WindowOperatorPoints::<T>::iter_keys() {
+                earliest = Some(earliest.map_or(window, |current: u32| current.min(window)));
+            }
+            for window in WindowInflationAmount::<T>::iter_keys() {
+                earliest = Some(earliest.map_or(window, |current: u32| current.min(window)));
+            }
+
+            earliest
+        }
+
+        fn allocate_era_inflation_to_windows(
+            era_start: u32,
+            era_end: u32,
+            inflation_amount: u128,
+            genesis: u32,
+            interval: u32,
+        ) {
+            if inflation_amount == 0 || era_end <= era_start {
+                return;
+            }
+
+            let era_duration = era_end.saturating_sub(era_start).max(1);
+            let mut window_start = Self::window_start_for(era_start, genesis, interval);
+            let mut allocated = 0u128;
+            let mut last_window = None;
+
+            while window_start < era_end {
+                let window_end = window_start.saturating_add(interval);
+                let overlap_start = era_start.max(window_start);
+                let overlap_end = era_end.min(window_end);
+
+                if overlap_end > overlap_start {
+                    let overlap = overlap_end.saturating_sub(overlap_start);
+                    let portion =
+                        inflation_amount.saturating_mul(overlap as u128) / (era_duration as u128);
+
+                    if portion > 0 {
+                        WindowInflationAmount::<T>::mutate(window_start, |current| {
+                            *current = current.saturating_add(portion);
+                        });
+                        allocated = allocated.saturating_add(portion);
+                    }
+                    last_window = Some(window_start);
+                }
+
+                window_start = window_start.saturating_add(interval);
+            }
+
+            let remainder = inflation_amount.saturating_sub(allocated);
+            if remainder > 0 {
+                if let Some(last_window) = last_window {
+                    WindowInflationAmount::<T>::mutate(last_window, |current| {
+                        *current = current.saturating_add(remainder);
+                    });
+                }
+            }
+        }
+
+        fn process_closed_windows(now: u32, genesis: u32, interval: u32) {
+            let mut next_window = NextWindowToSubmit::<T>::get();
+
+            if next_window == 0 {
+                next_window = Self::earliest_window_with_state().unwrap_or_else(|| {
+                    Self::window_start_for(now.saturating_sub(interval), genesis, interval)
+                });
+            }
+
+            while next_window.saturating_add(interval) <= now {
+                let inflation_amount = WindowInflationAmount::<T>::get(next_window);
+                let operator_points = WindowOperatorPoints::<T>::get(next_window);
+                let total_points: u128 =
+                    operator_points.values().map(|p| *p as u128).sum();
+                let window_index = next_window.saturating_sub(genesis) / interval;
+
+                if total_points == 0 || inflation_amount == 0 {
+                    Self::clear_window(next_window);
+                    Self::deposit_event(Event::RewardsWindowSkipped {
+                        window_start: next_window,
+                        window_index,
+                    });
+                    next_window = next_window.saturating_add(interval);
+                    continue;
+                }
+
+                let utils = EraRewardsUtils {
+                    era_index: window_index,
+                    era_start_timestamp: next_window,
+                    duration: interval,
+                    total_points,
+                    individual_points: operator_points.into_iter().collect(),
+                    inflation_amount,
+                };
+
+                match Self::send_rewards_message(&utils) {
+                    Some(message_id) => {
+                        Self::deposit_event(Event::RewardsWindowSubmitted {
+                            message_id,
+                            window_start: next_window,
+                            window_index,
+                            total_points,
+                            inflation_amount,
+                        });
+                    }
+                    None => {
+                        Self::deposit_event(Event::RewardsWindowSubmissionFailed {
+                            window_start: next_window,
+                            window_index,
+                        });
+                    }
+                }
+
+                Self::clear_window(next_window);
+                next_window = next_window.saturating_add(interval);
+            }
+
+            NextWindowToSubmit::<T>::put(next_window);
+        }
+
         /// Reward validators. Does not check if the validators are valid, caller needs to make sure of that.
         pub fn reward_by_ids(points: impl IntoIterator<Item = (T::AccountId, RewardPoints)>) {
             let active_era = T::EraIndexProvider::active_era();
+            let now = Self::now_seconds();
+            let (genesis, interval) = Self::rewards_window_config();
+            let window_start = Self::window_start_for(now, genesis, interval);
 
             RewardPointsForEra::<T>::mutate(active_era.index, |era_rewards| {
                 for (validator, points) in points.into_iter() {
                     (*era_rewards.individual.entry(validator.clone()).or_default())
                         .saturating_accrue(points);
                     era_rewards.total.saturating_accrue(points);
+
+                    let operator = Self::account_to_h160(&validator);
+                    WindowOperatorPoints::<T>::mutate(window_start, |operators| {
+                        operators
+                            .entry(operator)
+                            .and_modify(|existing| *existing = existing.saturating_add(points))
+                            .or_insert(points);
+                    });
                 }
             })
         }
@@ -636,33 +792,32 @@ pub mod pallet {
                 .map(|ms| (ms / 1000) as u32)
                 .unwrap_or(0);
 
-            // Generate era rewards utils with the scaled inflation amount.
-            // This ensures the message to EigenLayer matches the actual minted amount.
-            let utils = match RewardPointsForEra::<T>::get(&era_index).generate_era_rewards_utils(
-                era_index,
-                scaled_inflation,
-                era_start_timestamp,
-            ) {
-                Some(utils) => utils,
-                None => {
-                    // Returns None when total_points is zero or no validators have rewards
-                    log::error!(
-                        target: "ext_validators_rewards",
-                        "Failed to generate era rewards utils (no rewards to distribute)"
+            let (genesis, interval) = Self::rewards_window_config();
+            let now = Self::now_seconds();
+
+            // Keep current policy: if era has zero points, skip inflation minting.
+            let has_era_points = RewardPointsForEra::<T>::get(&era_index).total > 0;
+            if has_era_points {
+                let ethereum_sovereign_account = T::RewardsEthereumSovereignAccount::get();
+                if let Err(err) =
+                    T::HandleInflation::mint_inflation(&ethereum_sovereign_account, scaled_inflation)
+                {
+                    log::error!(target: "ext_validators_rewards", "Failed to handle inflation: {err:?}");
+                } else {
+                    Self::allocate_era_inflation_to_windows(
+                        era_start_timestamp,
+                        now,
+                        scaled_inflation,
+                        genesis,
+                        interval,
                     );
-                    return;
                 }
-            };
-
-            let ethereum_sovereign_account = T::RewardsEthereumSovereignAccount::get();
-
-            // Mint scaled inflation tokens using the configurable handler
-            if let Err(err) =
-                T::HandleInflation::mint_inflation(&ethereum_sovereign_account, scaled_inflation)
-            {
-                log::error!(target: "ext_validators_rewards", "Failed to handle inflation: {err:?}");
-                log::error!(target: "ext_validators_rewards", "Not sending message since there are no rewards to distribute");
-                return;
+            } else {
+                log::error!(
+                    target: "ext_validators_rewards",
+                    "Skipping inflation minting for era {} due to zero reward points",
+                    era_index
+                );
             }
 
             frame_system::Pallet::<T>::register_extra_weight_unchecked(
@@ -670,14 +825,7 @@ pub mod pallet {
                 DispatchClass::Mandatory,
             );
 
-            if let Some(message_id) = Self::send_rewards_message(&utils) {
-                Self::deposit_event(Event::RewardsMessageSent {
-                    message_id,
-                    era_index,
-                    total_points: utils.total_points,
-                    inflation_amount: scaled_inflation,
-                });
-            }
+            Self::process_closed_windows(now, genesis, interval);
         }
     }
 }

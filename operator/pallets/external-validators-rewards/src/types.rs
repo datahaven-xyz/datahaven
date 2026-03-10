@@ -23,6 +23,7 @@ use sp_std::vec::Vec;
 pub struct EraRewardsUtils {
     pub era_index: u32,
     pub era_start_timestamp: u32,
+    pub duration: u32,
     pub total_points: u128,
     pub individual_points: Vec<(H160, u32)>,
     pub inflation_amount: u128,

@@ -20,9 +20,9 @@ use sp_std::vec::Vec;
 
 /// Data needed for EigenLayer rewards submission via Snowbridge.
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub struct EraRewardsUtils {
-    pub era_index: u32,
-    pub era_start_timestamp: u32,
+pub struct RewardsPeriodUtils {
+    pub period_index: u32,
+    pub period_start: u32,
     pub duration: u32,
     pub total_points: u128,
     pub individual_points: Vec<(H160, u32)>,
@@ -33,7 +33,7 @@ pub trait SendMessage {
     type Message;
     type Ticket;
 
-    fn build(utils: &EraRewardsUtils) -> Option<Self::Message>;
+    fn build(utils: &RewardsPeriodUtils) -> Option<Self::Message>;
 
     fn validate(message: Self::Message) -> Result<Self::Ticket, SendError>;
 

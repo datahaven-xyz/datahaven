@@ -123,10 +123,10 @@ impl mock_data::Config for Test {}
 
 pub struct MockOkOutboundQueue;
 impl crate::types::SendMessage for MockOkOutboundQueue {
-    type Ticket = crate::types::EraRewardsUtils;
-    type Message = crate::types::EraRewardsUtils;
+    type Ticket = crate::types::RewardsPeriodUtils;
+    type Message = crate::types::RewardsPeriodUtils;
 
-    fn build(utils: &crate::types::EraRewardsUtils) -> Option<Self::Ticket> {
+    fn build(utils: &crate::types::RewardsPeriodUtils) -> Option<Self::Ticket> {
         Some(utils.clone())
     }
 

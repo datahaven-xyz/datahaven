@@ -34,7 +34,7 @@ pub mod weights;
 pub use pallet::*;
 
 use {
-    crate::types::{EraRewardsUtils, HandleInflation, SendMessage},
+    crate::types::{RewardsPeriodUtils, HandleInflation, SendMessage},
     frame_support::traits::{Get, UnixTime, ValidatorSet},
     pallet_external_validators::traits::{ExternalIndexProvider, OnEraEnd, OnEraStart},
     parity_scale_codec::{Decode, Encode},
@@ -372,9 +372,9 @@ pub mod pallet {
                     continue;
                 }
 
-                let utils = EraRewardsUtils {
-                    era_index: window_index,
-                    era_start_timestamp: next_window,
+                let utils = RewardsPeriodUtils {
+                    period_index: window_index,
+                    period_start: next_window,
                     duration: interval,
                     total_points,
                     individual_points: operator_points.into_iter().collect(),
@@ -432,7 +432,7 @@ pub mod pallet {
 
         /// Helper to build, validate and deliver an outbound message.
         /// Logs any error and returns None on failure.
-        fn send_rewards_message(utils: &EraRewardsUtils) -> Option<H256> {
+        fn send_rewards_message(utils: &RewardsPeriodUtils) -> Option<H256> {
             let outbound = T::SendMessage::build(utils).or_else(|| {
                 log::error!(target: "ext_validators_rewards", "Failed to build outbound message");
                 None

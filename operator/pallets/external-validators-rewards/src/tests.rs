@@ -149,6 +149,301 @@ fn window_mode_submits_closed_windows_and_advances_pointer() {
 }
 
 #[test]
+fn window_mode_era_inflation_split_across_multiple_windows() {
+    new_test_ext().execute_with(|| {
+        // genesis=0, interval=10 → windows [0,10), [10,20), [20,30), ...
+        RewardsWindowGenesisTimestamp::set(0);
+        RewardsWindowDuration::set(10);
+
+        Mock::mutate(|mock| {
+            mock.active_era = Some(ActiveEraInfo {
+                index: 1,
+                // Era started at 5s (within window [0,10))
+                start: Some(5_000),
+            });
+        });
+
+        // Directly seed points into past windows so they get submitted (not skipped).
+        // reward_by_ids always writes to the current-timestamp window, so we write directly.
+        pallet_external_validators_rewards::WindowOperatorPoints::<Test>::mutate(0, |map| {
+            map.insert(H160::from_low_u64_be(1), 50);
+        });
+        pallet_external_validators_rewards::WindowOperatorPoints::<Test>::mutate(10, |map| {
+            map.insert(H160::from_low_u64_be(1), 50);
+        });
+        pallet_external_validators_rewards::WindowOperatorPoints::<Test>::mutate(20, |map| {
+            map.insert(H160::from_low_u64_be(1), 50);
+        });
+
+        // Also seed points into the current window [30,40) via reward_by_ids
+        run_to_block(5); // now = 35s
+        ExternalValidatorsRewards::reward_by_ids([(H160::from_low_u64_be(1), 100)]);
+
+        // Produce enough blocks for inflation scaling
+        for _ in 0..600 {
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(1));
+        }
+
+        // on_era_end allocates inflation across windows then processes closed ones.
+        // Era spans from 5s to now=35s (30s duration).
+        // Window overlaps:
+        //   [0,10):  overlap [5,10)  = 5s  → 5/30 of inflation
+        //   [10,20): overlap [10,20) = 10s → 10/30 of inflation
+        //   [20,30): overlap [20,30) = 10s → 10/30 of inflation
+        //   [30,40): overlap [30,35) = 5s  → 5/30 of inflation (current, not closed)
+        ExternalValidatorsRewards::on_era_end(1);
+
+        let inflation =
+            <Test as pallet_external_validators_rewards::Config>::EraInflationProvider::get();
+
+        // Closed windows are cleared by process_closed_windows, so verify via events.
+        let events = System::events();
+
+        let expected_w0 = inflation * 5 / 30;
+        let expected_w10 = inflation * 10 / 30;
+        let expected_w20 = inflation * 10 / 30;
+
+        assert!(
+            events.iter().any(|record| matches!(
+                &record.event,
+                RuntimeEvent::ExternalValidatorsRewards(
+                    crate::Event::RewardsWindowSubmitted {
+                        window_start: 0,
+                        window_index: 0,
+                        inflation_amount,
+                        ..
+                    }
+                ) if *inflation_amount == expected_w0
+            )),
+            "window [0,10) should get 5/30 of inflation = {expected_w0}"
+        );
+
+        assert!(
+            events.iter().any(|record| matches!(
+                &record.event,
+                RuntimeEvent::ExternalValidatorsRewards(
+                    crate::Event::RewardsWindowSubmitted {
+                        window_start: 10,
+                        window_index: 1,
+                        inflation_amount,
+                        ..
+                    }
+                ) if *inflation_amount == expected_w10
+            )),
+            "window [10,20) should get 10/30 of inflation = {expected_w10}"
+        );
+
+        assert!(
+            events.iter().any(|record| matches!(
+                &record.event,
+                RuntimeEvent::ExternalValidatorsRewards(
+                    crate::Event::RewardsWindowSubmitted {
+                        window_start: 20,
+                        window_index: 2,
+                        inflation_amount,
+                        ..
+                    }
+                ) if *inflation_amount == expected_w20
+            )),
+            "window [20,30) should get 10/30 of inflation = {expected_w20}"
+        );
+
+        // Window [30,40) is current (not closed), verify inflation was allocated
+        let w30 = pallet_external_validators_rewards::WindowInflationAmount::<Test>::get(30);
+        let expected_w30_base = inflation * 5 / 30;
+        let allocated_without_remainder = expected_w0 + expected_w10 + expected_w20 + expected_w30_base;
+        let remainder = inflation.saturating_sub(allocated_without_remainder);
+        assert_eq!(
+            w30,
+            expected_w30_base + remainder,
+            "last window should get its portion plus any integer-division remainder"
+        );
+
+        // Total across all windows must equal the full inflation amount
+        assert_eq!(
+            expected_w0 + expected_w10 + expected_w20 + w30,
+            inflation,
+            "total inflation must be fully distributed"
+        );
+    })
+}
+
+#[test]
+fn window_mode_submits_multiple_closed_windows_in_single_era_end() {
+    new_test_ext().execute_with(|| {
+        // genesis=0, interval=10
+        RewardsWindowGenesisTimestamp::set(0);
+        RewardsWindowDuration::set(10);
+
+        Mock::mutate(|mock| {
+            mock.active_era = Some(ActiveEraInfo {
+                index: 1,
+                start: Some(30_000), // era started at 30s
+            });
+        });
+
+        // Seed points into window [30,40) at block 5 (now=35s)
+        run_to_block(5); // now = 35s
+        ExternalValidatorsRewards::reward_by_ids([(H160::from_low_u64_be(1), 10)]);
+
+        // Seed points into window [40,50) at block 15 (now=45s)
+        run_to_block(15); // now = 45s
+        ExternalValidatorsRewards::reward_by_ids([(H160::from_low_u64_be(2), 20)]);
+
+        // Produce enough blocks for inflation scaling
+        for _ in 0..600 {
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(1));
+        }
+
+        // Advance to block 35 (now=65s), so windows [30,40) and [40,50) and [50,60) are closed.
+        // Window [60,70) is current.
+        run_to_block(35); // now = 65s
+        ExternalValidatorsRewards::on_era_end(1);
+
+        let events = System::events();
+
+        // Window [30,40) should be submitted (has points and inflation)
+        assert!(
+            events.iter().any(|record| matches!(
+                &record.event,
+                RuntimeEvent::ExternalValidatorsRewards(
+                    crate::Event::RewardsWindowSubmitted {
+                        window_start: 30,
+                        window_index: 3,
+                        ..
+                    }
+                )
+            )),
+            "window [30,40) should have been submitted"
+        );
+
+        // Window [40,50) should be submitted (has points and inflation)
+        assert!(
+            events.iter().any(|record| matches!(
+                &record.event,
+                RuntimeEvent::ExternalValidatorsRewards(
+                    crate::Event::RewardsWindowSubmitted {
+                        window_start: 40,
+                        window_index: 4,
+                        ..
+                    }
+                )
+            )),
+            "window [40,50) should have been submitted"
+        );
+
+        // Window [50,60) should be skipped (no points, even though it may have inflation)
+        assert!(
+            events.iter().any(|record| matches!(
+                &record.event,
+                RuntimeEvent::ExternalValidatorsRewards(
+                    crate::Event::RewardsWindowSkipped {
+                        window_start: 50,
+                        window_index: 5,
+                    }
+                )
+            )),
+            "window [50,60) should have been skipped (no points)"
+        );
+
+        // NextWindowToSubmit should advance past all closed windows
+        assert_eq!(
+            pallet_external_validators_rewards::NextWindowToSubmit::<Test>::get(),
+            60
+        );
+
+        // All closed windows should have their storage cleared
+        assert!(
+            pallet_external_validators_rewards::WindowOperatorPoints::<Test>::get(30).is_empty()
+        );
+        assert!(
+            pallet_external_validators_rewards::WindowOperatorPoints::<Test>::get(40).is_empty()
+        );
+        assert!(
+            pallet_external_validators_rewards::WindowOperatorPoints::<Test>::get(50).is_empty()
+        );
+    })
+}
+
+#[test]
+fn window_mode_delivery_failure_emits_submission_failed_event() {
+    new_test_ext().execute_with(|| {
+        RewardsWindowGenesisTimestamp::set(20);
+        RewardsWindowDuration::set(10);
+
+        Mock::mutate(|mock| {
+            mock.active_era = Some(ActiveEraInfo {
+                index: 1,
+                start: Some(20_000),
+            });
+        });
+
+        // Seed points into window [30,40) at block 5 (now=35s)
+        run_to_block(5); // now = 35s
+        ExternalValidatorsRewards::reward_by_ids([
+            (H160::from_low_u64_be(1), 10),
+            (H160::from_low_u64_be(2), 20),
+        ]);
+
+        // Produce enough blocks for inflation scaling
+        for _ in 0..600 {
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(1));
+        }
+
+        // Make outbound delivery fail
+        OutboundDeliverShouldFail::set(true);
+
+        // Advance to block 15 (now=45s), window [30,40) is closed
+        run_to_block(15); // now = 45s
+        ExternalValidatorsRewards::on_era_end(1);
+
+        let events = System::events();
+
+        // Should emit RewardsWindowSubmissionFailed instead of RewardsWindowSubmitted
+        assert!(
+            events.iter().any(|record| matches!(
+                &record.event,
+                RuntimeEvent::ExternalValidatorsRewards(
+                    crate::Event::RewardsWindowSubmissionFailed {
+                        window_start: 30,
+                        window_index: 1,
+                    }
+                )
+            )),
+            "expected RewardsWindowSubmissionFailed event"
+        );
+
+        // Should NOT emit RewardsWindowSubmitted
+        assert!(
+            !events.iter().any(|record| matches!(
+                &record.event,
+                RuntimeEvent::ExternalValidatorsRewards(
+                    crate::Event::RewardsWindowSubmitted { .. }
+                )
+            )),
+            "should not have emitted RewardsWindowSubmitted on delivery failure"
+        );
+
+        // Storage should still be cleared even on failure
+        assert!(
+            pallet_external_validators_rewards::WindowOperatorPoints::<Test>::get(30).is_empty(),
+            "window points should be cleared after failed submission"
+        );
+        assert_eq!(
+            pallet_external_validators_rewards::WindowInflationAmount::<Test>::get(30),
+            0,
+            "window inflation should be cleared after failed submission"
+        );
+
+        // NextWindowToSubmit should still advance
+        assert_eq!(
+            pallet_external_validators_rewards::NextWindowToSubmit::<Test>::get(),
+            40
+        );
+    })
+}
+
+#[test]
 fn history_limit() {
     new_test_ext().execute_with(|| {
         Mock::mutate(|mock| {

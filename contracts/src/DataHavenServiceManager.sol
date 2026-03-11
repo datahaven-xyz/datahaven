@@ -377,7 +377,17 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
             totalAmount += translatedSubmission.operatorRewards[i].amount;
         }
 
-        _sortOperatorRewards(translatedSubmission.operatorRewards);
+        uint256 uniqueCount = _sortAndMergeDuplicateOperators(translatedSubmission.operatorRewards);
+
+        // Shrink the array to the unique count if duplicates were merged
+        if (uniqueCount < translatedSubmission.operatorRewards.length) {
+            IRewardsCoordinatorTypes.OperatorReward[] memory trimmed =
+                new IRewardsCoordinatorTypes.OperatorReward[](uniqueCount);
+            for (uint256 i = 0; i < uniqueCount; i++) {
+                trimmed[i] = translatedSubmission.operatorRewards[i];
+            }
+            translatedSubmission.operatorRewards = trimmed;
+        }
 
         submission.token.safeIncreaseAllowance(address(_REWARDS_COORDINATOR), totalAmount);
 
@@ -453,14 +463,20 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
     // ============ Internal Functions ============
 
     /**
-     * @notice Sorts operator rewards array by operator address in ascending order using insertion sort
-     * @dev Insertion sort is optimal for small arrays (validator set capped at 32)
-     * @param rewards The operator rewards array to sort in-place
+     * @notice Sorts operator rewards by address and merges consecutive duplicates
+     * @dev After solochain→ETH address translation, multiple solochain addresses may map to the
+     *      same ETH operator (e.g. operator deregistered and re-registered with a new solochain
+     *      address within the same reward window). EigenLayer's RewardsCoordinator requires
+     *      strictly ascending unique operators, so duplicates must be merged.
+     * @param rewards The operator rewards array to sort and merge in-place
+     * @return uniqueCount The number of unique operators after merging
      */
-    function _sortOperatorRewards(
+    function _sortAndMergeDuplicateOperators(
         IRewardsCoordinatorTypes.OperatorReward[] memory rewards
-    ) private pure {
+    ) private pure returns (uint256) {
         uint256 len = rewards.length;
+
+        // Insertion sort (optimal for small arrays; validator set capped at 32)
         for (uint256 i = 1; i < len; i++) {
             IRewardsCoordinatorTypes.OperatorReward memory key = rewards[i];
             uint256 j = i;
@@ -470,6 +486,19 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
             }
             rewards[j] = key;
         }
+
+        // Merge consecutive duplicates
+        if (len <= 1) return len;
+        uint256 write = 0;
+        for (uint256 read = 1; read < len; read++) {
+            if (rewards[read].operator == rewards[write].operator) {
+                rewards[write].amount += rewards[read].amount;
+            } else {
+                write++;
+                rewards[write] = rewards[read];
+            }
+        }
+        return write + 1;
     }
 
     /**

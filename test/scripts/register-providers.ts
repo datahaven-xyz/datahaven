@@ -212,7 +212,7 @@ export async function verifyProvidersRegistered(
 ): Promise<boolean> {
   logger.info("🔍 Verifying provider registration...");
 
-  const aliceContainerName = `datahaven - alice - ${options.launchedNetwork.networkId} `;
+  const aliceContainerName = `datahaven-alice-${options.launchedNetwork.networkId} `;
   const alicePort = options.launchedNetwork.getContainerPort(aliceContainerName);
 
   const { client, typedApi } = createPapiConnectors(`ws://127.0.0.1:${alicePort}`);

@@ -8,6 +8,8 @@
 export const COMMON_LAUNCH_ARGS = [
   "--unsafe-force-node-key-generation",
   "--tmp",
+  "--chain",
+  "local",
   "--validator",
   "--discover-local",
   "--no-prometheus",

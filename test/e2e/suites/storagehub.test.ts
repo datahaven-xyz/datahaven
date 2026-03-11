@@ -4,7 +4,7 @@
  * Tests the uploading a file to storage through Datahaven
  *
  * Prerequisites:
- * - DataHaven network with StoraheHub service running
+ * - DataHaven network with StorageHub service running
  * - Storage hub MSP and BSP
  */
 import "@storagehub/api-augment";
@@ -126,7 +126,6 @@ describe("test uploading file to storage hub", () => {
     const aliceSigner = getEvmEcdsaSigner(SUBSTRATE_FUNDED_ACCOUNTS.ALITH.privateKey);
     const mspResult = await call.signAndSubmit(aliceSigner);
     expect(mspResult.ok).toBeTrue();
-    console.log(mspResult);
   }, 30000);
 
   it("Send a request", async () => {
@@ -212,29 +211,18 @@ describe("test uploading file to storage hub", () => {
     console.log("issueStorageRequest() txReceipt:", receipt);
 
     // Authenticate with the backend via SIWE and upload the file
-    const mspClient = await MspClient.connect({ baseUrl: backendUrl }, async () =>
-      sessionToken
-        ? ({ token: sessionToken, user: { address: account.address } } as const)
-        : undefined
-    );
+    let sessionRef: { token: string; user: { address: string } } | undefined;
+    const sessionProvider = async () => sessionRef;
+    const mspClient = await MspClient.connect({ baseUrl: backendUrl }, sessionProvider);
 
     const domain = new URL(backendUrl).host;
     const siweSession = await mspClient.auth.SIWE(walletClient, domain, backendUrl);
     const sessionToken = (siweSession as { token: string }).token;
     expect(sessionToken).toBeDefined();
-
-    // const uploadReceipt = await mspClient.files.uploadFile(
-    //   bucketId,
-    //   fileKey.toHex(),
-    //   await fileManager.getFileBlob(),
-    //   account.address,
-    //   location
-    // );
-    // expect(uploadReceipt.status).toBe("upload_successful");
   }, 60000);
 
   afterAll(async () => {
     // Delete all the containers started by this test suite
-    await $`docker container stop $(docker container ls -q --filter name=${networkId})`;
+    await $`docker container rm -f $(docker container ls -q --filter name=${networkId})`;
   });
 });

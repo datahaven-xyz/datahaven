@@ -17,7 +17,8 @@
       "!**/html/**/*",
       "!**/moonwall/contracts/out/**/*",
       "!**/contracts/out/**/*",
-      "!**/contracts/deployments/state-diff.checksum"
+      "!**/contracts/deployments/state-diff.checksum",
+      "!**/bun.lock"
     ],
     "maxSize": 3000000
   },

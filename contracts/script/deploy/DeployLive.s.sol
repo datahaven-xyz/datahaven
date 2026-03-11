@@ -115,14 +115,20 @@ contract DeployLive is DeployBase {
         ProxyAdmin proxyAdmin = new ProxyAdmin();
         Logging.logContractDeployed("ProxyAdmin", address(proxyAdmin));
 
+        // Transfer ProxyAdmin ownership to AVS owner so upgrades can only be performed by AVS owner
+        vm.broadcast(_deployerPrivateKey);
+        proxyAdmin.transferOwnership(_avsOwner);
+        Logging.logStep("ProxyAdmin ownership transferred to AVS owner");
+
         vm.broadcast(_deployerPrivateKey);
         bytes memory initData = abi.encodeWithSelector(
             DataHavenServiceManager.initialize.selector,
             params.avsOwner,
             params.rewardsInitiator,
-            params.validatorsStrategies,
+            params.validatorsStrategiesAndMultipliers,
             params.gateway,
-            params.validatorSetSubmitter
+            params.validatorSetSubmitter,
+            params.initialVersion
         );
 
         TransparentUpgradeableProxy proxy =
@@ -137,7 +143,8 @@ contract DeployLive is DeployBase {
         IGatewayV2 gateway,
         DataHavenServiceManager serviceManager,
         DataHavenServiceManager serviceManagerImplementation,
-        address rewardsAgent
+        address rewardsAgent,
+        ProxyAdmin proxyAdmin
     ) internal override {
         Logging.logHeader("DEPLOYMENT SUMMARY");
 
@@ -186,6 +193,7 @@ contract DeployLive is DeployBase {
             vm.toString(address(serviceManagerImplementation)),
             '",'
         );
+        json = string.concat(json, '"ProxyAdmin": "', vm.toString(address(proxyAdmin)), '",');
         json = string.concat(json, '"RewardsAgent": "', vm.toString(rewardsAgent), '",');
 
         // EigenLayer contracts (existing on live network)

@@ -48,7 +48,7 @@ const palletIdToAccountId20 = (palletId: string): Hex => {
  * blake2_256(SCALE_ENCODE(("GlobalConsensus", ByGenesis(genesis_hash), ("AccountKey20", account_key))))
  *
  * NOTE: This computation follows Snowbridge's pattern but may need verification against
- * the actual on-chain Agent ID. The preferred approach is to set RewardsAgentOrigin on
+ * the actual on-chain Agent ID. The preferred approach is to set AgentOrigin on
  * the chain and fetch it via this command.
  *
  * @param genesisHash - The chain's genesis hash (32 bytes, hex string with 0x prefix)
@@ -116,36 +116,36 @@ const computeAgentId = async (genesisHash: Hex, accountKey20: Hex): Promise<Hex>
 };
 
 /**
- * Fetches the RewardsAgentOrigin from the runtime parameters.
+ * Fetches the AgentOrigin from the runtime parameters.
  *
  * @param rpcUrl - WebSocket RPC endpoint of the DataHaven chain
- * @returns The RewardsAgentOrigin as a hex string, or null if not set or zero
+ * @returns The AgentOrigin as a hex string, or null if not set or zero
  */
-const fetchRewardsAgentOrigin = async (rpcUrl: string): Promise<Hex | null> => {
+const fetchAgentOrigin = async (rpcUrl: string): Promise<Hex | null> => {
   logger.info(`📡 Connecting to DataHaven chain at ${rpcUrl}...`);
 
   const { client: papiClient, typedApi: dhApi } = createPapiConnectors(rpcUrl);
 
   try {
-    logger.info("🔍 Fetching RewardsAgentOrigin from runtime parameters...");
+    logger.info("🔍 Fetching AgentOrigin from runtime parameters...");
 
-    // Query the Parameters pallet for RewardsAgentOrigin
+    // Query the Parameters pallet for AgentOrigin
     const parameter = await dhApi.query.Parameters.Parameters.getValue(
       {
         type: "RuntimeConfig",
-        value: { type: "RewardsAgentOrigin", value: undefined }
+        value: { type: "AgentOrigin", value: undefined }
       },
       { at: "best" }
     );
 
     if (!parameter) {
-      logger.info("ℹ️  RewardsAgentOrigin parameter not found (using default)");
+      logger.info("ℹ️  AgentOrigin parameter not found (using default)");
       return null;
     }
 
     // Extract the value from the parameter result
     // The parameter is wrapped in the RuntimeConfig enum variant
-    if (parameter.type === "RuntimeConfig" && parameter.value.type === "RewardsAgentOrigin") {
+    if (parameter.type === "RuntimeConfig" && parameter.value.type === "AgentOrigin") {
       const origin = parameter.value.value;
       if (origin) {
         const originHex = origin.asHex();
@@ -153,15 +153,15 @@ const fetchRewardsAgentOrigin = async (rpcUrl: string): Promise<Hex | null> => {
         const zeroHash =
           "0x0000000000000000000000000000000000000000000000000000000000000000" as Hex;
         if (originHex === zeroHash) {
-          logger.info("ℹ️  RewardsAgentOrigin is set to zero (placeholder)");
+          logger.info("ℹ️  AgentOrigin is set to zero (placeholder)");
           return null;
         }
-        logger.success(`Found RewardsAgentOrigin: ${originHex}`);
+        logger.success(`Found AgentOrigin: ${originHex}`);
         return originHex as Hex;
       }
     }
 
-    logger.info("ℹ️  RewardsAgentOrigin value not available");
+    logger.info("ℹ️  AgentOrigin value not available");
     return null;
   } finally {
     papiClient.destroy();
@@ -193,9 +193,9 @@ const fetchGenesisHash = async (rpcUrl: string): Promise<Hex> => {
  * Updates the config file with the rewards message origin.
  *
  * @param networkId - The network identifier (e.g., "hoodi", "stagenet-hoodi")
- * @param rewardsMessageOrigin - The rewards message origin (Agent ID)
+ * @param messageOrigin - The rewards message origin (Agent ID)
  */
-const updateConfigFile = async (networkId: string, rewardsMessageOrigin: Hex): Promise<void> => {
+const updateConfigFile = async (networkId: string, messageOrigin: Hex): Promise<void> => {
   const configFilePath = `../contracts/config/${networkId}.json`;
   const configFile = Bun.file(configFilePath);
 
@@ -211,21 +211,21 @@ const updateConfigFile = async (networkId: string, rewardsMessageOrigin: Hex): P
     configJson.snowbridge = {};
   }
 
-  const oldOrigin = configJson.snowbridge.rewardsMessageOrigin;
-  configJson.snowbridge.rewardsMessageOrigin = rewardsMessageOrigin;
+  const oldOrigin = configJson.snowbridge.messageOrigin;
+  configJson.snowbridge.messageOrigin = messageOrigin;
 
   await Bun.write(configFilePath, `${JSON.stringify(configJson, null, 2)}\n`);
 
   logger.success(`Config file updated: ${configFilePath}`);
 
-  if (oldOrigin !== rewardsMessageOrigin) {
-    logger.info(`  rewardsMessageOrigin: ${oldOrigin ?? "unset"} -> ${rewardsMessageOrigin}`);
+  if (oldOrigin !== messageOrigin) {
+    logger.info(`  messageOrigin: ${oldOrigin ?? "unset"} -> ${messageOrigin}`);
   }
 };
 
 /**
  * Main handler for the update-rewards-origin command.
- * Fetches or computes the RewardsAgentOrigin and updates the config file.
+ * Fetches or computes the AgentOrigin and updates the config file.
  */
 export const updateRewardsOrigin = async (options: UpdateRewardsOriginOptions): Promise<void> => {
   const networkId = buildNetworkId(options.chain, options.environment);
@@ -246,17 +246,17 @@ export const updateRewardsOrigin = async (options: UpdateRewardsOriginOptions): 
   printDivider();
 
   try {
-    // Step 1: Try to fetch RewardsAgentOrigin from the chain
-    let rewardsMessageOrigin = await fetchRewardsAgentOrigin(options.rpcUrl);
+    // Step 1: Try to fetch AgentOrigin from the chain
+    let messageOrigin = await fetchAgentOrigin(options.rpcUrl);
 
     printDivider();
 
-    if (rewardsMessageOrigin) {
+    if (messageOrigin) {
       // Use the value from the chain
-      logger.info("✅ Using RewardsAgentOrigin from chain runtime parameters");
+      logger.info("✅ Using AgentOrigin from chain runtime parameters");
     } else {
       // Compute the Agent ID from genesis hash and pallet account
-      logger.info("🔧 Computing RewardsAgentOrigin from genesis hash and pallet account...");
+      logger.info("🔧 Computing AgentOrigin from genesis hash and pallet account...");
 
       // Get genesis hash (from option or fetch from chain)
       const genesisHash = options.genesisHash
@@ -272,22 +272,22 @@ export const updateRewardsOrigin = async (options: UpdateRewardsOriginOptions): 
       // Compute the Agent ID
       logger.info("🔐 Computing Agent ID...");
       logger.warn(
-        "⚠️  Note: Computed Agent ID may need verification. Prefer setting RewardsAgentOrigin on-chain."
+        "⚠️  Note: Computed Agent ID may need verification. Prefer setting AgentOrigin on-chain."
       );
-      rewardsMessageOrigin = await computeAgentId(genesisHash, rewardsAccount);
-      logger.info(`   Agent ID: ${rewardsMessageOrigin}`);
+      messageOrigin = await computeAgentId(genesisHash, rewardsAccount);
+      logger.info(`   Agent ID: ${messageOrigin}`);
     }
 
     printDivider();
 
     // Display the final value
     logger.info("📝 Rewards Message Origin:");
-    logger.info(`   ${rewardsMessageOrigin}`);
+    logger.info(`   ${messageOrigin}`);
 
     printDivider();
 
     // Update the config file
-    await updateConfigFile(networkId, rewardsMessageOrigin);
+    await updateConfigFile(networkId, messageOrigin);
 
     printDivider();
     logger.success(`Rewards message origin updated successfully for ${networkId}`);

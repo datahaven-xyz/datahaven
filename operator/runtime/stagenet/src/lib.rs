@@ -145,7 +145,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     //   `spec_version`, and `authoring_version` are the same between Wasm and native.
     // This value is set to 200 to notify Polkadot-JS App (https://polkadot.js.org/apps) to use
     //   the compatible custom types.
-    spec_version: 1300,
+    spec_version: 1400,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 1,
@@ -975,6 +975,18 @@ impl_runtime_apis! {
 
             impl frame_system_benchmarking::Config for Runtime {}
             impl pallet_session_benchmarking::Config for Runtime {}
+            impl pallet_grandpa_benchmarking::Config for Runtime {
+                fn benchmark_session_keys(grandpa: GrandpaId) -> Self::Keys {
+                    use sp_core::crypto::UncheckedFrom;
+
+                    SessionKeys {
+                        babe: sp_consensus_babe::AuthorityId::unchecked_from([1u8; 32]),
+                        grandpa,
+                        im_online: pallet_im_online::sr25519::AuthorityId::unchecked_from([1u8; 32]),
+                        beefy: sp_consensus_beefy::ecdsa_crypto::AuthorityId::unchecked_from([1u8; 33]),
+                    }
+                }
+            }
             impl baseline::Config for Runtime {}
 
             use frame_support::traits::WhitelistedStorageKeys;

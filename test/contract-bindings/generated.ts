@@ -2050,6 +2050,20 @@ export const dataHavenServiceManagerAbi = [
   {
     type: 'function',
     inputs: [],
+    name: 'DATAHAVEN_VERSION',
+    outputs: [{ name: '', internalType: 'string', type: 'string' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'MAX_ACTIVE_VALIDATORS',
+    outputs: [{ name: '', internalType: 'uint32', type: 'uint32' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
     name: 'VALIDATORS_SET_ID',
     outputs: [{ name: '', internalType: 'uint32', type: 'uint32' }],
     stateMutability: 'view',
@@ -2058,9 +2072,17 @@ export const dataHavenServiceManagerAbi = [
     type: 'function',
     inputs: [
       {
-        name: '_strategies',
-        internalType: 'contract IStrategy[]',
-        type: 'address[]',
+        name: '_strategyMultipliers',
+        internalType: 'struct IRewardsCoordinatorTypes.StrategyAndMultiplier[]',
+        type: 'tuple[]',
+        components: [
+          {
+            name: 'strategy',
+            internalType: 'contract IStrategy',
+            type: 'address',
+          },
+          { name: 'multiplier', internalType: 'uint96', type: 'uint96' },
+        ],
       },
     ],
     name: 'addStrategiesToValidatorsSupportedStrategies',
@@ -2104,13 +2126,42 @@ export const dataHavenServiceManagerAbi = [
   },
   {
     type: 'function',
+    inputs: [],
+    name: 'getStrategiesAndMultipliers',
+    outputs: [
+      {
+        name: '',
+        internalType: 'struct IRewardsCoordinatorTypes.StrategyAndMultiplier[]',
+        type: 'tuple[]',
+        components: [
+          {
+            name: 'strategy',
+            internalType: 'contract IStrategy',
+            type: 'address',
+          },
+          { name: 'multiplier', internalType: 'uint96', type: 'uint96' },
+        ],
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
     inputs: [
       { name: 'initialOwner', internalType: 'address', type: 'address' },
       { name: '_rewardsInitiator', internalType: 'address', type: 'address' },
       {
-        name: 'validatorsStrategies',
-        internalType: 'contract IStrategy[]',
-        type: 'address[]',
+        name: 'validatorsStrategiesAndMultipliers',
+        internalType: 'struct IRewardsCoordinatorTypes.StrategyAndMultiplier[]',
+        type: 'tuple[]',
+        components: [
+          {
+            name: 'strategy',
+            internalType: 'contract IStrategy',
+            type: 'address',
+          },
+          { name: 'multiplier', internalType: 'uint96', type: 'uint96' },
+        ],
       },
       {
         name: '_snowbridgeGatewayAddress',
@@ -2122,6 +2173,7 @@ export const dataHavenServiceManagerAbi = [
         internalType: 'address',
         type: 'address',
       },
+      { name: 'initialVersion', internalType: 'string', type: 'string' },
     ],
     name: 'initialize',
     outputs: [],
@@ -2216,6 +2268,27 @@ export const dataHavenServiceManagerAbi = [
   {
     type: 'function',
     inputs: [
+      {
+        name: '_strategyMultipliers',
+        internalType: 'struct IRewardsCoordinatorTypes.StrategyAndMultiplier[]',
+        type: 'tuple[]',
+        components: [
+          {
+            name: 'strategy',
+            internalType: 'contract IStrategy',
+            type: 'address',
+          },
+          { name: 'multiplier', internalType: 'uint96', type: 'uint96' },
+        ],
+      },
+    ],
+    name: 'setStrategiesAndMultipliers',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
       { name: 'newSubmitter', internalType: 'address', type: 'address' },
     ],
     name: 'setValidatorSetSubmitter',
@@ -2250,6 +2323,13 @@ export const dataHavenServiceManagerAbi = [
     inputs: [],
     name: 'snowbridgeGateway',
     outputs: [{ name: '', internalType: 'address', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: '', internalType: 'contract IStrategy', type: 'address' }],
+    name: 'strategiesAndMultipliers',
+    outputs: [{ name: '', internalType: 'uint96', type: 'uint96' }],
     stateMutability: 'view',
   },
   {
@@ -2322,6 +2402,13 @@ export const dataHavenServiceManagerAbi = [
       { name: 'solochainAddress', internalType: 'address', type: 'address' },
     ],
     name: 'updateSolochainAddressForValidator',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'newVersion', internalType: 'string', type: 'string' }],
+    name: 'updateVersion',
     outputs: [],
     stateMutability: 'nonpayable',
   },
@@ -2503,6 +2590,27 @@ export const dataHavenServiceManagerAbi = [
     anonymous: false,
     inputs: [
       {
+        name: 'strategyMultipliers',
+        internalType: 'struct IRewardsCoordinatorTypes.StrategyAndMultiplier[]',
+        type: 'tuple[]',
+        components: [
+          {
+            name: 'strategy',
+            internalType: 'contract IStrategy',
+            type: 'address',
+          },
+          { name: 'multiplier', internalType: 'uint96', type: 'uint96' },
+        ],
+        indexed: false,
+      },
+    ],
+    name: 'StrategiesAndMultipliersSet',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
         name: 'validator',
         internalType: 'address',
         type: 'address',
@@ -2568,18 +2676,42 @@ export const dataHavenServiceManagerAbi = [
     ],
     name: 'ValidatorSetSubmitterUpdated',
   },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'oldVersion',
+        internalType: 'string',
+        type: 'string',
+        indexed: false,
+      },
+      {
+        name: 'newVersion',
+        internalType: 'string',
+        type: 'string',
+        indexed: false,
+      },
+    ],
+    name: 'VersionUpdated',
+  },
   { type: 'error', inputs: [], name: 'CallerIsNotValidator' },
   { type: 'error', inputs: [], name: 'CantDeregisterFromMultipleOperatorSets' },
   { type: 'error', inputs: [], name: 'CantRegisterToMultipleOperatorSets' },
   { type: 'error', inputs: [], name: 'EmptyValidatorSet' },
+  { type: 'error', inputs: [], name: 'EmptyVersion' },
   { type: 'error', inputs: [], name: 'IncorrectAVSAddress' },
   { type: 'error', inputs: [], name: 'InvalidOperatorSetId' },
   { type: 'error', inputs: [], name: 'InvalidSolochainAddressLength' },
+  { type: 'error', inputs: [], name: 'NotProxyAdmin' },
   { type: 'error', inputs: [], name: 'OnlyAllocationManager' },
   { type: 'error', inputs: [], name: 'OnlyRewardsInitiator' },
   { type: 'error', inputs: [], name: 'OnlyValidatorSetSubmitter' },
+  { type: 'error', inputs: [], name: 'OperatorAlreadyRegistered' },
   { type: 'error', inputs: [], name: 'OperatorNotInAllowlist' },
+  { type: 'error', inputs: [], name: 'OperatorNotRegistered' },
   { type: 'error', inputs: [], name: 'SolochainAddressAlreadyAssigned' },
+  { type: 'error', inputs: [], name: 'StrategyNotInOperatorSet' },
   { type: 'error', inputs: [], name: 'UnknownSolochainAddress' },
   { type: 'error', inputs: [], name: 'ZeroAddress' },
 ] as const
@@ -6253,6 +6385,122 @@ export const permissionControllerAbi = [
     type: 'error',
     inputs: [{ name: 'str', internalType: 'string', type: 'string' }],
     name: 'StringTooLong',
+  },
+] as const
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// ProxyAdmin
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+export const proxyAdminAbi = [
+  {
+    type: 'function',
+    inputs: [
+      {
+        name: 'proxy',
+        internalType: 'contract ITransparentUpgradeableProxy',
+        type: 'address',
+      },
+      { name: 'newAdmin', internalType: 'address', type: 'address' },
+    ],
+    name: 'changeProxyAdmin',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      {
+        name: 'proxy',
+        internalType: 'contract ITransparentUpgradeableProxy',
+        type: 'address',
+      },
+    ],
+    name: 'getProxyAdmin',
+    outputs: [{ name: '', internalType: 'address', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      {
+        name: 'proxy',
+        internalType: 'contract ITransparentUpgradeableProxy',
+        type: 'address',
+      },
+    ],
+    name: 'getProxyImplementation',
+    outputs: [{ name: '', internalType: 'address', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'owner',
+    outputs: [{ name: '', internalType: 'address', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'renounceOwnership',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'newOwner', internalType: 'address', type: 'address' }],
+    name: 'transferOwnership',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      {
+        name: 'proxy',
+        internalType: 'contract ITransparentUpgradeableProxy',
+        type: 'address',
+      },
+      { name: 'implementation', internalType: 'address', type: 'address' },
+    ],
+    name: 'upgrade',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      {
+        name: 'proxy',
+        internalType: 'contract ITransparentUpgradeableProxy',
+        type: 'address',
+      },
+      { name: 'implementation', internalType: 'address', type: 'address' },
+      { name: 'data', internalType: 'bytes', type: 'bytes' },
+    ],
+    name: 'upgradeAndCall',
+    outputs: [],
+    stateMutability: 'payable',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'previousOwner',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'newOwner',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+    ],
+    name: 'OwnershipTransferred',
   },
 ] as const
 
@@ -10720,6 +10968,24 @@ export const readDataHavenServiceManagerDatahavenAvsMetadata =
   })
 
 /**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"DATAHAVEN_VERSION"`
+ */
+export const readDataHavenServiceManagerDatahavenVersion =
+  /*#__PURE__*/ createReadContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: 'DATAHAVEN_VERSION',
+  })
+
+/**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"MAX_ACTIVE_VALIDATORS"`
+ */
+export const readDataHavenServiceManagerMaxActiveValidators =
+  /*#__PURE__*/ createReadContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: 'MAX_ACTIVE_VALIDATORS',
+  })
+
+/**
  * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"VALIDATORS_SET_ID"`
  */
 export const readDataHavenServiceManagerValidatorsSetId =
@@ -10735,6 +11001,15 @@ export const readDataHavenServiceManagerBuildNewValidatorSetMessageForEra =
   /*#__PURE__*/ createReadContract({
     abi: dataHavenServiceManagerAbi,
     functionName: 'buildNewValidatorSetMessageForEra',
+  })
+
+/**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"getStrategiesAndMultipliers"`
+ */
+export const readDataHavenServiceManagerGetStrategiesAndMultipliers =
+  /*#__PURE__*/ createReadContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: 'getStrategiesAndMultipliers',
   })
 
 /**
@@ -10762,6 +11037,15 @@ export const readDataHavenServiceManagerSnowbridgeGateway =
   /*#__PURE__*/ createReadContract({
     abi: dataHavenServiceManagerAbi,
     functionName: 'snowbridgeGateway',
+  })
+
+/**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"strategiesAndMultipliers"`
+ */
+export const readDataHavenServiceManagerStrategiesAndMultipliers =
+  /*#__PURE__*/ createReadContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: 'strategiesAndMultipliers',
   })
 
 /**
@@ -10934,6 +11218,15 @@ export const writeDataHavenServiceManagerSetSnowbridgeGateway =
   })
 
 /**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"setStrategiesAndMultipliers"`
+ */
+export const writeDataHavenServiceManagerSetStrategiesAndMultipliers =
+  /*#__PURE__*/ createWriteContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: 'setStrategiesAndMultipliers',
+  })
+
+/**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"setValidatorSetSubmitter"`
  */
 export const writeDataHavenServiceManagerSetValidatorSetSubmitter =
@@ -10985,6 +11278,15 @@ export const writeDataHavenServiceManagerUpdateSolochainAddressForValidator =
   /*#__PURE__*/ createWriteContract({
     abi: dataHavenServiceManagerAbi,
     functionName: 'updateSolochainAddressForValidator',
+  })
+
+/**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"updateVersion"`
+ */
+export const writeDataHavenServiceManagerUpdateVersion =
+  /*#__PURE__*/ createWriteContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: 'updateVersion',
   })
 
 /**
@@ -11102,6 +11404,15 @@ export const simulateDataHavenServiceManagerSetSnowbridgeGateway =
   })
 
 /**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"setStrategiesAndMultipliers"`
+ */
+export const simulateDataHavenServiceManagerSetStrategiesAndMultipliers =
+  /*#__PURE__*/ createSimulateContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: 'setStrategiesAndMultipliers',
+  })
+
+/**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"setValidatorSetSubmitter"`
  */
 export const simulateDataHavenServiceManagerSetValidatorSetSubmitter =
@@ -11153,6 +11464,15 @@ export const simulateDataHavenServiceManagerUpdateSolochainAddressForValidator =
   /*#__PURE__*/ createSimulateContract({
     abi: dataHavenServiceManagerAbi,
     functionName: 'updateSolochainAddressForValidator',
+  })
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"updateVersion"`
+ */
+export const simulateDataHavenServiceManagerUpdateVersion =
+  /*#__PURE__*/ createSimulateContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: 'updateVersion',
   })
 
 /**
@@ -11243,6 +11563,15 @@ export const watchDataHavenServiceManagerSolochainAddressUpdatedEvent =
   })
 
 /**
+ * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `eventName` set to `"StrategiesAndMultipliersSet"`
+ */
+export const watchDataHavenServiceManagerStrategiesAndMultipliersSetEvent =
+  /*#__PURE__*/ createWatchContractEvent({
+    abi: dataHavenServiceManagerAbi,
+    eventName: 'StrategiesAndMultipliersSet',
+  })
+
+/**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `eventName` set to `"ValidatorAddedToAllowlist"`
  */
 export const watchDataHavenServiceManagerValidatorAddedToAllowlistEvent =
@@ -11276,6 +11605,15 @@ export const watchDataHavenServiceManagerValidatorSetSubmitterUpdatedEvent =
   /*#__PURE__*/ createWatchContractEvent({
     abi: dataHavenServiceManagerAbi,
     eventName: 'ValidatorSetSubmitterUpdated',
+  })
+
+/**
+ * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `eventName` set to `"VersionUpdated"`
+ */
+export const watchDataHavenServiceManagerVersionUpdatedEvent =
+  /*#__PURE__*/ createWatchContractEvent({
+    abi: dataHavenServiceManagerAbi,
+    eventName: 'VersionUpdated',
   })
 
 /**
@@ -14183,6 +14521,155 @@ export const watchPermissionControllerPendingAdminRemovedEvent =
   /*#__PURE__*/ createWatchContractEvent({
     abi: permissionControllerAbi,
     eventName: 'PendingAdminRemoved',
+  })
+
+/**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link proxyAdminAbi}__
+ */
+export const readProxyAdmin = /*#__PURE__*/ createReadContract({
+  abi: proxyAdminAbi,
+})
+
+/**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link proxyAdminAbi}__ and `functionName` set to `"getProxyAdmin"`
+ */
+export const readProxyAdminGetProxyAdmin = /*#__PURE__*/ createReadContract({
+  abi: proxyAdminAbi,
+  functionName: 'getProxyAdmin',
+})
+
+/**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link proxyAdminAbi}__ and `functionName` set to `"getProxyImplementation"`
+ */
+export const readProxyAdminGetProxyImplementation =
+  /*#__PURE__*/ createReadContract({
+    abi: proxyAdminAbi,
+    functionName: 'getProxyImplementation',
+  })
+
+/**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link proxyAdminAbi}__ and `functionName` set to `"owner"`
+ */
+export const readProxyAdminOwner = /*#__PURE__*/ createReadContract({
+  abi: proxyAdminAbi,
+  functionName: 'owner',
+})
+
+/**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link proxyAdminAbi}__
+ */
+export const writeProxyAdmin = /*#__PURE__*/ createWriteContract({
+  abi: proxyAdminAbi,
+})
+
+/**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link proxyAdminAbi}__ and `functionName` set to `"changeProxyAdmin"`
+ */
+export const writeProxyAdminChangeProxyAdmin =
+  /*#__PURE__*/ createWriteContract({
+    abi: proxyAdminAbi,
+    functionName: 'changeProxyAdmin',
+  })
+
+/**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link proxyAdminAbi}__ and `functionName` set to `"renounceOwnership"`
+ */
+export const writeProxyAdminRenounceOwnership =
+  /*#__PURE__*/ createWriteContract({
+    abi: proxyAdminAbi,
+    functionName: 'renounceOwnership',
+  })
+
+/**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link proxyAdminAbi}__ and `functionName` set to `"transferOwnership"`
+ */
+export const writeProxyAdminTransferOwnership =
+  /*#__PURE__*/ createWriteContract({
+    abi: proxyAdminAbi,
+    functionName: 'transferOwnership',
+  })
+
+/**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link proxyAdminAbi}__ and `functionName` set to `"upgrade"`
+ */
+export const writeProxyAdminUpgrade = /*#__PURE__*/ createWriteContract({
+  abi: proxyAdminAbi,
+  functionName: 'upgrade',
+})
+
+/**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link proxyAdminAbi}__ and `functionName` set to `"upgradeAndCall"`
+ */
+export const writeProxyAdminUpgradeAndCall = /*#__PURE__*/ createWriteContract({
+  abi: proxyAdminAbi,
+  functionName: 'upgradeAndCall',
+})
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link proxyAdminAbi}__
+ */
+export const simulateProxyAdmin = /*#__PURE__*/ createSimulateContract({
+  abi: proxyAdminAbi,
+})
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link proxyAdminAbi}__ and `functionName` set to `"changeProxyAdmin"`
+ */
+export const simulateProxyAdminChangeProxyAdmin =
+  /*#__PURE__*/ createSimulateContract({
+    abi: proxyAdminAbi,
+    functionName: 'changeProxyAdmin',
+  })
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link proxyAdminAbi}__ and `functionName` set to `"renounceOwnership"`
+ */
+export const simulateProxyAdminRenounceOwnership =
+  /*#__PURE__*/ createSimulateContract({
+    abi: proxyAdminAbi,
+    functionName: 'renounceOwnership',
+  })
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link proxyAdminAbi}__ and `functionName` set to `"transferOwnership"`
+ */
+export const simulateProxyAdminTransferOwnership =
+  /*#__PURE__*/ createSimulateContract({
+    abi: proxyAdminAbi,
+    functionName: 'transferOwnership',
+  })
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link proxyAdminAbi}__ and `functionName` set to `"upgrade"`
+ */
+export const simulateProxyAdminUpgrade = /*#__PURE__*/ createSimulateContract({
+  abi: proxyAdminAbi,
+  functionName: 'upgrade',
+})
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link proxyAdminAbi}__ and `functionName` set to `"upgradeAndCall"`
+ */
+export const simulateProxyAdminUpgradeAndCall =
+  /*#__PURE__*/ createSimulateContract({
+    abi: proxyAdminAbi,
+    functionName: 'upgradeAndCall',
+  })
+
+/**
+ * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link proxyAdminAbi}__
+ */
+export const watchProxyAdminEvent = /*#__PURE__*/ createWatchContractEvent({
+  abi: proxyAdminAbi,
+})
+
+/**
+ * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link proxyAdminAbi}__ and `eventName` set to `"OwnershipTransferred"`
+ */
+export const watchProxyAdminOwnershipTransferredEvent =
+  /*#__PURE__*/ createWatchContractEvent({
+    abi: proxyAdminAbi,
+    eventName: 'OwnershipTransferred',
   })
 
 /**

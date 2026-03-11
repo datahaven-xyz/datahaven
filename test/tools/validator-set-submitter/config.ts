@@ -1,4 +1,3 @@
-import { parseDeploymentsFile } from "utils";
 import { parseEther } from "viem";
 import { parse as parseYaml } from "yaml";
 
@@ -11,11 +10,13 @@ export interface SubmitterConfig {
   executionFee: bigint;
   relayerFee: bigint;
   dryRun: boolean;
+  metricsPort: number;
 }
 
 interface CliOverrides {
   dryRun?: boolean;
   submitterPrivateKey?: string;
+  metricsPort?: string;
 }
 
 export async function loadConfig(
@@ -35,12 +36,15 @@ export async function loadConfig(
 
   let serviceManagerAddress = optionalHexString(raw, "service_manager_address");
   if (!serviceManagerAddress) {
+    const { parseDeploymentsFile } = await import("../../utils/contracts.ts");
     const deployments = await parseDeploymentsFile(networkId);
     serviceManagerAddress = deployments.ServiceManager;
   }
 
   const executionFee = parseEther(optionalString(raw, "execution_fee") ?? "0.1");
   const relayerFee = parseEther(optionalString(raw, "relayer_fee") ?? "0.2");
+
+  const metricsPort = resolveMetricsPort(raw, cli.metricsPort);
 
   return {
     ethereumRpcUrl,
@@ -50,7 +54,8 @@ export async function loadConfig(
     networkId,
     executionFee,
     relayerFee,
-    dryRun: cli.dryRun ?? false
+    dryRun: cli.dryRun ?? false,
+    metricsPort
   };
 }
 
@@ -98,4 +103,15 @@ function optionalHexString(raw: Record<string, unknown>, key: string): `0x${stri
     throw new Error(`Config field ${key} must start with 0x`);
   }
   return val as `0x${string}`;
+}
+
+function resolveMetricsPort(raw: Record<string, unknown>, cliPort?: string): number {
+  const portValue = cliPort ?? process.env.METRICS_PORT ?? optionalString(raw, "metrics_port");
+  const port = portValue !== undefined ? Number(portValue) : 8080;
+
+  if (!Number.isFinite(port) || !Number.isInteger(port) || port < 1 || port > 65535) {
+    throw new Error(`Invalid metrics port: ${port}. Must be an integer between 1 and 65535.`);
+  }
+
+  return port;
 }

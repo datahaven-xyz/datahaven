@@ -3,6 +3,7 @@ pragma solidity ^0.8.27;
 
 // OpenZeppelin imports
 import {OwnableUpgradeable} from "@openzeppelin-upgrades/contracts/access/OwnableUpgradeable.sol";
+import {StorageSlot} from "@openzeppelin/contracts/utils/StorageSlot.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
@@ -29,6 +30,7 @@ import {IDataHavenServiceManager} from "./interfaces/IDataHavenServiceManager.so
 /**
  * @title DataHaven ServiceManager contract
  * @notice Manages validators in the DataHaven network and submits rewards to EigenLayer
+ * @dev This contract is upgradeable and integrates with EigenLayer's AllocationManager
  */
 contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHavenServiceManager {
     using SafeERC20 for IERC20;
@@ -41,6 +43,9 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
 
     /// @notice The EigenLayer operator set ID for the Validators securing the DataHaven network.
     uint32 public constant VALIDATORS_SET_ID = 0;
+
+    /// @notice Maximum number of active validators in the set
+    uint32 public constant MAX_ACTIVE_VALIDATORS = 32;
 
     // ============ Immutables ============
 
@@ -64,15 +69,23 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
     /// @inheritdoc IDataHavenServiceManager
     mapping(address => address) public validatorEthAddressToSolochainAddress;
 
-    /// @inheritdoc IDataHavenServiceManager
     mapping(address => address) public validatorSolochainAddressToEthAddress;
 
     /// @inheritdoc IDataHavenServiceManager
     address public validatorSetSubmitter;
 
+    /// @inheritdoc IDataHavenServiceManager
+    mapping(IStrategy => uint96) public strategiesAndMultipliers;
+
+    /// @notice Semantic version of the deployed DataHaven AVS stack.
+    /// Set during initialization based on deployment chain.
+    /// This should match the `version` field in the corresponding
+    /// `contracts/deployments/<chain>.json`.
+    string private _version;
+
     /// @notice Storage gap for upgradeability (must be at end of state variables)
     // solhint-disable-next-line var-name-mixedcase
-    uint256[44] private __GAP;
+    uint256[42] private __GAP;
 
     // ============ Modifiers ============
 
@@ -98,6 +111,22 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
     modifier onlyValidatorSetSubmitter() {
         _checkValidatorSetSubmitter();
         _;
+    }
+
+    /// @notice Restricts function to the ProxyAdmin contract.
+    /// @dev Version updates must come through the ProxyAdmin so they are always
+    ///      bundled with an actual proxy upgrade (via upgradeAndCall). The ProxyAdmin
+    ///      is owned by the AVS owner, so the trust chain is: AVS owner → ProxyAdmin → updateVersion.
+    modifier onlyProxyAdmin() {
+        _checkProxyAdmin();
+        _;
+    }
+
+    function _checkProxyAdmin() internal view {
+        // EIP-1967 admin slot: keccak256("eip1967.proxy.admin") - 1
+        bytes32 adminSlot = 0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103;
+        address proxyAdmin = StorageSlot.getAddressSlot(adminSlot).value;
+        require(msg.sender == proxyAdmin, NotProxyAdmin());
     }
 
     function _checkRewardsInitiator() internal view {
@@ -138,27 +167,41 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
     function initialize(
         address initialOwner,
         address _rewardsInitiator,
-        IStrategy[] memory validatorsStrategies,
+        IRewardsCoordinatorTypes.StrategyAndMultiplier[] memory validatorsStrategiesAndMultipliers,
         address _snowbridgeGatewayAddress,
-        address _validatorSetSubmitter
+        address _validatorSetSubmitter,
+        string memory initialVersion
     ) public virtual initializer {
         require(initialOwner != address(0), ZeroAddress());
         require(_rewardsInitiator != address(0), ZeroAddress());
         require(_snowbridgeGatewayAddress != address(0), ZeroAddress());
+        require(bytes(initialVersion).length > 0, EmptyVersion());
 
         __Ownable_init();
         _transferOwnership(initialOwner);
         rewardsInitiator = _rewardsInitiator;
         emit RewardsInitiatorSet(address(0), _rewardsInitiator);
 
+        // Set version from parameter (allows flexibility per deployment environment)
+        _version = initialVersion;
+
         // Register the DataHaven service in the AllocationManager.
         _ALLOCATION_MANAGER.updateAVSMetadataURI(address(this), DATAHAVEN_AVS_METADATA);
+
+        // Build the strategies array and populate multipliers atomically so that
+        // getStrategiesInOperatorSet and strategiesAndMultipliers are always consistent.
+        IStrategy[] memory strategies = new IStrategy[](validatorsStrategiesAndMultipliers.length);
+        for (uint256 i = 0; i < validatorsStrategiesAndMultipliers.length; i++) {
+            strategies[i] = validatorsStrategiesAndMultipliers[i].strategy;
+            strategiesAndMultipliers[validatorsStrategiesAndMultipliers[i].strategy] =
+            validatorsStrategiesAndMultipliers[i].multiplier;
+        }
 
         // Create the operator set for the DataHaven service.
         IAllocationManagerTypes.CreateSetParams[] memory operatorSets =
             new IAllocationManagerTypes.CreateSetParams[](1);
         operatorSets[0] = IAllocationManagerTypes.CreateSetParams({
-            operatorSetId: VALIDATORS_SET_ID, strategies: validatorsStrategies
+            operatorSetId: VALIDATORS_SET_ID, strategies: strategies
         });
         _ALLOCATION_MANAGER.createOperatorSets(address(this), operatorSets);
 
@@ -171,6 +214,16 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
             emit ValidatorSetSubmitterUpdated(address(0), _validatorSetSubmitter);
         }
     }
+
+    // ============ View Functions ============
+
+    /// @notice Returns the semantic version of the deployed DataHaven AVS stack
+    /// @return The version string (e.g., "1.0.0")
+    function DATAHAVEN_VERSION() external view returns (string memory) {
+        return _version;
+    }
+
+    // ============ External Functions ============
 
     /// @inheritdoc IDataHavenServiceManager
     function setValidatorSetSubmitter(
@@ -200,22 +253,72 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         uint64 targetEra
     ) public view returns (bytes memory) {
         OperatorSet memory operatorSet = OperatorSet({avs: address(this), id: VALIDATORS_SET_ID});
-        address[] memory currentValidatorSet = _ALLOCATION_MANAGER.getMembers(operatorSet);
+        address[] memory operators = _ALLOCATION_MANAGER.getMembers(operatorSet);
+        IStrategy[] memory strategies = _ALLOCATION_MANAGER.getStrategiesInOperatorSet(operatorSet);
 
-        // Allocate max size, then resize after filtering
-        address[] memory newValidatorSet = new address[](currentValidatorSet.length);
-        uint256 validCount = 0;
-        for (uint256 i = 0; i < currentValidatorSet.length; i++) {
-            address solochainAddr = validatorEthAddressToSolochainAddress[currentValidatorSet[i]];
-            if (solochainAddr != address(0)) {
-                newValidatorSet[validCount] = solochainAddr;
-                ++validCount;
+        // Get allocated stake for all operators across all strategies
+        uint256[][] memory allocatedStake =
+            _ALLOCATION_MANAGER.getAllocatedStake(operatorSet, operators, strategies);
+
+        // Collect candidates: operators with solochain mapping and non-zero weighted stake
+        address[] memory candidateSolochain = new address[](operators.length);
+        uint256[] memory candidateStake = new uint256[](operators.length);
+        address[] memory candidateOperator = new address[](operators.length);
+        uint256 candidateCount = 0;
+
+        for (uint256 i = 0; i < operators.length; i++) {
+            address solochainAddr = validatorEthAddressToSolochainAddress[operators[i]];
+            if (solochainAddr == address(0)) continue;
+
+            // Compute weighted stake across all strategies:
+            // weightedStake = sum(allocatedStake[i][j] * multiplier[j])
+            uint256 weightedStake = 0;
+            for (uint256 j = 0; j < strategies.length; j++) {
+                weightedStake += allocatedStake[i][j]
+                * uint256(strategiesAndMultipliers[strategies[j]]);
+            }
+
+            if (weightedStake == 0) continue;
+
+            candidateSolochain[candidateCount] = solochainAddr;
+            candidateStake[candidateCount] = weightedStake;
+            candidateOperator[candidateCount] = operators[i];
+            candidateCount++;
+        }
+
+        require(candidateCount != 0, EmptyValidatorSet());
+
+        // Partial selection sort: pick top min(MAX_ACTIVE_VALIDATORS, candidateCount)
+        uint256 selectCount =
+            candidateCount < MAX_ACTIVE_VALIDATORS ? candidateCount : MAX_ACTIVE_VALIDATORS;
+
+        for (uint256 i = 0; i < selectCount; i++) {
+            uint256 bestIdx = i;
+            for (uint256 j = i + 1; j < candidateCount; j++) {
+                if (_isBetterCandidate(
+                        candidateStake[j],
+                        candidateOperator[j],
+                        candidateStake[bestIdx],
+                        candidateOperator[bestIdx]
+                    )) {
+                    bestIdx = j;
+                }
+            }
+            if (bestIdx != i) {
+                // Swap all parallel arrays
+                (candidateSolochain[i], candidateSolochain[bestIdx]) =
+                    (candidateSolochain[bestIdx], candidateSolochain[i]);
+                (candidateStake[i], candidateStake[bestIdx]) =
+                    (candidateStake[bestIdx], candidateStake[i]);
+                (candidateOperator[i], candidateOperator[bestIdx]) =
+                    (candidateOperator[bestIdx], candidateOperator[i]);
             }
         }
-        require(validCount != 0, EmptyValidatorSet());
-        // Resize array to actual count
-        assembly {
-            mstore(newValidatorSet, validCount)
+
+        // Build the final validator set from sorted solochain addresses
+        address[] memory newValidatorSet = new address[](selectCount);
+        for (uint256 i = 0; i < selectCount; i++) {
+            newValidatorSet[i] = candidateSolochain[i];
         }
 
         return DataHavenSnowbridgeMessages.scaleEncodeNewValidatorSetMessagePayload(
@@ -231,16 +334,13 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
     ) external onlyValidator {
         require(solochainAddress != address(0), ZeroAddress());
 
-        address existingEthOperator = validatorSolochainAddressToEthAddress[solochainAddress];
-        require(
-            existingEthOperator == address(0) || existingEthOperator == msg.sender,
-            SolochainAddressAlreadyAssigned()
-        );
-
         address oldSolochainAddress = validatorEthAddressToSolochainAddress[msg.sender];
-        if (oldSolochainAddress != address(0) && oldSolochainAddress != solochainAddress) {
-            delete validatorSolochainAddressToEthAddress[oldSolochainAddress];
-        }
+        require(oldSolochainAddress != solochainAddress, SolochainAddressAlreadyAssigned());
+
+        address existingEthOperator = validatorSolochainAddressToEthAddress[solochainAddress];
+        require(existingEthOperator == address(0), SolochainAddressAlreadyAssigned());
+
+        delete validatorSolochainAddressToEthAddress[oldSolochainAddress];
 
         validatorEthAddressToSolochainAddress[msg.sender] = solochainAddress;
         validatorSolochainAddressToEthAddress[solochainAddress] = msg.sender;
@@ -274,18 +374,16 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         require(operatorSetIds.length == 1, CantRegisterToMultipleOperatorSets());
         require(operatorSetIds[0] == VALIDATORS_SET_ID, InvalidOperatorSetId());
         require(validatorsAllowlist[operator], OperatorNotInAllowlist());
-
-        address solochainAddress = _toAddress(data);
-        address existingEthOperator = validatorSolochainAddressToEthAddress[solochainAddress];
         require(
-            existingEthOperator == address(0) || existingEthOperator == operator,
-            SolochainAddressAlreadyAssigned()
+            validatorEthAddressToSolochainAddress[operator] == address(0),
+            OperatorAlreadyRegistered()
         );
 
-        address oldSolochainAddress = validatorEthAddressToSolochainAddress[operator];
-        if (oldSolochainAddress != address(0) && oldSolochainAddress != solochainAddress) {
-            delete validatorSolochainAddressToEthAddress[oldSolochainAddress];
-        }
+        address solochainAddress = _toAddress(data);
+        require(
+            validatorSolochainAddressToEthAddress[solochainAddress] == address(0),
+            SolochainAddressAlreadyAssigned()
+        );
 
         validatorEthAddressToSolochainAddress[operator] = solochainAddress;
         validatorSolochainAddressToEthAddress[solochainAddress] = operator;
@@ -302,12 +400,13 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         require(avsAddress == address(this), IncorrectAVSAddress());
         require(operatorSetIds.length == 1, CantDeregisterFromMultipleOperatorSets());
         require(operatorSetIds[0] == VALIDATORS_SET_ID, InvalidOperatorSetId());
+        require(
+            validatorEthAddressToSolochainAddress[operator] != address(0), OperatorNotRegistered()
+        );
 
         address oldSolochainAddress = validatorEthAddressToSolochainAddress[operator];
         delete validatorEthAddressToSolochainAddress[operator];
-        if (oldSolochainAddress != address(0)) {
-            delete validatorSolochainAddressToEthAddress[oldSolochainAddress];
-        }
+        delete validatorSolochainAddressToEthAddress[oldSolochainAddress];
 
         emit OperatorDeregistered(operator, operatorSetIds[0]);
     }
@@ -351,15 +450,71 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         _ALLOCATION_MANAGER.removeStrategiesFromOperatorSet(
             address(this), VALIDATORS_SET_ID, _strategies
         );
+
+        for (uint256 i = 0; i < _strategies.length; i++) {
+            delete strategiesAndMultipliers[_strategies[i]];
+        }
     }
 
     /// @inheritdoc IDataHavenServiceManager
     function addStrategiesToValidatorsSupportedStrategies(
-        IStrategy[] calldata _strategies
+        IRewardsCoordinatorTypes.StrategyAndMultiplier[] calldata _strategyMultipliers
     ) external onlyOwner {
-        _ALLOCATION_MANAGER.addStrategiesToOperatorSet(
-            address(this), VALIDATORS_SET_ID, _strategies
-        );
+        IStrategy[] memory strategies = new IStrategy[](_strategyMultipliers.length);
+        for (uint256 i = 0; i < _strategyMultipliers.length; i++) {
+            strategies[i] = _strategyMultipliers[i].strategy;
+            strategiesAndMultipliers[_strategyMultipliers[i].strategy] =
+            _strategyMultipliers[i].multiplier;
+        }
+
+        _ALLOCATION_MANAGER.addStrategiesToOperatorSet(address(this), VALIDATORS_SET_ID, strategies);
+
+        emit StrategiesAndMultipliersSet(_strategyMultipliers);
+    }
+
+    /// @inheritdoc IDataHavenServiceManager
+    function setStrategiesAndMultipliers(
+        IRewardsCoordinatorTypes.StrategyAndMultiplier[] calldata _strategyMultipliers
+    ) external onlyOwner {
+        OperatorSet memory operatorSet = OperatorSet({avs: address(this), id: VALIDATORS_SET_ID});
+        IStrategy[] memory registered = _ALLOCATION_MANAGER.getStrategiesInOperatorSet(operatorSet);
+
+        for (uint256 i = 0; i < _strategyMultipliers.length; i++) {
+            bool found = false;
+            for (uint256 j = 0; j < registered.length; j++) {
+                if (registered[j] == _strategyMultipliers[i].strategy) {
+                    found = true;
+                    break;
+                }
+            }
+            require(found, StrategyNotInOperatorSet());
+
+            strategiesAndMultipliers[_strategyMultipliers[i].strategy] =
+            _strategyMultipliers[i].multiplier;
+        }
+
+        emit StrategiesAndMultipliersSet(_strategyMultipliers);
+    }
+
+    /// @inheritdoc IDataHavenServiceManager
+    function getStrategiesAndMultipliers()
+        external
+        view
+        returns (IRewardsCoordinatorTypes.StrategyAndMultiplier[] memory)
+    {
+        OperatorSet memory operatorSet = OperatorSet({avs: address(this), id: VALIDATORS_SET_ID});
+        IStrategy[] memory strategies = _ALLOCATION_MANAGER.getStrategiesInOperatorSet(operatorSet);
+
+        IRewardsCoordinatorTypes.StrategyAndMultiplier[] memory result =
+            new IRewardsCoordinatorTypes.StrategyAndMultiplier[](strategies.length);
+
+        for (uint256 i = 0; i < strategies.length; i++) {
+            result[i] = IRewardsCoordinatorTypes.StrategyAndMultiplier({
+                strategy: strategies[i], multiplier: strategiesAndMultipliers[strategies[i]]
+            });
+        }
+
+        return result;
     }
 
     // ============ Rewards Functions ============
@@ -370,12 +525,32 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
     ) external override onlyRewardsInitiator {
         IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission memory translatedSubmission =
         submission;
+
+        uint256 len = translatedSubmission.operatorRewards.length;
+        IRewardsCoordinatorTypes.OperatorReward[] memory translated =
+            new IRewardsCoordinatorTypes.OperatorReward[](len);
         uint256 totalAmount = 0;
-        for (uint256 i = 0; i < translatedSubmission.operatorRewards.length; i++) {
-            translatedSubmission.operatorRewards[i].operator =
-                _ethOperatorFromSolochain(translatedSubmission.operatorRewards[i].operator);
-            totalAmount += translatedSubmission.operatorRewards[i].amount;
+        uint256 resolvedCount = 0;
+        for (uint256 i = 0; i < len; i++) {
+            address ethOp = validatorSolochainAddressToEthAddress[
+                translatedSubmission.operatorRewards[i].operator
+            ];
+            if (ethOp == address(0)) continue;
+            translated[resolvedCount] = translatedSubmission.operatorRewards[i];
+            translated[resolvedCount].operator = ethOp;
+            totalAmount += translated[resolvedCount].amount;
+            resolvedCount++;
         }
+
+        // Resize to the number of successfully resolved operators
+        assembly {
+            mstore(translated, resolvedCount)
+        }
+        translatedSubmission.operatorRewards = translated;
+
+        emit RewardsSubmitted(totalAmount, resolvedCount);
+
+        if (resolvedCount == 0) return;
 
         uint256 uniqueCount = _sortAndMergeDuplicateOperators(translatedSubmission.operatorRewards);
 
@@ -399,8 +574,6 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         _REWARDS_COORDINATOR.createOperatorDirectedOperatorSetRewardsSubmission(
             operatorSet, submissions
         );
-
-        emit RewardsSubmitted(totalAmount, submission.operatorRewards.length);
     }
 
     /// @inheritdoc IDataHavenServiceManager
@@ -444,7 +617,8 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         SlashingRequest[] calldata slashings
     ) external onlyRewardsInitiator {
         for (uint256 i = 0; i < slashings.length; i++) {
-            address ethOperator = _ethOperatorFromSolochain(slashings[i].operator);
+            address ethOperator = validatorSolochainAddressToEthAddress[slashings[i].operator];
+            if (ethOperator == address(0)) continue;
             IAllocationManagerTypes.SlashingParams memory slashingParams =
                 IAllocationManagerTypes.SlashingParams({
                     operator: ethOperator,
@@ -458,6 +632,22 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         }
 
         emit SlashingComplete();
+    }
+
+    // ============ Version Management ============
+
+    /// @notice Updates the contract version (typically called after upgrades)
+    /// @param newVersion The new version string (e.g., "1.1.0")
+    /// @dev Only callable by the ProxyAdmin, ensuring version changes are always
+    ///      bundled with a proxy upgrade via upgradeAndCall. The AVS owner controls
+    ///      the ProxyAdmin, maintaining the trust chain: AVS owner → ProxyAdmin → updateVersion.
+    function updateVersion(
+        string memory newVersion
+    ) external onlyProxyAdmin {
+        require(bytes(newVersion).length > 0, "Version cannot be empty");
+        string memory oldVersion = _version;
+        _version = newVersion;
+        emit VersionUpdated(oldVersion, newVersion);
     }
 
     // ============ Internal Functions ============
@@ -517,14 +707,23 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
     }
 
     /**
-     * @notice Returns the EigenLayer operator address for a Solochain validator address
-     * @dev Reverts if the Solochain address has not been mapped to an operator
+     * @notice Determines if candidate A ranks higher than candidate B
+     * @dev Higher stake wins; on tie, lower operator address wins
+     * @param stakeA Weighted stake of candidate A
+     * @param opA Operator address of candidate A
+     * @param stakeB Weighted stake of candidate B
+     * @param opB Operator address of candidate B
+     * @return True if candidate A ranks higher than candidate B
      */
-    function _ethOperatorFromSolochain(
-        address solochainAddress
-    ) internal view returns (address) {
-        address ethOperator = validatorSolochainAddressToEthAddress[solochainAddress];
-        require(ethOperator != address(0), UnknownSolochainAddress());
-        return ethOperator;
+    function _isBetterCandidate(
+        uint256 stakeA,
+        address opA,
+        uint256 stakeB,
+        address opB
+    ) private pure returns (bool) {
+        if (stakeA != stakeB) {
+            return stakeA > stakeB;
+        }
+        return opA < opB;
     }
 }

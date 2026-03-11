@@ -60,6 +60,8 @@ jobs:
         run: bun ./scripts/check-generated-state.ts
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: v1.4.3
       - name: Pull Kurtosis images
         run: |
           docker pull ${{ env.KURTOSIS_CORE_IMAGE }}:${{ env.KURTOSIS_VERSION }}

@@ -32,6 +32,10 @@ import {
 } from "eigenlayer-contracts/src/contracts/permissions/PermissionController.sol";
 import {EigenPodManager} from "eigenlayer-contracts/src/contracts/pods/EigenPodManager.sol";
 import {IETHPOSDeposit} from "eigenlayer-contracts/src/contracts/interfaces/IETHPOSDeposit.sol";
+import {IStrategy} from "eigenlayer-contracts/src/contracts/interfaces/IStrategy.sol";
+import {
+    IRewardsCoordinatorTypes
+} from "eigenlayer-contracts/src/contracts/interfaces/IRewardsCoordinator.sol";
 
 // DataHaven imports
 import {DataHavenServiceManager} from "../../src/DataHavenServiceManager.sol";
@@ -41,9 +45,10 @@ import {ValidatorsUtils} from "../../script/utils/ValidatorsUtils.sol";
 struct ServiceManagerInitParams {
     address avsOwner;
     address rewardsInitiator;
-    address[] validatorsStrategies;
+    IRewardsCoordinatorTypes.StrategyAndMultiplier[] validatorsStrategiesAndMultipliers;
     address gateway;
     address validatorSetSubmitter;
+    string initialVersion;
 }
 
 // Struct to store more detailed strategy information
@@ -118,7 +123,7 @@ abstract contract DeployBase is Script, DeployParams, Accounts {
             BeefyClient beefyClient,
             AgentExecutor agentExecutor,
             IGatewayV2 gateway,
-            address payable rewardsAgentAddress
+            address payable agentAddress
         ) = _deploySnowbridge(snowbridgeConfig);
         Logging.logFooter();
         _logProgress();
@@ -127,14 +132,14 @@ abstract contract DeployBase is Script, DeployParams, Accounts {
         (
             DataHavenServiceManager serviceManager,
             DataHavenServiceManager serviceManagerImplementation
-        ) = _deployDataHavenContracts(avsConfig, proxyAdmin, gateway);
+        ) = _deployDataHavenContracts(avsConfig, proxyAdmin, gateway, agentAddress);
 
         Logging.logFooter();
         _logProgress();
 
         // Final configuration (same for both modes)
         Logging.logHeader("FINAL CONFIGURATION");
-        Logging.logContractDeployed("Rewards Agent Address", rewardsAgentAddress);
+        Logging.logContractDeployed("Agent Address", agentAddress);
         Logging.logFooter();
         _logProgress();
 
@@ -145,10 +150,11 @@ abstract contract DeployBase is Script, DeployParams, Accounts {
             gateway,
             serviceManager,
             serviceManagerImplementation,
-            rewardsAgentAddress
+            agentAddress,
+            proxyAdmin
         );
 
-        _outputRewardsAgentInfo(rewardsAgentAddress, snowbridgeConfig.rewardsMessageOrigin);
+        _outputAgentInfo(agentAddress, snowbridgeConfig.messageOrigin);
     }
 
     /**
@@ -195,11 +201,11 @@ abstract contract DeployBase is Script, DeployParams, Accounts {
         // Create Agent
         Logging.logSection("Creating Snowbridge Agent");
         vm.broadcast(_deployerPrivateKey);
-        gateway.v2_createAgent(config.rewardsMessageOrigin);
-        address payable rewardsAgentAddress = payable(gateway.agentOf(config.rewardsMessageOrigin));
-        Logging.logContractDeployed("Rewards Agent", rewardsAgentAddress);
+        gateway.v2_createAgent(config.messageOrigin);
+        address payable agentAddress = payable(gateway.agentOf(config.messageOrigin));
+        Logging.logContractDeployed("Rewards Agent", agentAddress);
 
-        return (beefyClient, agentExecutor, gateway, rewardsAgentAddress);
+        return (beefyClient, agentExecutor, gateway, agentAddress);
     }
 
     /**
@@ -234,7 +240,8 @@ abstract contract DeployBase is Script, DeployParams, Accounts {
     function _deployDataHavenContracts(
         AVSConfig memory avsConfig,
         ProxyAdmin proxyAdmin,
-        IGatewayV2 gateway
+        IGatewayV2 gateway,
+        address agentAddress
     ) internal returns (DataHavenServiceManager, DataHavenServiceManager) {
         Logging.logHeader("DATAHAVEN CUSTOM CONTRACTS DEPLOYMENT");
 
@@ -246,13 +253,28 @@ abstract contract DeployBase is Script, DeployParams, Accounts {
             "ServiceManager Implementation", address(serviceManagerImplementation)
         );
 
+        // Build StrategyAndMultiplier[] from config addresses with default multiplier of 1.
+        // Multipliers can be updated post-deployment via setStrategiesAndMultipliers if needed.
+        IRewardsCoordinatorTypes.StrategyAndMultiplier[] memory strategiesAndMultipliers = new IRewardsCoordinatorTypes
+            .StrategyAndMultiplier[](avsConfig.validatorsStrategies.length);
+        for (uint256 i = 0; i < avsConfig.validatorsStrategies.length; i++) {
+            strategiesAndMultipliers[i] = IRewardsCoordinatorTypes.StrategyAndMultiplier({
+                strategy: IStrategy(avsConfig.validatorsStrategies[i]), multiplier: 1
+            });
+        }
+
+        // Read version from environment variable (passed by TypeScript wrapper)
+        string memory version = vm.envOr("DATAHAVEN_VERSION", string("0.1.0"));
+        console.log("|  Version: %s", version);
+
         // Create service manager initialisation parameters struct
         ServiceManagerInitParams memory initParams = ServiceManagerInitParams({
             avsOwner: avsConfig.avsOwner,
-            rewardsInitiator: avsConfig.rewardsInitiator,
-            validatorsStrategies: avsConfig.validatorsStrategies,
+            rewardsInitiator: agentAddress,
+            validatorsStrategiesAndMultipliers: strategiesAndMultipliers,
             gateway: address(gateway),
-            validatorSetSubmitter: avsConfig.validatorSetSubmitter
+            validatorSetSubmitter: avsConfig.validatorSetSubmitter,
+            initialVersion: version
         });
 
         // Create the service manager proxy (different logic for local vs testnet)
@@ -292,37 +314,38 @@ abstract contract DeployBase is Script, DeployParams, Accounts {
         IGatewayV2 gateway,
         DataHavenServiceManager serviceManager,
         DataHavenServiceManager serviceManagerImplementation,
-        address rewardsAgent
+        address agent,
+        ProxyAdmin proxyAdmin
     ) internal virtual;
 
     /**
-     * @notice Output rewards agent info (shared across all deployment types)
+     * @notice Output agent info (shared across all deployment types)
      */
-    function _outputRewardsAgentInfo(
-        address rewardsAgent,
-        bytes32 rewardsAgentOrigin
+    function _outputAgentInfo(
+        address agent,
+        bytes32 agentOrigin
     ) internal {
-        Logging.logHeader("REWARDS AGENT INFO");
-        Logging.logContractDeployed("RewardsAgent", rewardsAgent);
-        Logging.logAgentOrigin("RewardsAgentOrigin", vm.toString(rewardsAgentOrigin));
+        Logging.logHeader("AGENT INFO");
+        Logging.logContractDeployed("Agent", agent);
+        Logging.logAgentOrigin("AgentOrigin", vm.toString(agentOrigin));
         Logging.logFooter();
 
         // Write to deployment file for future reference
         string memory network = _getNetworkName();
-        string memory rewardsInfoPath =
-            string.concat(vm.projectRoot(), "/deployments/", network, "-rewards-info.json");
+        string memory agentInfoPath =
+            string.concat(vm.projectRoot(), "/deployments/", network, "-agent-info.json");
 
         // Create directory if it doesn't exist
         vm.createDir(string.concat(vm.projectRoot(), "/deployments"), true);
 
         // Create JSON with rewards info
         string memory json = "{";
-        json = string.concat(json, '"RewardsAgent": "', vm.toString(rewardsAgent), '",');
-        json = string.concat(json, '"RewardsAgentOrigin": "', vm.toString(rewardsAgentOrigin), '"');
+        json = string.concat(json, '"Agent": "', vm.toString(agent), '",');
+        json = string.concat(json, '"AgentOrigin": "', vm.toString(agentOrigin), '"');
         json = string.concat(json, "}");
 
         // Write to file
-        vm.writeFile(rewardsInfoPath, json);
-        Logging.logInfo(string.concat("Rewards info saved to: ", rewardsInfoPath));
+        vm.writeFile(agentInfoPath, json);
+        Logging.logInfo(string.concat("Agent info saved to: ", agentInfoPath));
     }
 }

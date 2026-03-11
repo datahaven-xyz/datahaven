@@ -131,6 +131,9 @@ impl crate::types::SendMessage for MockOkOutboundQueue {
     }
 
     fn validate(ticket: Self::Ticket) -> Result<Self::Ticket, SendError> {
+        if Mock::mock().send_message_fails {
+            return Err(SendError::MessageTooLarge);
+        }
         Ok(ticket)
     }
 
@@ -232,6 +235,7 @@ impl pallet_external_validators_rewards::Config for Test {
     type RewardsWindowGenesisTimestamp = RewardsWindowGenesisTimestamp;
     type RewardsWindowDuration = RewardsWindowDuration;
     type UnixTime = Timestamp;
+    type GovernanceOrigin = frame_system::EnsureRoot<H160>;
     type WeightInfo = ();
     #[cfg(feature = "runtime-benchmarks")]
     type BenchmarkHelper = ();
@@ -239,7 +243,10 @@ impl pallet_external_validators_rewards::Config for Test {
 
 pub struct InflationMinter;
 impl HandleInflation<H160> for InflationMinter {
-    fn mint_inflation(rewards_account: &H160, total_amount: u128) -> sp_runtime::DispatchResult {
+    fn mint_inflation(
+        rewards_account: &H160,
+        total_amount: u128,
+    ) -> Result<crate::types::InflationMintResult, sp_runtime::DispatchError> {
         use sp_runtime::traits::Zero;
 
         if total_amount.is_zero() {
@@ -275,7 +282,10 @@ impl HandleInflation<H160> for InflationMinter {
             .map_err(|_| DispatchError::Other("Failed to mint treasury inflation"))?;
         }
 
-        Ok(())
+        Ok(crate::types::InflationMintResult {
+            rewards_amount,
+            treasury_amount,
+        })
     }
 }
 
@@ -295,6 +305,8 @@ pub mod mock_data {
         pub offline_validators: sp_std::vec::Vec<sp_core::H160>,
         /// Set of (era_index, validator_id) pairs that are slashed
         pub slashed_validators: sp_std::vec::Vec<(u32, sp_core::H160)>,
+        /// When true, MockOkOutboundQueue::validate will return Err(SendError::MessageTooLarge)
+        pub send_message_fails: bool,
     }
 
     #[pallet::config]

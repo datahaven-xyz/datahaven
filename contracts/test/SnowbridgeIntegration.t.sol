@@ -24,7 +24,8 @@ contract SnowbridgeIntegrationTest is SnowbridgeAndAVSDeployer {
     ) public pure returns (bytes[] memory beforeTestCalldata) {
         if (testSelector == this.test_sendNewValidatorsSetMessage.selector) {
             beforeTestCalldata = new bytes[](1);
-            beforeTestCalldata[0] = abi.encodeWithSelector(this.setupValidatorsAsOperators.selector);
+            beforeTestCalldata[0] =
+                abi.encodeWithSelector(this.setupValidatorsAsOperatorsWithAllocations.selector);
         }
     }
 

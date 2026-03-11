@@ -1,5 +1,6 @@
 import { existsSync } from "node:fs";
 import { type Duplex, PassThrough, Transform } from "node:stream";
+import { $ } from "bun";
 import Docker from "dockerode";
 import invariant from "tiny-invariant";
 import { logger } from "./logger";
@@ -178,6 +179,13 @@ export async function waitForLog(opts: {
 
   const { readable } = Transform.toWeb(pass);
   const decoder = new TextDecoder();
+  let bufferedLogs = "";
+  const hasHit = (text: string): boolean => {
+    if (typeof opts.search === "string") return text.includes(opts.search);
+    // Avoid stateful regex surprises with /g or /y across multiple checks.
+    opts.search.lastIndex = 0;
+    return opts.search.test(text);
+  };
   const timer = setTimeout(
     () =>
       pass.destroy(
@@ -190,13 +198,15 @@ export async function waitForLog(opts: {
 
   try {
     for await (const chunk of readable) {
-      const text = decoder.decode(chunk as Uint8Array, { stream: false });
-
-      const hit =
-        typeof opts.search === "string" ? text.includes(opts.search) : opts.search.test(text);
-
-      if (hit) return text.trim();
+      bufferedLogs += decoder.decode(chunk as Uint8Array, { stream: true });
+      if (hasHit(bufferedLogs)) return bufferedLogs.trim();
+      if (bufferedLogs.length > 64_000) {
+        bufferedLogs = bufferedLogs.slice(-64_000);
+      }
     }
+
+    bufferedLogs += decoder.decode();
+    if (hasHit(bufferedLogs)) return bufferedLogs.trim();
 
     throw new Error(
       `Log stream ended before "${opts.search}" appeared for container ${opts.containerName}`
@@ -229,6 +239,9 @@ export const waitForContainerToStart = async (
   logger.debug(`Waiting for container ${containerName} to start...`);
   const seconds = options?.timeoutSeconds ?? 30;
 
+  // sleep 2 seconds to see if the started container didn't exit right away
+  await Bun.sleep(2000);
+
   for (let i = 0; i < seconds; i++) {
     const containers = await docker.listContainers();
     const container = containers.find((container) =>
@@ -236,10 +249,17 @@ export const waitForContainerToStart = async (
     );
     if (container) {
       logger.debug(`Container ${containerName} started after ${i} seconds`);
+      const result = await $`docker logs ${containerName}`.nothrow().quiet().text();
+      console.log(result);
+
       return;
     }
     await Bun.sleep(1000);
   }
+
+  const result = await $`docker logs ${containerName}`;
+  console.log(result);
+
   invariant(
     false,
     `❌ container ${containerName} cannot be found  in running container list after ${seconds} seconds`

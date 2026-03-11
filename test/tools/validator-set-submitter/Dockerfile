@@ -1,7 +1,8 @@
 # Validator Set Submitter image
 #
-# Build from the repository root:
-#   docker build -f test/tools/validator-set-submitter/Dockerfile \
+# Build from the test directory:
+#   cd test
+#   docker build -f tools/validator-set-submitter/Dockerfile \
 #     -t datahavenxyz/validator-set-submitter:local .
 #
 # Runtime expectations:
@@ -13,8 +14,8 @@ FROM oven/bun:1.3.3-slim AS deps
 
 WORKDIR /app
 
-COPY test/package.json test/bun.lock test/tsconfig.json ./
-COPY test/.papi ./.papi
+COPY package.json bun.lock tsconfig.json ./
+COPY .papi ./.papi
 RUN bun install --frozen-lockfile --production
 
 FROM oven/bun:1.3.3-slim
@@ -24,12 +25,14 @@ WORKDIR /app
 RUN useradd -m -u 1001 -U -s /bin/sh -d /submitter submitter
 
 COPY --from=deps /app/node_modules ./node_modules
-COPY test/tsconfig.json test/bunfig.toml ./
-COPY test/tools/validator-set-submitter/ ./tools/validator-set-submitter/
-COPY test/contract-bindings/ ./contract-bindings/
-COPY test/utils/ ./utils/
+COPY tsconfig.json bunfig.toml ./
+COPY tools/validator-set-submitter/ ./tools/validator-set-submitter/
+COPY contract-bindings/ ./contract-bindings/
+COPY utils/ ./utils/
 
 ENV NODE_ENV=production
+
+EXPOSE 8080
 
 USER submitter
 

@@ -42,6 +42,21 @@ interface IDataHavenServiceManagerErrors {
 
     /// @notice Thrown when a Solochain address is already assigned to a different operator
     error SolochainAddressAlreadyAssigned();
+
+    /// @notice Thrown when a strategy is not registered in the operator set
+    error StrategyNotInOperatorSet();
+
+    /// @notice Thrown when an operator attempts to register but is already registered
+    error OperatorAlreadyRegistered();
+
+    /// @notice Thrown when an operation requires the operator to be registered but it is not
+    error OperatorNotRegistered();
+
+    /// @notice Thrown when an empty version string is provided
+    error EmptyVersion();
+
+    /// @notice Thrown when the caller is not the ProxyAdmin
+    error NotProxyAdmin();
 }
 
 /**
@@ -89,10 +104,19 @@ interface IDataHavenServiceManagerEvents {
     /// @notice Emitted when a batch of slashing request is being successfully slashed
     event SlashingComplete();
 
+    /// @notice Emitted when strategy multipliers are set or updated
+    /// @param strategyMultipliers Array of strategy-multiplier pairs that were set
+    event StrategiesAndMultipliersSet(IRewardsCoordinatorTypes
+                .StrategyAndMultiplier[] strategyMultipliers);
     /// @notice Emitted when the validator set submitter address is updated
     /// @param oldSubmitter The previous validator set submitter address
     /// @param newSubmitter The new validator set submitter address
     event ValidatorSetSubmitterUpdated(address indexed oldSubmitter, address indexed newSubmitter);
+
+    /// @notice Emitted when the contract version is updated
+    /// @param oldVersion The previous version string
+    /// @param newVersion The new version string
+    event VersionUpdated(string oldVersion, string newVersion);
 
     /// @notice Emitted when a validator set message is submitted for a target era
     /// @param targetEra The target era for the validator set
@@ -164,16 +188,21 @@ interface IDataHavenServiceManager is
 
     /**
      * @notice Initializes the DataHaven Service Manager
-     * @param initialOwner Address of the initial owner
+     * @param initialOwner Address of the initial owner (AVS owner)
      * @param rewardsInitiator Address authorized to initiate rewards
-     * @param validatorsStrategies Array of strategies supported by validators
+     * @param validatorsStrategiesAndMultipliers Array of strategy-multiplier pairs for the validators
+     *        operator set. Each multiplier must be non-zero.
+     * @param _snowbridgeGatewayAddress Address of the Snowbridge Gateway
+     * @param _validatorSetSubmitter Address authorized to submit validator set messages
+     * @param initialVersion The initial semantic version string (e.g., "1.0.0")
      */
     function initialize(
         address initialOwner,
         address rewardsInitiator,
-        IStrategy[] memory validatorsStrategies,
+        IRewardsCoordinatorTypes.StrategyAndMultiplier[] memory validatorsStrategiesAndMultipliers,
         address _snowbridgeGatewayAddress,
-        address _validatorSetSubmitter
+        address _validatorSetSubmitter,
+        string memory initialVersion
     ) external;
 
     /**
@@ -193,9 +222,13 @@ interface IDataHavenServiceManager is
     ) external payable;
 
     /**
-     * @notice Builds a new validator set message for a target era
+     * @notice Builds a SCALE-encoded message containing the top validators by weighted stake
+     * @dev Selects up to MAX_ACTIVE_VALIDATORS from registered operators. Each operator's
+     *      weighted stake is computed as: sum(allocatedStake[j] * multiplier[j])
+     *      across all strategies. Operators without a solochain address mapping or with zero
+     *      weighted stake are excluded. Ties are broken by lower operator address.
      * @param targetEra The target era to encode in the message
-     * @return The encoded message bytes to be sent to the Snowbridge Gateway
+     * @return The SCALE-encoded message bytes to be sent to the Snowbridge Gateway
      */
     function buildNewValidatorSetMessageForEra(
         uint64 targetEra
@@ -251,11 +284,49 @@ interface IDataHavenServiceManager is
 
     /**
      * @notice Adds strategies to the list of supported strategies for DataHaven Validators
-     * @param _strategies Array of strategy contracts to add to validators operator set
+     * @dev Each strategy's multiplier determines its weight in the validator selection
+     *      formula: weightedStake = sum(allocatedStake[j] * multiplier[j])
+     * @param _strategyMultipliers Array of strategy-multiplier pairs to add
      */
     function addStrategiesToValidatorsSupportedStrategies(
-        IStrategy[] calldata _strategies
+        IRewardsCoordinatorTypes.StrategyAndMultiplier[] calldata _strategyMultipliers
     ) external;
+
+    /**
+     * @notice Returns the maximum number of active validators in the set
+     * @return The maximum active validators constant
+     */
+    function MAX_ACTIVE_VALIDATORS() external pure returns (uint32);
+
+    /**
+     * @notice Returns the multiplier for a given strategy
+     * @dev The multiplier determines how much an operator's allocated stake in this strategy
+     *      contributes to their weighted stake during validator set selection.
+     * @param strategy The strategy to look up
+     * @return The multiplier weight
+     */
+    function strategiesAndMultipliers(
+        IStrategy strategy
+    ) external view returns (uint96);
+
+    /**
+     * @notice Updates multipliers for strategies already in the operator set
+     * @dev Does not add or remove strategies from EigenLayer; only updates multiplier weights
+     *      used in the validator selection weighted stake formula
+     * @param _strategyMultipliers Array of strategy-multiplier pairs to update
+     */
+    function setStrategiesAndMultipliers(
+        IRewardsCoordinatorTypes.StrategyAndMultiplier[] calldata _strategyMultipliers
+    ) external;
+
+    /**
+     * @notice Returns all strategies with their multipliers
+     * @return Array of StrategyAndMultiplier structs with strategy addresses and multiplier weights
+     */
+    function getStrategiesAndMultipliers()
+        external
+        view
+        returns (IRewardsCoordinatorTypes.StrategyAndMultiplier[] memory);
 
     // ============ Rewards Submitter Functions ============
 
@@ -300,5 +371,23 @@ interface IDataHavenServiceManager is
     function deregisterOperatorFromOperatorSets(
         address operator,
         uint32[] calldata operatorSetIds
+    ) external;
+
+    // ============ Version Management ============
+
+    /**
+     * @notice Returns the semantic version of the deployed DataHaven AVS stack
+     * @return The version string (e.g., "1.0.0")
+     */
+    function DATAHAVEN_VERSION() external view returns (string memory);
+
+    /**
+     * @notice Updates the contract version (typically called after upgrades)
+     * @param newVersion The new version string (e.g., "1.1.0")
+     * @dev Only callable by the ProxyAdmin. Version changes are always bundled with
+     *      a proxy upgrade via upgradeAndCall. Trust chain: AVS owner → ProxyAdmin → updateVersion.
+     */
+    function updateVersion(
+        string memory newVersion
     ) external;
 }

@@ -16,7 +16,7 @@
 
 use {
     crate::{self as pallet_external_validators_rewards, mock::*},
-    frame_support::traits::fungible::Mutate,
+    frame_support::{assert_noop, assert_ok, traits::fungible::Mutate},
     pallet_external_validators::traits::{ActiveEraInfo, OnEraEnd, OnEraStart},
     sp_core::H160,
     sp_std::collections::btree_map::BTreeMap,
@@ -121,6 +121,9 @@ fn window_mode_submits_closed_windows_and_advances_pointer() {
         run_to_block(15); // now = 45s, window [30,40) is closed
         ExternalValidatorsRewards::on_era_end(1);
 
+        // Inflation is 42 (default). After 20% treasury split: rewards_amount = 34.
+        // Era spans 20s to 45s = 25s. Window [20,30) overlap = 10s, [30,40) overlap = 10s,
+        // [40,50) overlap = 5s. Window [30,40) gets: 34 * 10/25 = 13.
         let events = System::events();
         assert!(
             events.iter().any(|record| matches!(
@@ -130,7 +133,7 @@ fn window_mode_submits_closed_windows_and_advances_pointer() {
                         window_start: 30,
                         window_index: 1,
                         total_points: 30,
-                        inflation_amount: 16,
+                        inflation_amount: 13,
                         ..
                     }
                 )
@@ -193,15 +196,19 @@ fn window_mode_era_inflation_split_across_multiple_windows() {
         //   [30,40): overlap [30,35) = 5s  → 5/30 of inflation (current, not closed)
         ExternalValidatorsRewards::on_era_end(1);
 
+        // on_era_end allocates mint_result.rewards_amount (post-treasury split) to windows.
+        // Inflation = 42, treasury = 20% of 42 = 8, rewards_amount = 34.
         let inflation =
             <Test as pallet_external_validators_rewards::Config>::EraInflationProvider::get();
+        let treasury_amount = InflationTreasuryProportion::get().mul_floor(inflation);
+        let rewards_amount = inflation - treasury_amount;
 
         // Closed windows are cleared by process_closed_windows, so verify via events.
         let events = System::events();
 
-        let expected_w0 = inflation * 5 / 30;
-        let expected_w10 = inflation * 10 / 30;
-        let expected_w20 = inflation * 10 / 30;
+        let expected_w0 = rewards_amount * 5 / 30;
+        let expected_w10 = rewards_amount * 10 / 30;
+        let expected_w20 = rewards_amount * 10 / 30;
 
         assert!(
             events.iter().any(|record| matches!(
@@ -215,7 +222,7 @@ fn window_mode_era_inflation_split_across_multiple_windows() {
                     }
                 ) if *inflation_amount == expected_w0
             )),
-            "window [0,10) should get 5/30 of inflation = {expected_w0}"
+            "window [0,10) should get 5/30 of rewards_amount = {expected_w0}"
         );
 
         assert!(
@@ -230,7 +237,7 @@ fn window_mode_era_inflation_split_across_multiple_windows() {
                     }
                 ) if *inflation_amount == expected_w10
             )),
-            "window [10,20) should get 10/30 of inflation = {expected_w10}"
+            "window [10,20) should get 10/30 of rewards_amount = {expected_w10}"
         );
 
         assert!(
@@ -245,25 +252,25 @@ fn window_mode_era_inflation_split_across_multiple_windows() {
                     }
                 ) if *inflation_amount == expected_w20
             )),
-            "window [20,30) should get 10/30 of inflation = {expected_w20}"
+            "window [20,30) should get 10/30 of rewards_amount = {expected_w20}"
         );
 
         // Window [30,40) is current (not closed), verify inflation was allocated
         let w30 = pallet_external_validators_rewards::WindowInflationAmount::<Test>::get(30);
-        let expected_w30_base = inflation * 5 / 30;
+        let expected_w30_base = rewards_amount * 5 / 30;
         let allocated_without_remainder = expected_w0 + expected_w10 + expected_w20 + expected_w30_base;
-        let remainder = inflation.saturating_sub(allocated_without_remainder);
+        let remainder = rewards_amount.saturating_sub(allocated_without_remainder);
         assert_eq!(
             w30,
             expected_w30_base + remainder,
             "last window should get its portion plus any integer-division remainder"
         );
 
-        // Total across all windows must equal the full inflation amount
+        // Total across all windows must equal the full rewards amount
         assert_eq!(
             expected_w0 + expected_w10 + expected_w20 + w30,
-            inflation,
-            "total inflation must be fully distributed"
+            rewards_amount,
+            "total rewards must be fully distributed"
         );
     })
 }
@@ -537,13 +544,17 @@ fn test_on_era_end() {
 
         let inflation =
             <Test as pallet_external_validators_rewards::Config>::EraInflationProvider::get();
+        // The event should contain the rewards amount (post-treasury split), not the full inflation.
+        // Treasury gets Perbill::from_percent(20).mul_floor(inflation), rewards gets the rest.
+        let treasury_amount = InflationTreasuryProportion::get().mul_floor(inflation);
+        let rewards_amount = inflation - treasury_amount;
         System::assert_last_event(RuntimeEvent::ExternalValidatorsRewards(
             crate::Event::RewardsWindowSubmitted {
                 message_id: Default::default(),
                 window_start: 30,
                 window_index: 3,
                 total_points: total_points as u128,
-                inflation_amount: inflation,
+                inflation_amount: rewards_amount,
             },
         ));
     })
@@ -576,17 +587,18 @@ fn test_on_era_end_with_zero_inflation() {
         run_to_block(10);
         ExternalValidatorsRewards::on_era_end(1);
 
-        // With zero inflation, the window should be skipped instead of submitted.
+        // With zero inflation, mint_inflation returns Err and on_era_end returns early
+        // before process_closed_windows is called. No window events should be emitted.
         let events = System::events();
         assert!(
-            events.iter().any(|record| matches!(
+            !events.iter().any(|record| matches!(
                 &record.event,
-                RuntimeEvent::ExternalValidatorsRewards(crate::Event::RewardsWindowSkipped {
-                    window_start: 30,
-                    window_index: 3,
-                })
+                RuntimeEvent::ExternalValidatorsRewards(
+                    crate::Event::RewardsWindowSubmitted { .. }
+                    | crate::Event::RewardsWindowSkipped { .. }
+                )
             )),
-            "window should have been skipped",
+            "no window events should be emitted when inflation minting fails",
         );
     })
 }
@@ -617,17 +629,18 @@ fn test_on_era_end_with_zero_points() {
         run_to_block(10);
         ExternalValidatorsRewards::on_era_end(1);
 
-        // Zero-point windows should not be submitted.
+        // With zero total points, on_era_end returns early before process_closed_windows.
+        // No window events should be emitted, and no inflation should be minted.
         let events = System::events();
         assert!(
-            events.iter().any(|record| matches!(
+            !events.iter().any(|record| matches!(
                 &record.event,
-                RuntimeEvent::ExternalValidatorsRewards(crate::Event::RewardsWindowSkipped {
-                    window_start: 30,
-                    window_index: 3,
-                })
+                RuntimeEvent::ExternalValidatorsRewards(
+                    crate::Event::RewardsWindowSubmitted { .. }
+                    | crate::Event::RewardsWindowSkipped { .. }
+                )
             )),
-            "zero-point window should have been skipped",
+            "no window events should be emitted when era has zero points",
         );
     })
 }
@@ -4083,5 +4096,482 @@ fn test_era_end_uses_correct_era_blocks_not_session() {
             inflation_minted, 800_000,
             "Era end should use era blocks (600) for 100% inflation"
         );
+    })
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Retry mechanism tests (ring-buffer storage)
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// Helper: push an entry into the unsent ring buffer via the pallet API.
+fn push_unsent(era_index: u32, timestamp: u32, inflation: u128) {
+    assert!(
+        ExternalValidatorsRewards::unsent_queue_push((era_index, timestamp, inflation)),
+        "unsent_queue_push should succeed"
+    );
+}
+
+/// Helper: return the number of entries in the unsent ring buffer.
+fn unsent_len() -> u32 {
+    ExternalValidatorsRewards::unsent_queue_len()
+}
+
+/// Helper: check if unsent queue is empty.
+fn unsent_is_empty() -> bool {
+    ExternalValidatorsRewards::unsent_queue_is_empty()
+}
+
+#[test]
+fn send_failure_emits_window_submission_failed() {
+    new_test_ext().execute_with(|| {
+        run_to_block(1);
+
+        Mock::mutate(|mock| {
+            mock.active_era = Some(ActiveEraInfo {
+                index: 1,
+                start: Some(30_000),
+            });
+            mock.send_message_fails = true;
+        });
+
+        // Give validators some points
+        ExternalValidatorsRewards::reward_by_ids([(H160::from_low_u64_be(1), 100)]);
+        // Author expected blocks for 100% inflation
+        for _ in 0..600 {
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(1));
+        }
+
+        // Advance time past one window so the window that received points is now closed
+        let window_duration = RewardsWindowDuration::get();
+        let genesis = RewardsWindowGenesisTimestamp::get();
+        let now = (Timestamp::get() / 1000) as u32;
+        let window_start = now - (now - genesis) % window_duration;
+        Timestamp::set_timestamp(((window_start + window_duration + 1) as u64) * 1000);
+
+        System::reset_events();
+        ExternalValidatorsRewards::on_era_end(1);
+
+        // Unsent queue should NOT be populated (window approach doesn't use it)
+        assert!(unsent_is_empty());
+
+        // Verify window submission failure event
+        let window_index = window_start.saturating_sub(genesis) / window_duration;
+        System::assert_has_event(RuntimeEvent::ExternalValidatorsRewards(
+            crate::Event::RewardsWindowSubmissionFailed {
+                window_start,
+                window_index,
+            },
+        ));
+    })
+}
+
+#[test]
+fn on_initialize_retries_and_succeeds() {
+    new_test_ext().execute_with(|| {
+        run_to_block(1);
+
+        Mock::mutate(|mock| {
+            mock.active_era = Some(ActiveEraInfo {
+                index: 1,
+                start: Some(30_000),
+            });
+        });
+
+        // Set up reward points for era 1
+        ExternalValidatorsRewards::reward_by_ids([(H160::from_low_u64_be(1), 100)]);
+
+        // Manually populate the unsent queue
+        push_unsent(1, 30, 42);
+
+        // Sending should succeed (send_message_fails is false by default)
+        System::reset_events();
+        ExternalValidatorsRewards::process_unsent_reward_eras();
+
+        // Queue should be empty
+        assert!(unsent_is_empty());
+
+        // Verify retry event
+        System::assert_has_event(RuntimeEvent::ExternalValidatorsRewards(
+            crate::Event::RewardsMessageRetried {
+                message_id: Default::default(),
+                era_index: 1,
+                total_points: 100,
+                inflation_amount: 42,
+            },
+        ));
+    })
+}
+
+#[test]
+fn on_initialize_moves_failed_entry_to_back() {
+    new_test_ext().execute_with(|| {
+        run_to_block(1);
+
+        Mock::mutate(|mock| {
+            mock.active_era = Some(ActiveEraInfo {
+                index: 2,
+                start: Some(30_000),
+            });
+            mock.send_message_fails = true;
+        });
+
+        // Set up reward points for eras 1 and 2
+        ExternalValidatorsRewards::reward_by_ids([(H160::from_low_u64_be(1), 100)]);
+        Mock::mutate(|mock| {
+            mock.active_era = Some(ActiveEraInfo {
+                index: 1,
+                start: Some(30_000),
+            });
+        });
+        ExternalValidatorsRewards::reward_by_ids([(H160::from_low_u64_be(1), 200)]);
+
+        // Push two entries: era 1 then era 2
+        push_unsent(1, 30, 42);
+        push_unsent(2, 30, 84);
+
+        // First call: tries era 1, fails, moves era 1 to back of queue
+        ExternalValidatorsRewards::process_unsent_reward_eras();
+        // Queue length stays the same (entry moved, not removed)
+        assert_eq!(unsent_len(), 2);
+
+        // Second call: tries era 2 (NOT era 1 again), fails, moves era 2 to back
+        ExternalValidatorsRewards::process_unsent_reward_eras();
+        assert_eq!(unsent_len(), 2);
+
+        // Re-enable sending
+        Mock::mutate(|mock| mock.send_message_fails = false);
+
+        // Third call: era 1 (now at front again), succeeds
+        System::reset_events();
+        ExternalValidatorsRewards::process_unsent_reward_eras();
+        assert_eq!(unsent_len(), 1);
+        System::assert_has_event(RuntimeEvent::ExternalValidatorsRewards(
+            crate::Event::RewardsMessageRetried {
+                message_id: Default::default(),
+                era_index: 1,
+                total_points: 200,
+                inflation_amount: 42,
+            },
+        ));
+
+        // Fourth call: era 2, succeeds
+        ExternalValidatorsRewards::process_unsent_reward_eras();
+        assert!(unsent_is_empty());
+    })
+}
+
+#[test]
+fn on_initialize_removes_expired_era() {
+    new_test_ext().execute_with(|| {
+        run_to_block(1);
+
+        // Populate unsent queue with era 999 but do NOT add RewardPointsForEra for it
+        push_unsent(999, 0, 42);
+
+        System::reset_events();
+        ExternalValidatorsRewards::process_unsent_reward_eras();
+
+        // Entry should be removed
+        assert!(unsent_is_empty());
+
+        // Verify expired event
+        System::assert_has_event(RuntimeEvent::ExternalValidatorsRewards(
+            crate::Event::UnsentEraExpired { era_index: 999 },
+        ));
+    })
+}
+
+#[test]
+fn on_initialize_noop_when_queue_empty() {
+    new_test_ext().execute_with(|| {
+        run_to_block(1);
+        System::reset_events();
+
+        ExternalValidatorsRewards::process_unsent_reward_eras();
+
+        // No events should be emitted
+        let events = System::events();
+        assert!(
+            events.is_empty(),
+            "No events should be emitted when unsent queue is empty"
+        );
+    })
+}
+
+#[test]
+fn on_initialize_processes_only_head() {
+    new_test_ext().execute_with(|| {
+        run_to_block(1);
+
+        Mock::mutate(|mock| {
+            mock.active_era = Some(ActiveEraInfo {
+                index: 3,
+                start: Some(30_000),
+            });
+        });
+
+        // Set up reward points for both eras
+        ExternalValidatorsRewards::reward_by_ids([(H160::from_low_u64_be(1), 100)]);
+        Mock::mutate(|mock| {
+            mock.active_era = Some(ActiveEraInfo {
+                index: 2,
+                start: Some(30_000),
+            });
+        });
+        ExternalValidatorsRewards::reward_by_ids([(H160::from_low_u64_be(2), 200)]);
+
+        // Push two entries
+        push_unsent(3, 30, 42);
+        push_unsent(2, 20, 84);
+
+        System::reset_events();
+        ExternalValidatorsRewards::process_unsent_reward_eras();
+
+        // Only the head entry (era 3) should be processed (and removed on success)
+        assert_eq!(unsent_len(), 1);
+    })
+}
+
+#[test]
+fn retry_extrinsic_success() {
+    new_test_ext().execute_with(|| {
+        run_to_block(1);
+
+        Mock::mutate(|mock| {
+            mock.active_era = Some(ActiveEraInfo {
+                index: 1,
+                start: Some(30_000),
+            });
+        });
+
+        // Set up reward points
+        ExternalValidatorsRewards::reward_by_ids([(H160::from_low_u64_be(1), 100)]);
+
+        // Populate unsent queue
+        push_unsent(1, 30, 42);
+
+        System::reset_events();
+        assert_ok!(ExternalValidatorsRewards::retry_unsent_reward_era(
+            RuntimeOrigin::root(),
+            1
+        ));
+
+        // Queue should be empty
+        assert!(unsent_is_empty());
+
+        // Verify retry event
+        System::assert_has_event(RuntimeEvent::ExternalValidatorsRewards(
+            crate::Event::RewardsMessageRetried {
+                message_id: Default::default(),
+                era_index: 1,
+                total_points: 100,
+                inflation_amount: 42,
+            },
+        ));
+    })
+}
+
+#[test]
+fn retry_extrinsic_era_not_in_queue() {
+    new_test_ext().execute_with(|| {
+        run_to_block(1);
+
+        assert_noop!(
+            ExternalValidatorsRewards::retry_unsent_reward_era(RuntimeOrigin::root(), 1),
+            crate::Error::<Test>::EraNotInUnsentQueue
+        );
+    })
+}
+
+#[test]
+fn retry_extrinsic_pruned_data() {
+    new_test_ext().execute_with(|| {
+        run_to_block(1);
+
+        // Queue an era but don't create reward points for it
+        push_unsent(999, 0, 42);
+
+        assert_noop!(
+            ExternalValidatorsRewards::retry_unsent_reward_era(RuntimeOrigin::root(), 999),
+            crate::Error::<Test>::RewardPointsPruned
+        );
+    })
+}
+
+#[test]
+fn retry_extrinsic_requires_root() {
+    new_test_ext().execute_with(|| {
+        run_to_block(1);
+
+        assert_noop!(
+            ExternalValidatorsRewards::retry_unsent_reward_era(
+                RuntimeOrigin::signed(H160::from_low_u64_be(1)),
+                1
+            ),
+            sp_runtime::DispatchError::BadOrigin
+        );
+    })
+}
+
+#[test]
+fn send_failure_clears_window_and_advances_pointer() {
+    new_test_ext().execute_with(|| {
+        run_to_block(1);
+
+        Mock::mutate(|mock| {
+            mock.active_era = Some(ActiveEraInfo {
+                index: 1,
+                start: Some(30_000),
+            });
+            mock.send_message_fails = true;
+        });
+
+        // Give validators some points
+        ExternalValidatorsRewards::reward_by_ids([(H160::from_low_u64_be(1), 100)]);
+        for _ in 0..600 {
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(1));
+        }
+
+        let window_duration = RewardsWindowDuration::get();
+        let genesis = RewardsWindowGenesisTimestamp::get();
+        let now = (Timestamp::get() / 1000) as u32;
+        let window_start = now - (now - genesis) % window_duration;
+
+        // Advance time past two windows to have a closed window
+        Timestamp::set_timestamp(((window_start + window_duration + 1) as u64) * 1000);
+
+        System::reset_events();
+        ExternalValidatorsRewards::on_era_end(1);
+
+        // Even though send failed, the window data should be cleared
+        // and the next_window pointer should have advanced
+        let next_window = crate::NextWindowToSubmit::<Test>::get();
+        assert!(
+            next_window > window_start,
+            "NextWindowToSubmit should advance past the failed window"
+        );
+
+        // Window storage should be cleared
+        assert!(
+            crate::WindowOperatorPoints::<Test>::get(window_start).is_empty(),
+            "Window operator points should be cleared after failed submission"
+        );
+        assert_eq!(
+            crate::WindowInflationAmount::<Test>::get(window_start),
+            0,
+            "Window inflation should be cleared after failed submission"
+        );
+    })
+}
+
+#[test]
+fn on_era_start_prunes_unsent_entry() {
+    new_test_ext().execute_with(|| {
+        run_to_block(1);
+
+        // Set up: era 1 has an unsent entry
+        push_unsent(1, 0, 42);
+
+        // HistoryDepth is 10, so era 11 should prune era 1
+        System::reset_events();
+        ExternalValidatorsRewards::on_era_start(11, 0, 11);
+
+        // Unsent entry should be removed
+        assert!(unsent_is_empty());
+
+        // Verify expired event
+        System::assert_has_event(RuntimeEvent::ExternalValidatorsRewards(
+            crate::Event::UnsentEraExpired { era_index: 1 },
+        ));
+    })
+}
+
+#[test]
+fn retry_extrinsic_send_still_fails() {
+    new_test_ext().execute_with(|| {
+        run_to_block(1);
+
+        Mock::mutate(|mock| {
+            mock.active_era = Some(ActiveEraInfo {
+                index: 1,
+                start: Some(30_000),
+            });
+            mock.send_message_fails = true;
+        });
+
+        // Set up reward points
+        ExternalValidatorsRewards::reward_by_ids([(H160::from_low_u64_be(1), 100)]);
+
+        // Populate unsent queue
+        push_unsent(1, 30, 42);
+
+        assert_noop!(
+            ExternalValidatorsRewards::retry_unsent_reward_era(RuntimeOrigin::root(), 1),
+            crate::Error::<Test>::MessageSendFailed
+        );
+
+        // Queue should still have the entry
+        assert_eq!(unsent_len(), 1);
+    })
+}
+
+#[test]
+fn head_of_line_blocking_avoided() {
+    new_test_ext().execute_with(|| {
+        run_to_block(1);
+
+        // Set up reward points for eras 1, 2, 3
+        for era in 1..=3u32 {
+            Mock::mutate(|mock| {
+                mock.active_era = Some(ActiveEraInfo {
+                    index: era,
+                    start: Some(30_000),
+                });
+            });
+            ExternalValidatorsRewards::reward_by_ids([(H160::from_low_u64_be(1), 100)]);
+        }
+
+        // Push eras 1, 2, 3 into the queue
+        push_unsent(1, 30, 10);
+        push_unsent(2, 30, 20);
+        push_unsent(3, 30, 30);
+
+        // Make sending fail
+        Mock::mutate(|mock| mock.send_message_fails = true);
+
+        // Block 1: tries era 1, fails, advances head → era 2
+        ExternalValidatorsRewards::process_unsent_reward_eras();
+        // Block 2: tries era 2, fails, advances head → era 3
+        ExternalValidatorsRewards::process_unsent_reward_eras();
+
+        // Now re-enable sending
+        Mock::mutate(|mock| mock.send_message_fails = false);
+
+        // Block 3: tries era 3, succeeds
+        System::reset_events();
+        ExternalValidatorsRewards::process_unsent_reward_eras();
+        System::assert_has_event(RuntimeEvent::ExternalValidatorsRewards(
+            crate::Event::RewardsMessageRetried {
+                message_id: Default::default(),
+                era_index: 3,
+                total_points: 100,
+                inflation_amount: 30,
+            },
+        ));
+
+        // Block 4: wraps around to era 1, succeeds
+        ExternalValidatorsRewards::process_unsent_reward_eras();
+        System::assert_has_event(RuntimeEvent::ExternalValidatorsRewards(
+            crate::Event::RewardsMessageRetried {
+                message_id: Default::default(),
+                era_index: 1,
+                total_points: 100,
+                inflation_amount: 10,
+            },
+        ));
+
+        // Block 5: era 2, succeeds
+        ExternalValidatorsRewards::process_unsent_reward_eras();
+        assert!(unsent_is_empty());
     })
 }

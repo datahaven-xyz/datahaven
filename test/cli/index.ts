@@ -289,6 +289,10 @@ contractsCommand
   .command("upgrade")
   .description("Upgrade DataHaven AVS contracts by deploying new implementations")
   .option("--chain <value>", "Target chain (hoodi, mainnet, anvil)")
+  .option(
+    "--environment <value>",
+    "Deployment environment (stagenet, testnet, mainnet). Config and deployment files will be prefixed with this value."
+  )
   .option("--rpc-url <value>", "Chain RPC URL (optional, defaults based on chain)")
   .option("--private-key-file <value>", "Path to file containing private key for deployment")
   .option("--verify", "Verify upgraded contracts on block explorer", false)
@@ -303,7 +307,7 @@ contractsCommand
   )
   .hook("preAction", contractsPreActionHook)
   .action(async (options: any, command: any) => {
-    // Try to get chain from options or command
+    // Try to get chain and environment from options or parent command
     let chain = options.chain;
     if (!chain && command.parent) {
       chain = command.parent.getOptionValue("chain");
@@ -312,11 +316,18 @@ contractsCommand
       chain = command.getOptionValue("chain");
     }
 
-    printHeader(`Upgrading DataHaven Contracts on ${chain}`);
+    let environment = options.environment;
+    if (!environment && command.parent) {
+      environment = command.parent.getOptionValue("environment");
+    }
+
+    const displayName = environment ? `${environment}-${chain}` : chain;
+    printHeader(`Upgrading DataHaven Contracts on ${displayName}`);
 
     try {
       await contractsUpgrade({
         chain: chain,
+        environment: environment,
         rpcUrl: options.rpcUrl,
         privateKeyFile: options.privateKeyFile,
         verify: options.verify,

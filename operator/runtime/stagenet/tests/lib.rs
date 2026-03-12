@@ -84,5 +84,8 @@ fn ethereum_create_proof_size_base_cost_estimation_constants() {
     // Base size for create tx (EIP1559-style): from 20 + value 32 + gas_limit 32 + nonce 32
     // + action variant 1 + chain_id 8 + signature 65 = 190. Optional: +32 per max_fee/max_priority_fee.
     const BASE: usize = 20 + 32 + 32 + 32 + 1 + 8 + 65;
-    assert_eq!(BASE, 190, "create proof_size_base_cost base must match Frontier template");
+    assert_eq!(
+        BASE, 190,
+        "create proof_size_base_cost base must match Frontier template"
+    );
 }

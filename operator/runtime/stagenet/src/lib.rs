@@ -226,6 +226,7 @@ pub type SignedExtra = (
     frame_system::CheckWeight<Runtime>,
     pallet_transaction_payment::ChargeTransactionPayment<Runtime>,
     frame_metadata_hash_extension::CheckMetadataHash<Runtime>,
+    frame_system::WeightReclaim<Runtime>,
 );
 
 /// Unchecked extrinsic type as expected by this runtime.
@@ -1419,6 +1420,7 @@ impl_runtime_apis! {
                 frame_system::CheckWeight::<Runtime>::new(),
                 pallet_transaction_payment::ChargeTransactionPayment::<Runtime>::from(<Balance as Default>::default()),
                 frame_metadata_hash_extension::CheckMetadataHash::<Runtime>::new(enable_metadata),
+                frame_system::WeightReclaim::<Runtime>::new(),
             );
             let implicit = <SignedExtra as sp_runtime::traits::TransactionExtension<RuntimeCall>>::implicit(&extra)?;
             Ok(implicit.encode())

@@ -54,6 +54,11 @@ use sp_std::marker::PhantomData;
 /// Weight functions needed for pallet_external_validators_rewards.
 pub trait WeightInfo {
 	fn on_era_end() -> Weight;
+	fn process_unsent_reward_eras_empty() -> Weight;
+	fn process_unsent_reward_eras_expired() -> Weight;
+	fn process_unsent_reward_eras_success() -> Weight;
+	fn process_unsent_reward_eras_failed() -> Weight;
+	fn retry_unsent_reward_era() -> Weight;
 }
 
 /// Weights for pallet_external_validators_rewards using the Substrate node and recommended hardware.
@@ -84,6 +89,36 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 			.saturating_add(T::DbWeight::get().reads(5_u64))
 			.saturating_add(T::DbWeight::get().writes(5_u64))
 	}
+
+	fn process_unsent_reward_eras_empty() -> Weight {
+		// 1 read for UnsentRewardEras
+		Weight::from_parts(5_000_000, 0)
+			.saturating_add(T::DbWeight::get().reads(1_u64))
+	}
+
+	fn process_unsent_reward_eras_expired() -> Weight {
+		// 1 read UnsentRewardEras + 1 read RewardPointsForEra + 1 write UnsentRewardEras
+		Weight::from_parts(10_000_000, 0)
+			.saturating_add(T::DbWeight::get().reads(2_u64))
+			.saturating_add(T::DbWeight::get().writes(1_u64))
+	}
+
+	fn process_unsent_reward_eras_success() -> Weight {
+		// Same as on_era_end + queue read/write
+		Weight::from_parts(1_136_401_000, 39987)
+			.saturating_add(T::DbWeight::get().reads(7_u64))
+			.saturating_add(T::DbWeight::get().writes(6_u64))
+	}
+
+	fn process_unsent_reward_eras_failed() -> Weight {
+		// Use success weight as upper bound
+		Self::process_unsent_reward_eras_success()
+	}
+
+	fn retry_unsent_reward_era() -> Weight {
+		// Same as success path
+		Self::process_unsent_reward_eras_success()
+	}
 }
 
 // For backwards compatibility and tests
@@ -112,5 +147,30 @@ impl WeightInfo for () {
 		Weight::from_parts(1_136_401_000, 39987)
 			.saturating_add(RocksDbWeight::get().reads(5_u64))
 			.saturating_add(RocksDbWeight::get().writes(5_u64))
+	}
+
+	fn process_unsent_reward_eras_empty() -> Weight {
+		Weight::from_parts(5_000_000, 0)
+			.saturating_add(RocksDbWeight::get().reads(1_u64))
+	}
+
+	fn process_unsent_reward_eras_expired() -> Weight {
+		Weight::from_parts(10_000_000, 0)
+			.saturating_add(RocksDbWeight::get().reads(2_u64))
+			.saturating_add(RocksDbWeight::get().writes(1_u64))
+	}
+
+	fn process_unsent_reward_eras_success() -> Weight {
+		Weight::from_parts(1_136_401_000, 39987)
+			.saturating_add(RocksDbWeight::get().reads(7_u64))
+			.saturating_add(RocksDbWeight::get().writes(6_u64))
+	}
+
+	fn process_unsent_reward_eras_failed() -> Weight {
+		Self::process_unsent_reward_eras_success()
+	}
+
+	fn retry_unsent_reward_era() -> Weight {
+		Self::process_unsent_reward_eras_success()
 	}
 }

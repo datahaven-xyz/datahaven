@@ -66,13 +66,13 @@ pub mod pallet {
 
     pub use crate::weights::WeightInfo;
     use {
-        super::*, frame_support::pallet_prelude::*,
+        super::*, frame_support::pallet_prelude::*, frame_system::pallet_prelude::OriginFor,
         pallet_external_validators::traits::EraIndexProvider, sp_runtime::Saturating,
         sp_std::collections::btree_map::BTreeMap,
     };
 
     /// The current storage version.
-    const STORAGE_VERSION: StorageVersion = StorageVersion::new(0);
+    const STORAGE_VERSION: StorageVersion = StorageVersion::new(1);
 
     pub type RewardPoints = u32;
     pub type EraIndex = u32;
@@ -168,12 +168,71 @@ pub mod pallet {
         /// Hook for minting inflation tokens.
         type HandleInflation: HandleInflation<Self::AccountId>;
 
+        /// Origin for governance calls (e.g., retrying unsent reward messages).
+        type GovernanceOrigin: EnsureOrigin<Self::RuntimeOrigin>;
+
         #[cfg(feature = "runtime-benchmarks")]
         type BenchmarkHelper: types::BenchmarkHelper;
     }
     #[pallet::pallet]
     #[pallet::storage_version(STORAGE_VERSION)]
     pub struct Pallet<T>(_);
+
+    #[pallet::hooks]
+    impl<T: Config> Hooks<frame_system::pallet_prelude::BlockNumberFor<T>> for Pallet<T> {
+        fn on_initialize(_n: frame_system::pallet_prelude::BlockNumberFor<T>) -> Weight {
+            Self::process_unsent_reward_eras()
+        }
+    }
+
+    #[pallet::call]
+    impl<T: Config> Pallet<T> {
+        /// Governance escape hatch: manually retry sending a rewards message for
+        /// an era that is stuck in the unsent queue.
+        #[pallet::call_index(0)]
+        #[pallet::weight(T::WeightInfo::retry_unsent_reward_era())]
+        pub fn retry_unsent_reward_era(
+            origin: OriginFor<T>,
+            era_index: EraIndex,
+        ) -> DispatchResult {
+            T::GovernanceOrigin::ensure_origin(origin)?;
+
+            // Scan the ring buffer for the requested era
+            let head = UnsentRewardHead::<T>::get();
+            let tail = UnsentRewardTail::<T>::get();
+            let mut found = None;
+            let mut slot = head;
+            while slot != tail {
+                if let Some(entry @ (idx, _, _)) = UnsentRewardEra::<T>::get(slot) {
+                    if idx == era_index {
+                        found = Some((slot, entry));
+                        break;
+                    }
+                }
+                slot = (slot + 1) % UNSENT_QUEUE_CAPACITY;
+            }
+            let (slot, (_, timestamp, inflation)) = found.ok_or(Error::<T>::EraNotInUnsentQueue)?;
+
+            let reward_points = RewardPointsForEra::<T>::get(era_index);
+            let info = reward_points
+                .generate_era_rewards_info(era_index, inflation, timestamp)
+                .ok_or(Error::<T>::RewardPointsPruned)?;
+
+            let message_id =
+                Self::send_rewards_message(&info).ok_or(Error::<T>::MessageSendFailed)?;
+
+            Self::unsent_queue_remove_slot(slot);
+
+            Self::deposit_event(Event::RewardsMessageRetried {
+                message_id,
+                era_index,
+                total_points: info.total_points,
+                inflation_amount: inflation,
+            });
+
+            Ok(())
+        }
+    }
 
     #[pallet::event]
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
@@ -185,6 +244,29 @@ pub mod pallet {
             total_points: u128,
             inflation_amount: u128,
         },
+        /// The rewards message failed to send; era queued for retry.
+        RewardsMessageSendFailed { era_index: EraIndex },
+        /// A previously failed rewards message was retried and sent successfully.
+        RewardsMessageRetried {
+            message_id: H256,
+            era_index: EraIndex,
+            total_points: u128,
+            inflation_amount: u128,
+        },
+        /// An unsent era was dropped because its reward points have been pruned.
+        UnsentEraExpired { era_index: EraIndex },
+        /// The unsent queue is full; this era could not be enqueued for retry.
+        UnsentQueueFull { era_index: EraIndex },
+    }
+
+    #[pallet::error]
+    pub enum Error<T> {
+        /// The specified era is not in the unsent queue.
+        EraNotInUnsentQueue,
+        /// Reward points for the era have been pruned from storage.
+        RewardPointsPruned,
+        /// The message delivery still failed on retry.
+        MessageSendFailed,
     }
 
     /// Keep tracks of distributed points per validator and total.
@@ -200,7 +282,7 @@ pub mod pallet {
         ///  - individual_points: (address, points) tuples for each validator.
         ///  - inflation_amount: total inflation tokens to distribute.
         ///  - era_start_timestamp: timestamp when the era started (seconds since Unix epoch).
-        pub fn generate_era_rewards_utils(
+        pub fn generate_era_rewards_info(
             &self,
             era_index: EraIndex,
             inflation_amount: u128,
@@ -260,6 +342,33 @@ pub mod pallet {
     pub type BlocksProducedInEra<T: Config> =
         StorageMap<_, Twox64Concat, EraIndex, u32, ValueQuery>;
 
+    /// Maximum number of unsent reward entries in the ring buffer.
+    pub const UNSENT_QUEUE_CAPACITY: u32 = 64;
+
+    /// Ring buffer of eras whose rewards messages failed to send.
+    /// Each slot stores (era_index, era_start_timestamp, scaled_inflation).
+    /// Keyed by slot index [0, UNSENT_QUEUE_CAPACITY).
+    #[pallet::storage]
+    pub type UnsentRewardEra<T: Config> = StorageMap<
+        _,
+        Twox64Concat,
+        u32,
+        (
+            EraIndex,
+            /* era_start_timestamp */ u32,
+            /* scaled_inflation */ u128,
+        ),
+    >;
+
+    /// Ring buffer head: next slot to be processed by `on_initialize`.
+    #[pallet::storage]
+    pub type UnsentRewardHead<T: Config> = StorageValue<_, u32, ValueQuery>;
+
+    /// Ring buffer tail: next slot to write a new entry into.
+    /// When head == tail the buffer is empty.
+    #[pallet::storage]
+    pub type UnsentRewardTail<T: Config> = StorageValue<_, u32, ValueQuery>;
+
     impl<T: Config> Pallet<T> {
         /// Reward validators. Does not check if the validators are valid, caller needs to make sure of that.
         pub fn reward_by_ids(points: impl IntoIterator<Item = (T::AccountId, RewardPoints)>) {
@@ -276,8 +385,8 @@ pub mod pallet {
 
         /// Helper to build, validate and deliver an outbound message.
         /// Logs any error and returns None on failure.
-        fn send_rewards_message(utils: &EraRewardsUtils) -> Option<H256> {
-            let outbound = T::SendMessage::build(utils).or_else(|| {
+        fn send_rewards_message(info: &EraRewardsUtils) -> Option<H256> {
+            let outbound = T::SendMessage::build(info).or_else(|| {
                 log::error!(target: "ext_validators_rewards", "Failed to build outbound message");
                 None
             })?;
@@ -301,6 +410,147 @@ pub mod pallet {
                     );
                 })
                 .ok()
+        }
+
+        // ── Ring-buffer helpers ──────────────────────────────────────────
+
+        /// Returns true when the ring buffer is empty (head == tail).
+        #[allow(dead_code)]
+        pub(crate) fn unsent_queue_is_empty() -> bool {
+            UnsentRewardHead::<T>::get() == UnsentRewardTail::<T>::get()
+        }
+
+        /// Number of entries currently in the ring buffer.
+        #[allow(dead_code)]
+        pub(crate) fn unsent_queue_len() -> u32 {
+            let head = UnsentRewardHead::<T>::get();
+            let tail = UnsentRewardTail::<T>::get();
+            tail.wrapping_sub(head) % UNSENT_QUEUE_CAPACITY
+        }
+
+        /// Push a new entry into the ring buffer.
+        /// Returns `true` on success, `false` if the buffer is full.
+        pub(crate) fn unsent_queue_push(entry: (EraIndex, u32, u128)) -> bool {
+            let head = UnsentRewardHead::<T>::get();
+            let tail = UnsentRewardTail::<T>::get();
+            let next_tail = (tail + 1) % UNSENT_QUEUE_CAPACITY;
+            if next_tail == head {
+                // Buffer full
+                return false;
+            }
+            UnsentRewardEra::<T>::insert(tail, entry);
+            UnsentRewardTail::<T>::put(next_tail);
+            true
+        }
+
+        /// Remove the entry at a given slot and compact the buffer by shifting
+        /// subsequent entries back. Used by the extrinsic and `on_era_start`.
+        fn unsent_queue_remove_slot(slot: u32) {
+            let tail = UnsentRewardTail::<T>::get();
+            // Shift entries after `slot` backward to fill the gap
+            let mut cur = slot;
+            loop {
+                let next = (cur + 1) % UNSENT_QUEUE_CAPACITY;
+                if next == tail {
+                    break;
+                }
+                // Move next → cur
+                if let Some(entry) = UnsentRewardEra::<T>::get(next) {
+                    UnsentRewardEra::<T>::insert(cur, entry);
+                }
+                cur = next;
+            }
+            // Remove the now-duplicate last entry and shrink tail
+            UnsentRewardEra::<T>::remove(cur);
+            let new_tail = if tail == 0 {
+                UNSENT_QUEUE_CAPACITY - 1
+            } else {
+                tail - 1
+            };
+            UnsentRewardTail::<T>::put(new_tail);
+
+            // If head was after the removed slot, adjust it too
+            let head = UnsentRewardHead::<T>::get();
+            // We also need to handle head potentially pointing past the buffer
+            // after a removal. Since we shifted everything between slot..tail back,
+            // the head only needs adjustment if it was == tail (now new_tail) — but
+            // that means the buffer just became empty, which is fine (head == new_tail).
+            // However, if head was pointing *at* a slot beyond the removed one, the
+            // entry it pointed to slid back by one, so head should also slide back.
+            // In practice, removal only happens when we know the slot, so we can
+            // simply recalculate emptiness.
+            if head == tail {
+                // Was already at tail, buffer must be empty now
+                UnsentRewardHead::<T>::put(new_tail);
+            }
+        }
+
+        // ── Core retry logic ──────────────────────────────────────────────
+
+        /// Process at most one unsent reward era per block.
+        /// On failure the head pointer advances to the next entry so a single
+        /// stuck era does not block retries for subsequent eras.
+        pub(crate) fn process_unsent_reward_eras() -> Weight {
+            let head = UnsentRewardHead::<T>::get();
+            let tail = UnsentRewardTail::<T>::get();
+
+            if head == tail {
+                return T::WeightInfo::process_unsent_reward_eras_empty();
+            }
+
+            let Some((era_index, timestamp, inflation)) = UnsentRewardEra::<T>::get(head) else {
+                // Slot unexpectedly empty — advance head past it
+                UnsentRewardHead::<T>::put((head + 1) % UNSENT_QUEUE_CAPACITY);
+                return T::WeightInfo::process_unsent_reward_eras_empty();
+            };
+
+            // Check if reward points are still available
+            let reward_points = RewardPointsForEra::<T>::get(era_index);
+            let info =
+                match reward_points.generate_era_rewards_info(era_index, inflation, timestamp) {
+                    Some(info) => info,
+                    None => {
+                        // Reward points have been pruned — discard this entry
+                        log::warn!(
+                            target: "ext_validators_rewards",
+                            "Unsent era {era_index} expired: reward points pruned",
+                        );
+                        UnsentRewardEra::<T>::remove(head);
+                        UnsentRewardHead::<T>::put((head + 1) % UNSENT_QUEUE_CAPACITY);
+                        Self::deposit_event(Event::UnsentEraExpired { era_index });
+                        return T::WeightInfo::process_unsent_reward_eras_expired();
+                    }
+                };
+
+            // Attempt to resend
+            match Self::send_rewards_message(&info) {
+                Some(message_id) => {
+                    UnsentRewardEra::<T>::remove(head);
+                    UnsentRewardHead::<T>::put((head + 1) % UNSENT_QUEUE_CAPACITY);
+                    Self::deposit_event(Event::RewardsMessageRetried {
+                        message_id,
+                        era_index,
+                        total_points: info.total_points,
+                        inflation_amount: inflation,
+                    });
+                    T::WeightInfo::process_unsent_reward_eras_success()
+                }
+                None => {
+                    // Move the failed entry to the back of the queue so the
+                    // next block tries a different era (avoids head-of-line
+                    // blocking). The entry is not lost — it will be retried
+                    // after all other pending entries.
+                    UnsentRewardEra::<T>::remove(head);
+                    UnsentRewardHead::<T>::put((head + 1) % UNSENT_QUEUE_CAPACITY);
+                    UnsentRewardEra::<T>::insert(tail, (era_index, timestamp, inflation));
+                    UnsentRewardTail::<T>::put((tail + 1) % UNSENT_QUEUE_CAPACITY);
+                    log::warn!(
+                        target: "ext_validators_rewards",
+                        "Retry for unsent era {era_index} still failing, moved to back of queue",
+                    );
+                    T::WeightInfo::process_unsent_reward_eras_failed()
+                }
+            }
         }
 
         /// Track a block authored by a validator
@@ -619,6 +869,24 @@ pub mod pallet {
 
             RewardPointsForEra::<T>::remove(era_index_to_delete);
             BlocksProducedInEra::<T>::remove(era_index_to_delete);
+
+            // Proactively clean up any unsent entries whose reward points
+            // have been pruned (this era and any older ones still lingering).
+            let head = UnsentRewardHead::<T>::get();
+            let mut tail = UnsentRewardTail::<T>::get();
+            let mut slot = head;
+            while slot != tail {
+                if let Some((idx, _, _)) = UnsentRewardEra::<T>::get(slot) {
+                    if idx <= era_index_to_delete {
+                        Self::unsent_queue_remove_slot(slot);
+                        tail = UnsentRewardTail::<T>::get();
+                        Self::deposit_event(Event::UnsentEraExpired { era_index: idx });
+                        // Don't advance slot — next entry slid into this position
+                        continue;
+                    }
+                }
+                slot = (slot + 1) % UNSENT_QUEUE_CAPACITY;
+            }
         }
     }
 
@@ -671,17 +939,17 @@ pub mod pallet {
 
             // Generate era rewards utils with the actual rewards amount (post-treasury split).
             // This ensures the message to EigenLayer matches the actual minted rewards.
-            let utils = match era_reward_points.generate_era_rewards_utils(
+            let info = match RewardPointsForEra::<T>::get(&era_index).generate_era_rewards_info(
                 era_index,
                 mint_result.rewards_amount,
                 era_start_timestamp,
             ) {
-                Some(utils) => utils,
+                Some(info) => info,
                 None => {
                     // Returns None when total_points is zero or no validators have rewards
                     log::error!(
                         target: "ext_validators_rewards",
-                        "Failed to generate era rewards utils (no rewards to distribute)"
+                        "Failed to generate era rewards info (no rewards to distribute)"
                     );
                     return;
                 }
@@ -692,13 +960,31 @@ pub mod pallet {
                 DispatchClass::Mandatory,
             );
 
-            if let Some(message_id) = Self::send_rewards_message(&utils) {
-                Self::deposit_event(Event::RewardsMessageSent {
-                    message_id,
-                    era_index,
-                    total_points: utils.total_points,
-                    inflation_amount: mint_result.rewards_amount,
-                });
+            match Self::send_rewards_message(&info) {
+                Some(message_id) => {
+                    Self::deposit_event(Event::RewardsMessageSent {
+                        message_id,
+                        era_index,
+                        total_points: info.total_points,
+                        inflation_amount: mint_result.rewards_amount,
+                    });
+                }
+                None => {
+                    // Message failed — queue for automatic retry via on_initialize
+                    if Self::unsent_queue_push((
+                        era_index,
+                        era_start_timestamp,
+                        mint_result.rewards_amount,
+                    )) {
+                        Self::deposit_event(Event::RewardsMessageSendFailed { era_index });
+                    } else {
+                        log::error!(
+                            target: "ext_validators_rewards",
+                            "Unsent reward queue full, cannot enqueue era {era_index}",
+                        );
+                        Self::deposit_event(Event::UnsentQueueFull { era_index });
+                    }
+                }
             }
         }
     }

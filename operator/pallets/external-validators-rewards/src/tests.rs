@@ -16,7 +16,7 @@
 
 use {
     crate::{self as pallet_external_validators_rewards, mock::*},
-    frame_support::traits::fungible::Mutate,
+    frame_support::{assert_noop, assert_ok, traits::fungible::Mutate},
     pallet_external_validators::traits::{ActiveEraInfo, OnEraEnd, OnEraStart},
     sp_core::H160,
     sp_std::collections::btree_map::BTreeMap,
@@ -165,8 +165,8 @@ fn test_on_era_end() {
         let treasury_amount = InflationTreasuryProportion::get().mul_floor(inflation);
         let rewards_amount = inflation - treasury_amount;
         // Use 0 for era_start_timestamp in tests
-        let rewards_utils = era_rewards.generate_era_rewards_utils(1, rewards_amount, 0);
-        assert!(rewards_utils.is_some());
+        let rewards_info = era_rewards.generate_era_rewards_info(1, inflation, 0);
+        assert!(rewards_info.is_some());
         System::assert_last_event(RuntimeEvent::ExternalValidatorsRewards(
             crate::Event::RewardsMessageSent {
                 message_id: Default::default(),
@@ -207,8 +207,8 @@ fn test_on_era_end_with_zero_inflation() {
         let era_rewards = pallet_external_validators_rewards::RewardPointsForEra::<Test>::get(1);
         let inflation =
             <Test as pallet_external_validators_rewards::Config>::EraInflationProvider::get();
-        let rewards_utils = era_rewards.generate_era_rewards_utils(1, inflation, 0);
-        assert!(rewards_utils.is_some());
+        let rewards_info = era_rewards.generate_era_rewards_info(1, inflation, 0);
+        assert!(rewards_info.is_some());
         // With zero inflation, no RewardsMessageSent event should be emitted
         let events = System::events();
         assert!(
@@ -246,15 +246,15 @@ fn test_on_era_end_with_zero_points() {
         ExternalValidatorsRewards::reward_by_ids(accounts_points);
         ExternalValidatorsRewards::on_era_end(1);
 
-        // When all validators have zero points, generate_era_rewards_utils should return None
+        // When all validators have zero points, generate_era_rewards_info should return None
         // to prevent inflation from being minted with no way to distribute it
         let era_rewards = pallet_external_validators_rewards::RewardPointsForEra::<Test>::get(1);
         let inflation =
             <Test as pallet_external_validators_rewards::Config>::EraInflationProvider::get();
-        let rewards_utils = era_rewards.generate_era_rewards_utils(1, inflation, 0);
+        let rewards_info = era_rewards.generate_era_rewards_info(1, inflation, 0);
         assert!(
-            rewards_utils.is_none(),
-            "generate_era_rewards_utils should return None when total_points is zero"
+            rewards_info.is_none(),
+            "generate_era_rewards_info should return None when total_points is zero"
         );
 
         // Verify no RewardsMessageSent event was emitted
@@ -3720,5 +3720,458 @@ fn test_era_end_uses_correct_era_blocks_not_session() {
             inflation_minted, 800_000,
             "Era end should use era blocks (600) for 100% inflation"
         );
+    })
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Retry mechanism tests (ring-buffer storage)
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// Helper: push an entry into the unsent ring buffer via the pallet API.
+fn push_unsent(era_index: u32, timestamp: u32, inflation: u128) {
+    assert!(
+        ExternalValidatorsRewards::unsent_queue_push((era_index, timestamp, inflation)),
+        "unsent_queue_push should succeed"
+    );
+}
+
+/// Helper: return the number of entries in the unsent ring buffer.
+fn unsent_len() -> u32 {
+    ExternalValidatorsRewards::unsent_queue_len()
+}
+
+/// Helper: check if unsent queue is empty.
+fn unsent_is_empty() -> bool {
+    ExternalValidatorsRewards::unsent_queue_is_empty()
+}
+
+#[test]
+fn send_failure_queues_era() {
+    new_test_ext().execute_with(|| {
+        run_to_block(1);
+
+        Mock::mutate(|mock| {
+            mock.active_era = Some(ActiveEraInfo {
+                index: 1,
+                start: Some(30_000),
+            });
+            mock.send_message_fails = true;
+        });
+
+        // Give validators some points
+        ExternalValidatorsRewards::reward_by_ids([(H160::from_low_u64_be(1), 100)]);
+        // Author expected blocks for 100% inflation
+        for _ in 0..600 {
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(1));
+        }
+
+        ExternalValidatorsRewards::on_era_end(1);
+
+        // Verify era is queued
+        assert_eq!(unsent_len(), 1);
+
+        // Verify event
+        System::assert_has_event(RuntimeEvent::ExternalValidatorsRewards(
+            crate::Event::RewardsMessageSendFailed { era_index: 1 },
+        ));
+    })
+}
+
+#[test]
+fn on_initialize_retries_and_succeeds() {
+    new_test_ext().execute_with(|| {
+        run_to_block(1);
+
+        Mock::mutate(|mock| {
+            mock.active_era = Some(ActiveEraInfo {
+                index: 1,
+                start: Some(30_000),
+            });
+        });
+
+        // Set up reward points for era 1
+        ExternalValidatorsRewards::reward_by_ids([(H160::from_low_u64_be(1), 100)]);
+
+        // Manually populate the unsent queue
+        push_unsent(1, 30, 42);
+
+        // Sending should succeed (send_message_fails is false by default)
+        System::reset_events();
+        ExternalValidatorsRewards::process_unsent_reward_eras();
+
+        // Queue should be empty
+        assert!(unsent_is_empty());
+
+        // Verify retry event
+        System::assert_has_event(RuntimeEvent::ExternalValidatorsRewards(
+            crate::Event::RewardsMessageRetried {
+                message_id: Default::default(),
+                era_index: 1,
+                total_points: 100,
+                inflation_amount: 42,
+            },
+        ));
+    })
+}
+
+#[test]
+fn on_initialize_moves_failed_entry_to_back() {
+    new_test_ext().execute_with(|| {
+        run_to_block(1);
+
+        Mock::mutate(|mock| {
+            mock.active_era = Some(ActiveEraInfo {
+                index: 2,
+                start: Some(30_000),
+            });
+            mock.send_message_fails = true;
+        });
+
+        // Set up reward points for eras 1 and 2
+        ExternalValidatorsRewards::reward_by_ids([(H160::from_low_u64_be(1), 100)]);
+        Mock::mutate(|mock| {
+            mock.active_era = Some(ActiveEraInfo {
+                index: 1,
+                start: Some(30_000),
+            });
+        });
+        ExternalValidatorsRewards::reward_by_ids([(H160::from_low_u64_be(1), 200)]);
+
+        // Push two entries: era 1 then era 2
+        push_unsent(1, 30, 42);
+        push_unsent(2, 30, 84);
+
+        // First call: tries era 1, fails, moves era 1 to back of queue
+        ExternalValidatorsRewards::process_unsent_reward_eras();
+        // Queue length stays the same (entry moved, not removed)
+        assert_eq!(unsent_len(), 2);
+
+        // Second call: tries era 2 (NOT era 1 again), fails, moves era 2 to back
+        ExternalValidatorsRewards::process_unsent_reward_eras();
+        assert_eq!(unsent_len(), 2);
+
+        // Re-enable sending
+        Mock::mutate(|mock| mock.send_message_fails = false);
+
+        // Third call: era 1 (now at front again), succeeds
+        System::reset_events();
+        ExternalValidatorsRewards::process_unsent_reward_eras();
+        assert_eq!(unsent_len(), 1);
+        System::assert_has_event(RuntimeEvent::ExternalValidatorsRewards(
+            crate::Event::RewardsMessageRetried {
+                message_id: Default::default(),
+                era_index: 1,
+                total_points: 200,
+                inflation_amount: 42,
+            },
+        ));
+
+        // Fourth call: era 2, succeeds
+        ExternalValidatorsRewards::process_unsent_reward_eras();
+        assert!(unsent_is_empty());
+    })
+}
+
+#[test]
+fn on_initialize_removes_expired_era() {
+    new_test_ext().execute_with(|| {
+        run_to_block(1);
+
+        // Populate unsent queue with era 999 but do NOT add RewardPointsForEra for it
+        push_unsent(999, 0, 42);
+
+        System::reset_events();
+        ExternalValidatorsRewards::process_unsent_reward_eras();
+
+        // Entry should be removed
+        assert!(unsent_is_empty());
+
+        // Verify expired event
+        System::assert_has_event(RuntimeEvent::ExternalValidatorsRewards(
+            crate::Event::UnsentEraExpired { era_index: 999 },
+        ));
+    })
+}
+
+#[test]
+fn on_initialize_noop_when_queue_empty() {
+    new_test_ext().execute_with(|| {
+        run_to_block(1);
+        System::reset_events();
+
+        ExternalValidatorsRewards::process_unsent_reward_eras();
+
+        // No events should be emitted
+        let events = System::events();
+        assert!(
+            events.is_empty(),
+            "No events should be emitted when unsent queue is empty"
+        );
+    })
+}
+
+#[test]
+fn on_initialize_processes_only_head() {
+    new_test_ext().execute_with(|| {
+        run_to_block(1);
+
+        Mock::mutate(|mock| {
+            mock.active_era = Some(ActiveEraInfo {
+                index: 3,
+                start: Some(30_000),
+            });
+        });
+
+        // Set up reward points for both eras
+        ExternalValidatorsRewards::reward_by_ids([(H160::from_low_u64_be(1), 100)]);
+        Mock::mutate(|mock| {
+            mock.active_era = Some(ActiveEraInfo {
+                index: 2,
+                start: Some(30_000),
+            });
+        });
+        ExternalValidatorsRewards::reward_by_ids([(H160::from_low_u64_be(2), 200)]);
+
+        // Push two entries
+        push_unsent(3, 30, 42);
+        push_unsent(2, 20, 84);
+
+        System::reset_events();
+        ExternalValidatorsRewards::process_unsent_reward_eras();
+
+        // Only the head entry (era 3) should be processed (and removed on success)
+        assert_eq!(unsent_len(), 1);
+    })
+}
+
+#[test]
+fn retry_extrinsic_success() {
+    new_test_ext().execute_with(|| {
+        run_to_block(1);
+
+        Mock::mutate(|mock| {
+            mock.active_era = Some(ActiveEraInfo {
+                index: 1,
+                start: Some(30_000),
+            });
+        });
+
+        // Set up reward points
+        ExternalValidatorsRewards::reward_by_ids([(H160::from_low_u64_be(1), 100)]);
+
+        // Populate unsent queue
+        push_unsent(1, 30, 42);
+
+        System::reset_events();
+        assert_ok!(ExternalValidatorsRewards::retry_unsent_reward_era(
+            RuntimeOrigin::root(),
+            1
+        ));
+
+        // Queue should be empty
+        assert!(unsent_is_empty());
+
+        // Verify retry event
+        System::assert_has_event(RuntimeEvent::ExternalValidatorsRewards(
+            crate::Event::RewardsMessageRetried {
+                message_id: Default::default(),
+                era_index: 1,
+                total_points: 100,
+                inflation_amount: 42,
+            },
+        ));
+    })
+}
+
+#[test]
+fn retry_extrinsic_era_not_in_queue() {
+    new_test_ext().execute_with(|| {
+        run_to_block(1);
+
+        assert_noop!(
+            ExternalValidatorsRewards::retry_unsent_reward_era(RuntimeOrigin::root(), 1),
+            crate::Error::<Test>::EraNotInUnsentQueue
+        );
+    })
+}
+
+#[test]
+fn retry_extrinsic_pruned_data() {
+    new_test_ext().execute_with(|| {
+        run_to_block(1);
+
+        // Queue an era but don't create reward points for it
+        push_unsent(999, 0, 42);
+
+        assert_noop!(
+            ExternalValidatorsRewards::retry_unsent_reward_era(RuntimeOrigin::root(), 999),
+            crate::Error::<Test>::RewardPointsPruned
+        );
+    })
+}
+
+#[test]
+fn retry_extrinsic_requires_root() {
+    new_test_ext().execute_with(|| {
+        run_to_block(1);
+
+        assert_noop!(
+            ExternalValidatorsRewards::retry_unsent_reward_era(
+                RuntimeOrigin::signed(H160::from_low_u64_be(1)),
+                1
+            ),
+            sp_runtime::DispatchError::BadOrigin
+        );
+    })
+}
+
+#[test]
+fn unsent_queue_full() {
+    new_test_ext().execute_with(|| {
+        run_to_block(1);
+
+        Mock::mutate(|mock| {
+            mock.active_era = Some(ActiveEraInfo {
+                index: 65,
+                start: Some(30_000),
+            });
+            mock.send_message_fails = true;
+        });
+
+        // Fill the ring buffer to capacity (63 entries, since capacity=64
+        // means 63 usable slots in a ring buffer with head==tail==empty).
+        for i in 0..63u32 {
+            push_unsent(i, 0, 42);
+        }
+        assert_eq!(unsent_len(), 63);
+
+        // Give validators some points so on_era_end doesn't bail early
+        ExternalValidatorsRewards::reward_by_ids([(H160::from_low_u64_be(1), 100)]);
+        for _ in 0..600 {
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(1));
+        }
+
+        System::reset_events();
+        ExternalValidatorsRewards::on_era_end(65);
+
+        // Verify UnsentQueueFull event
+        System::assert_has_event(RuntimeEvent::ExternalValidatorsRewards(
+            crate::Event::UnsentQueueFull { era_index: 65 },
+        ));
+
+        // Queue should still be at 63
+        assert_eq!(unsent_len(), 63);
+    })
+}
+
+#[test]
+fn on_era_start_prunes_unsent_entry() {
+    new_test_ext().execute_with(|| {
+        run_to_block(1);
+
+        // Set up: era 1 has an unsent entry
+        push_unsent(1, 0, 42);
+
+        // HistoryDepth is 10, so era 11 should prune era 1
+        System::reset_events();
+        ExternalValidatorsRewards::on_era_start(11, 0, 11);
+
+        // Unsent entry should be removed
+        assert!(unsent_is_empty());
+
+        // Verify expired event
+        System::assert_has_event(RuntimeEvent::ExternalValidatorsRewards(
+            crate::Event::UnsentEraExpired { era_index: 1 },
+        ));
+    })
+}
+
+#[test]
+fn retry_extrinsic_send_still_fails() {
+    new_test_ext().execute_with(|| {
+        run_to_block(1);
+
+        Mock::mutate(|mock| {
+            mock.active_era = Some(ActiveEraInfo {
+                index: 1,
+                start: Some(30_000),
+            });
+            mock.send_message_fails = true;
+        });
+
+        // Set up reward points
+        ExternalValidatorsRewards::reward_by_ids([(H160::from_low_u64_be(1), 100)]);
+
+        // Populate unsent queue
+        push_unsent(1, 30, 42);
+
+        assert_noop!(
+            ExternalValidatorsRewards::retry_unsent_reward_era(RuntimeOrigin::root(), 1),
+            crate::Error::<Test>::MessageSendFailed
+        );
+
+        // Queue should still have the entry
+        assert_eq!(unsent_len(), 1);
+    })
+}
+
+#[test]
+fn head_of_line_blocking_avoided() {
+    new_test_ext().execute_with(|| {
+        run_to_block(1);
+
+        // Set up reward points for eras 1, 2, 3
+        for era in 1..=3u32 {
+            Mock::mutate(|mock| {
+                mock.active_era = Some(ActiveEraInfo {
+                    index: era,
+                    start: Some(30_000),
+                });
+            });
+            ExternalValidatorsRewards::reward_by_ids([(H160::from_low_u64_be(1), 100)]);
+        }
+
+        // Push eras 1, 2, 3 into the queue
+        push_unsent(1, 30, 10);
+        push_unsent(2, 30, 20);
+        push_unsent(3, 30, 30);
+
+        // Make sending fail
+        Mock::mutate(|mock| mock.send_message_fails = true);
+
+        // Block 1: tries era 1, fails, advances head → era 2
+        ExternalValidatorsRewards::process_unsent_reward_eras();
+        // Block 2: tries era 2, fails, advances head → era 3
+        ExternalValidatorsRewards::process_unsent_reward_eras();
+
+        // Now re-enable sending
+        Mock::mutate(|mock| mock.send_message_fails = false);
+
+        // Block 3: tries era 3, succeeds
+        System::reset_events();
+        ExternalValidatorsRewards::process_unsent_reward_eras();
+        System::assert_has_event(RuntimeEvent::ExternalValidatorsRewards(
+            crate::Event::RewardsMessageRetried {
+                message_id: Default::default(),
+                era_index: 3,
+                total_points: 100,
+                inflation_amount: 30,
+            },
+        ));
+
+        // Block 4: wraps around to era 1, succeeds
+        ExternalValidatorsRewards::process_unsent_reward_eras();
+        System::assert_has_event(RuntimeEvent::ExternalValidatorsRewards(
+            crate::Event::RewardsMessageRetried {
+                message_id: Default::default(),
+                era_index: 1,
+                total_points: 100,
+                inflation_amount: 10,
+            },
+        ));
+
+        // Block 5: era 2, succeeds
+        ExternalValidatorsRewards::process_unsent_reward_eras();
+        assert!(unsent_is_empty());
     })
 }

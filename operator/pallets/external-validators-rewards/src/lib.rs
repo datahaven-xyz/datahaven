@@ -34,7 +34,7 @@ pub mod weights;
 pub use pallet::*;
 
 use {
-    crate::types::{RewardsPeriodUtils, HandleInflation, SendMessage},
+    crate::types::{HandleInflation, RewardsPeriodUtils, SendMessage},
     frame_support::traits::{Get, UnixTime, ValidatorSet},
     pallet_external_validators::traits::{ExternalIndexProvider, OnEraEnd, OnEraStart},
     parity_scale_codec::{Decode, Encode},
@@ -67,8 +67,7 @@ pub mod pallet {
     pub use crate::weights::WeightInfo;
     use {
         super::*, frame_support::pallet_prelude::*, frame_system::pallet_prelude::OriginFor,
-        pallet_external_validators::traits::EraIndexProvider,
-        sp_runtime::traits::Saturating,
+        pallet_external_validators::traits::EraIndexProvider, sp_runtime::traits::Saturating,
         sp_std::collections::btree_map::BTreeMap,
     };
 
@@ -335,7 +334,6 @@ pub mod pallet {
         }
     }
 
-
     impl<AccountId> Default for EraRewardPoints<AccountId> {
         fn default() -> Self {
             EraRewardPoints {
@@ -504,8 +502,7 @@ pub mod pallet {
             while next_window.saturating_add(interval) <= now {
                 let inflation_amount = WindowInflationAmount::<T>::get(next_window);
                 let operator_points = WindowOperatorPoints::<T>::get(next_window);
-                let total_points: u128 =
-                    operator_points.values().map(|p| *p as u128).sum();
+                let total_points: u128 = operator_points.values().map(|p| *p as u128).sum();
                 let window_index = next_window.saturating_sub(genesis) / interval;
 
                 if total_points == 0 || inflation_amount == 0 {

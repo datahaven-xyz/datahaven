@@ -128,15 +128,13 @@ fn window_mode_submits_closed_windows_and_advances_pointer() {
         assert!(
             events.iter().any(|record| matches!(
                 &record.event,
-                RuntimeEvent::ExternalValidatorsRewards(
-                    crate::Event::RewardsWindowSubmitted {
-                        window_start: 30,
-                        window_index: 1,
-                        total_points: 30,
-                        inflation_amount: 13,
-                        ..
-                    }
-                )
+                RuntimeEvent::ExternalValidatorsRewards(crate::Event::RewardsWindowSubmitted {
+                    window_start: 30,
+                    window_index: 1,
+                    total_points: 30,
+                    inflation_amount: 13,
+                    ..
+                })
             )),
             "expected closed window submission event"
         );
@@ -258,7 +256,8 @@ fn window_mode_era_inflation_split_across_multiple_windows() {
         // Window [30,40) is current (not closed), verify inflation was allocated
         let w30 = pallet_external_validators_rewards::WindowInflationAmount::<Test>::get(30);
         let expected_w30_base = rewards_amount * 5 / 30;
-        let allocated_without_remainder = expected_w0 + expected_w10 + expected_w20 + expected_w30_base;
+        let allocated_without_remainder =
+            expected_w0 + expected_w10 + expected_w20 + expected_w30_base;
         let remainder = rewards_amount.saturating_sub(allocated_without_remainder);
         assert_eq!(
             w30,
@@ -313,13 +312,11 @@ fn window_mode_submits_multiple_closed_windows_in_single_era_end() {
         assert!(
             events.iter().any(|record| matches!(
                 &record.event,
-                RuntimeEvent::ExternalValidatorsRewards(
-                    crate::Event::RewardsWindowSubmitted {
-                        window_start: 30,
-                        window_index: 3,
-                        ..
-                    }
-                )
+                RuntimeEvent::ExternalValidatorsRewards(crate::Event::RewardsWindowSubmitted {
+                    window_start: 30,
+                    window_index: 3,
+                    ..
+                })
             )),
             "window [30,40) should have been submitted"
         );
@@ -328,13 +325,11 @@ fn window_mode_submits_multiple_closed_windows_in_single_era_end() {
         assert!(
             events.iter().any(|record| matches!(
                 &record.event,
-                RuntimeEvent::ExternalValidatorsRewards(
-                    crate::Event::RewardsWindowSubmitted {
-                        window_start: 40,
-                        window_index: 4,
-                        ..
-                    }
-                )
+                RuntimeEvent::ExternalValidatorsRewards(crate::Event::RewardsWindowSubmitted {
+                    window_start: 40,
+                    window_index: 4,
+                    ..
+                })
             )),
             "window [40,50) should have been submitted"
         );
@@ -343,12 +338,10 @@ fn window_mode_submits_multiple_closed_windows_in_single_era_end() {
         assert!(
             events.iter().any(|record| matches!(
                 &record.event,
-                RuntimeEvent::ExternalValidatorsRewards(
-                    crate::Event::RewardsWindowSkipped {
-                        window_start: 50,
-                        window_index: 5,
-                    }
-                )
+                RuntimeEvent::ExternalValidatorsRewards(crate::Event::RewardsWindowSkipped {
+                    window_start: 50,
+                    window_index: 5,
+                })
             )),
             "window [50,60) should have been skipped (no points)"
         );
@@ -595,7 +588,7 @@ fn test_on_era_end_with_zero_inflation() {
                 &record.event,
                 RuntimeEvent::ExternalValidatorsRewards(
                     crate::Event::RewardsWindowSubmitted { .. }
-                    | crate::Event::RewardsWindowSkipped { .. }
+                        | crate::Event::RewardsWindowSkipped { .. }
                 )
             )),
             "no window events should be emitted when inflation minting fails",
@@ -637,7 +630,7 @@ fn test_on_era_end_with_zero_points() {
                 &record.event,
                 RuntimeEvent::ExternalValidatorsRewards(
                     crate::Event::RewardsWindowSubmitted { .. }
-                    | crate::Event::RewardsWindowSkipped { .. }
+                        | crate::Event::RewardsWindowSkipped { .. }
                 )
             )),
             "no window events should be emitted when era has zero points",

@@ -321,8 +321,16 @@ impl pallet_babe::Config for Runtime {
     type KeyOwnerProof =
         <Historical as KeyOwnerProofSystem<(KeyTypeId, pallet_babe::AuthorityId)>>::Proof;
 
-    type EquivocationReportSystem =
-        pallet_babe::EquivocationReportSystem<Self, Offences, Historical, ReportLongevity>;
+    type EquivocationReportSystem = pallet_babe::EquivocationReportSystem<
+        Self,
+        pallet_external_validator_slashes::EquivocationReportWrapper<
+            Runtime,
+            Offences,
+            pallet_external_validator_slashes::BabeEquivocation,
+        >,
+        Historical,
+        ReportLongevity,
+    >;
 }
 
 impl pallet_timestamp::Config for Runtime {
@@ -401,7 +409,11 @@ impl pallet_im_online::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type ValidatorSet = Historical;
     type NextSessionRotation = Babe;
-    type ReportUnresponsiveness = Offences;
+    type ReportUnresponsiveness = pallet_external_validator_slashes::EquivocationReportWrapper<
+        Runtime,
+        Offences,
+        pallet_external_validator_slashes::ImOnlineUnresponsive,
+    >;
     type UnsignedPriority = ImOnlineUnsignedPriority;
     type WeightInfo = crate::weights::pallet_im_online::WeightInfo<Runtime>;
 }
@@ -424,7 +436,11 @@ impl pallet_grandpa::Config for Runtime {
     type KeyOwnerProof = <Historical as KeyOwnerProofSystem<(KeyTypeId, GrandpaId)>>::Proof;
     type EquivocationReportSystem = pallet_grandpa::EquivocationReportSystem<
         Self,
-        Offences,
+        pallet_external_validator_slashes::EquivocationReportWrapper<
+            Runtime,
+            Offences,
+            pallet_external_validator_slashes::GrandpaEquivocation,
+        >,
         Historical,
         EquivocationReportPeriodInBlocks,
     >;
@@ -501,8 +517,16 @@ impl pallet_beefy::Config for Runtime {
     type AncestryHelper = BeefyMmrLeaf;
     type WeightInfo = ();
     type KeyOwnerProof = <Historical as KeyOwnerProofSystem<(KeyTypeId, BeefyId)>>::Proof;
-    type EquivocationReportSystem =
-        pallet_beefy::EquivocationReportSystem<Self, Offences, Historical, ReportLongevity>;
+    type EquivocationReportSystem = pallet_beefy::EquivocationReportSystem<
+        Self,
+        pallet_external_validator_slashes::EquivocationReportWrapper<
+            Runtime,
+            Offences,
+            pallet_external_validator_slashes::BeefyEquivocation,
+        >,
+        Historical,
+        ReportLongevity,
+    >;
 }
 
 parameter_types! {
@@ -1494,7 +1518,7 @@ impl datahaven_runtime_common::rewards_adapter::RewardsSubmissionConfig for Main
     }
 
     fn rewards_agent_origin() -> H256 {
-        runtime_params::dynamic_params::runtime_config::RewardsAgentOrigin::get()
+        runtime_params::dynamic_params::runtime_config::AgentOrigin::get()
     }
 
     fn strategies_and_multipliers() -> Vec<(H160, u128)> {
@@ -1574,6 +1598,8 @@ impl pallet_external_validators_rewards::Config for Runtime {
     type RewardsEthereumSovereignAccount = ExternalValidatorRewardsAccount;
     type SendMessage = RewardsSendAdapter;
     type HandleInflation = ExternalRewardsInflationHandler;
+    type GovernanceOrigin =
+        EitherOfDiverse<EnsureRoot<AccountId>, governance::custom_origins::GeneralAdmin>;
     type WeightInfo = mainnet_weights::pallet_external_validators_rewards::WeightInfo<Runtime>;
     #[cfg(feature = "runtime-benchmarks")]
     type BenchmarkHelper = ();
@@ -1668,9 +1694,9 @@ impl datahaven_runtime_common::slashes_adapter::SlashesSubmissionConfig for Main
         runtime_params::dynamic_params::runtime_config::DatahavenServiceManagerAddress::get()
     }
 
+    // TODO: remove `slashes_` prefix and just call it `agent_origin`
     fn slashes_agent_origin() -> H256 {
-        runtime_params::dynamic_params::runtime_config::RewardsAgentOrigin::get()
-        // TODO: Can we use the same as reward and just rename the config to `AgentOrigin` ?
+        runtime_params::dynamic_params::runtime_config::AgentOrigin::get()
     }
 
     fn strategies() -> Vec<Address> {
@@ -1701,6 +1727,7 @@ impl pallet_external_validator_slashes::Config for Runtime {
     type EraIndexProvider = ExternalValidators;
     type InvulnerablesProvider = ExternalValidators;
     type ExternalIndexProvider = ExternalValidators;
+    type MaxSlashWad = runtime_params::dynamic_params::runtime_config::MaxSlashWad;
     type QueuedSlashesProcessedPerBlock = ConstU32<10>;
     type WeightInfo = mainnet_weights::pallet_external_validator_slashes::WeightInfo<Runtime>;
     type SendMessage = SlashesSendAdapter;

@@ -43,7 +43,7 @@
     "randaoCommitExpiration": 24,
     "minNumRequiredSignatures": 16,
     "startBlock": 1,
-    "rewardsMessageOrigin": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "messageOrigin": "0x0000000000000000000000000000000000000000000000000000000000000000",
     "initialValidatorSetId": 0,
     "initialValidatorHashes": [],
     "nextValidatorSetId": 1,

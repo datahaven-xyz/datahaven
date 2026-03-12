@@ -321,8 +321,16 @@ impl pallet_babe::Config for Runtime {
     type KeyOwnerProof =
         <Historical as KeyOwnerProofSystem<(KeyTypeId, pallet_babe::AuthorityId)>>::Proof;
 
-    type EquivocationReportSystem =
-        pallet_babe::EquivocationReportSystem<Self, Offences, Historical, ReportLongevity>;
+    type EquivocationReportSystem = pallet_babe::EquivocationReportSystem<
+        Self,
+        pallet_external_validator_slashes::EquivocationReportWrapper<
+            Runtime,
+            Offences,
+            pallet_external_validator_slashes::BabeEquivocation,
+        >,
+        Historical,
+        ReportLongevity,
+    >;
 }
 
 impl pallet_timestamp::Config for Runtime {
@@ -400,7 +408,11 @@ impl pallet_im_online::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type ValidatorSet = Historical;
     type NextSessionRotation = Babe;
-    type ReportUnresponsiveness = Offences;
+    type ReportUnresponsiveness = pallet_external_validator_slashes::EquivocationReportWrapper<
+        Runtime,
+        Offences,
+        pallet_external_validator_slashes::ImOnlineUnresponsive,
+    >;
     type UnsignedPriority = ImOnlineUnsignedPriority;
     type WeightInfo = crate::weights::pallet_im_online::WeightInfo<Runtime>;
 }
@@ -423,7 +435,11 @@ impl pallet_grandpa::Config for Runtime {
     type KeyOwnerProof = <Historical as KeyOwnerProofSystem<(KeyTypeId, GrandpaId)>>::Proof;
     type EquivocationReportSystem = pallet_grandpa::EquivocationReportSystem<
         Self,
-        Offences,
+        pallet_external_validator_slashes::EquivocationReportWrapper<
+            Runtime,
+            Offences,
+            pallet_external_validator_slashes::GrandpaEquivocation,
+        >,
         Historical,
         EquivocationReportPeriodInBlocks,
     >;
@@ -501,8 +517,16 @@ impl pallet_beefy::Config for Runtime {
     type AncestryHelper = BeefyMmrLeaf;
     type WeightInfo = ();
     type KeyOwnerProof = <Historical as KeyOwnerProofSystem<(KeyTypeId, BeefyId)>>::Proof;
-    type EquivocationReportSystem =
-        pallet_beefy::EquivocationReportSystem<Self, Offences, Historical, ReportLongevity>;
+    type EquivocationReportSystem = pallet_beefy::EquivocationReportSystem<
+        Self,
+        pallet_external_validator_slashes::EquivocationReportWrapper<
+            Runtime,
+            Offences,
+            pallet_external_validator_slashes::BeefyEquivocation,
+        >,
+        Historical,
+        ReportLongevity,
+    >;
 }
 
 parameter_types! {
@@ -1494,7 +1518,7 @@ impl datahaven_runtime_common::rewards_adapter::RewardsSubmissionConfig for Test
     }
 
     fn rewards_agent_origin() -> H256 {
-        runtime_params::dynamic_params::runtime_config::RewardsAgentOrigin::get()
+        runtime_params::dynamic_params::runtime_config::AgentOrigin::get()
     }
 
     fn strategies_and_multipliers() -> Vec<(H160, u128)> {
@@ -1574,6 +1598,8 @@ impl pallet_external_validators_rewards::Config for Runtime {
     type RewardsEthereumSovereignAccount = ExternalValidatorRewardsAccount;
     type SendMessage = RewardsSendAdapter;
     type HandleInflation = ExternalRewardsInflationHandler;
+    type GovernanceOrigin =
+        EitherOfDiverse<EnsureRoot<AccountId>, governance::custom_origins::GeneralAdmin>;
     type WeightInfo = testnet_weights::pallet_external_validators_rewards::WeightInfo<Runtime>;
     #[cfg(feature = "runtime-benchmarks")]
     type BenchmarkHelper = ();
@@ -1669,8 +1695,7 @@ impl datahaven_runtime_common::slashes_adapter::SlashesSubmissionConfig for Test
     }
 
     fn slashes_agent_origin() -> H256 {
-        runtime_params::dynamic_params::runtime_config::RewardsAgentOrigin::get()
-        // TODO: Can we use the same as reward and just rename the config to `AgentOrigin` ?
+        runtime_params::dynamic_params::runtime_config::AgentOrigin::get()
     }
 
     fn strategies() -> Vec<Address> {
@@ -1700,6 +1725,7 @@ impl pallet_external_validator_slashes::Config for Runtime {
     type EraIndexProvider = ExternalValidators;
     type InvulnerablesProvider = ExternalValidators;
     type ExternalIndexProvider = ExternalValidators;
+    type MaxSlashWad = runtime_params::dynamic_params::runtime_config::MaxSlashWad;
     type QueuedSlashesProcessedPerBlock = ConstU32<10>;
     type WeightInfo = testnet_weights::pallet_external_validator_slashes::WeightInfo<Runtime>;
     type SendMessage = SlashesSendAdapter;
@@ -1948,8 +1974,8 @@ mod tests {
     /// Test that the Rewards Agent ID (used for Snowbridge outbound messages from the rewards pallet)
     /// is correctly computed from the chain's genesis hash and the ExternalValidatorRewardsAccount.
     ///
-    /// This test verifies the value that should be set as `RewardsAgentOrigin` in runtime parameters
-    /// and as `rewardsMessageOrigin` in the AVS contract configuration.
+    /// This test verifies the value that should be set as `AgentOrigin` in runtime parameters
+    /// and as `messageOrigin` in the AVS contract configuration.
     ///
     /// The Agent ID is computed following Snowbridge's pattern for GlobalConsensus locations:
     /// blake2_256(SCALE_ENCODE("GlobalConsensus", ByGenesis(genesis_hash), compact_len, "AccountKey20", account_key))
@@ -1989,8 +2015,8 @@ mod tests {
         // Hash with blake2_256
         let computed_agent_id = H256(blake2_256(&encoded));
 
-        // Expected Agent ID - this value must match RewardsAgentOrigin in runtime_params.rs
-        // If this test fails, update RewardsAgentOrigin to match the computed value.
+        // Expected Agent ID - this value must match AgentOrigin in runtime_params.rs
+        // If this test fails, update AgentOrigin to match the computed value.
         let expected_agent_id = H256(hex_literal::hex!(
             "d0d6dbd1ffb401ef613f00e93cd5061ecec03ae35d2f820cd6754a5b5f020215"
         ));
@@ -2000,8 +2026,8 @@ mod tests {
             expected_agent_id,
             "Computed Rewards Agent ID must match expected value.\n\
              This value should be set as:\n\
-             - RewardsAgentOrigin in runtime_params.rs\n\
-             - rewardsMessageOrigin in AVS contract config\n\
+             - AgentOrigin in runtime_params.rs\n\
+             - messageOrigin in AVS contract config\n\
              \n\
              Rewards account: 0x{}\n\
              Genesis hash: 0x{}\n\

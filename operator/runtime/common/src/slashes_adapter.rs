@@ -111,8 +111,8 @@ fn encode_slashing_request(
         let slashing_request = SlashingRequest {
             operator: Address::from(slash_operator.validator.0),
             strategies: strategies.clone(),
-            wadsToSlash: wads_to_slash, // We only have one strategy deployed
-            description: "Slashing validator".into(),
+            wadsToSlash: wads_to_slash,
+            description: slash_operator.description.clone().into(),
         };
 
         slashings.push(slashing_request);

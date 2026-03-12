@@ -1,4 +1,3 @@
-import { parseDeploymentsFile } from "utils";
 import { parseEther } from "viem";
 import { parse as parseYaml } from "yaml";
 
@@ -37,6 +36,7 @@ export async function loadConfig(
 
   let serviceManagerAddress = optionalHexString(raw, "service_manager_address");
   if (!serviceManagerAddress) {
+    const { parseDeploymentsFile } = await import("../../utils/contracts.ts");
     const deployments = await parseDeploymentsFile(networkId);
     serviceManagerAddress = deployments.ServiceManager;
   }

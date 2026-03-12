@@ -48,9 +48,9 @@ pub mod dynamic_params {
 
         #[codec(index = 3)]
         #[allow(non_upper_case_globals)]
-        /// The RewardsAgentOrigin is the hash of the string "external_validators_rewards"
+        /// The AgentOrigin is the hash of the string "external_validators_rewards"
         /// TODO: Decide which agent origin we want to use. Currently for testing it's the zero hash
-        pub static RewardsAgentOrigin: H256 = H256::from_slice(&hex!(
+        pub static AgentOrigin: H256 = H256::from_slice(&hex!(
             "c505dfb2df107d106d08bd0f1a0acd10052ca9aa078629a4ccfd0c90c6e69b65"
         ));
 
@@ -417,6 +417,16 @@ pub mod dynamic_params {
             BoundedVec::truncate_from(vec![]);
 
         // ╚══════════════════════ EigenLayer Rewards V2 ═══════════════════════╝
+
+        // ╔══════════════════════ EigenLayer Slashing ═══════════════════════╗
+
+        #[codec(index = 46)]
+        #[allow(non_upper_case_globals)]
+        /// Maximum WAD value for EigenLayer slashing. Maps Perbill(100%) to this value.
+        /// 5e16 = 5% in WAD format (1e18 = 100%).
+        pub static MaxSlashWad: u128 = 50_000_000_000_000_000u128;
+
+        // ╚══════════════════════ EigenLayer Slashing ═══════════════════════╝
     }
 }
 

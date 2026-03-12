@@ -43,6 +43,7 @@ export const createPapiConnectors = (
 ): { client: PolkadotClient; typedApi: DataHavenApi } => {
   const url = wsUrl ?? "ws://127.0.0.1:9944";
   const client = createClient(withPolkadotSdkCompat(getWsProvider(url)));
+
   return { client, typedApi: client.getTypedApi(datahaven) };
 };
 

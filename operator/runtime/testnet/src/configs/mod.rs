@@ -1505,10 +1505,6 @@ pub struct TestnetRewardsConfig;
 impl datahaven_runtime_common::rewards_adapter::RewardsSubmissionConfig for TestnetRewardsConfig {
     type OutboundQueue = EthereumOutboundQueueV2;
 
-    fn rewards_duration() -> u32 {
-        runtime_params::dynamic_params::runtime_config::RewardsDuration::get()
-    }
-
     fn whave_token_address() -> H160 {
         runtime_params::dynamic_params::runtime_config::WHAVETokenAddress::get()
     }
@@ -1573,6 +1569,10 @@ parameter_types! {
 
     /// Maximum inflation percentage (caps at 100% even if blocks exceed expectations)
     pub const MaxInflationPercent: u32 = 100;
+
+    /// EigenLayer RewardsCoordinator GENESIS_REWARDS_TIMESTAMP.
+    /// This is the immutable genesis timestamp from the deployed RewardsCoordinator contract.
+    pub const RewardsWindowGenesisTimestamp: u32 = 1_712_188_800;
 }
 
 impl pallet_external_validators_rewards::Config for Runtime {
@@ -1596,6 +1596,9 @@ impl pallet_external_validators_rewards::Config for Runtime {
     type Hashing = Keccak256;
     type Currency = Balances;
     type RewardsEthereumSovereignAccount = ExternalValidatorRewardsAccount;
+    type RewardsWindowGenesisTimestamp = RewardsWindowGenesisTimestamp;
+    type RewardsWindowDuration = runtime_params::dynamic_params::runtime_config::RewardsDuration;
+    type UnixTime = Timestamp;
     type SendMessage = RewardsSendAdapter;
     type HandleInflation = ExternalRewardsInflationHandler;
     type GovernanceOrigin =
@@ -1788,13 +1791,14 @@ mod tests {
 
     #[test]
     fn test_rewards_send_adapter_with_zero_address() {
-        use pallet_external_validators_rewards::types::{EraRewardsUtils, SendMessage};
+        use pallet_external_validators_rewards::types::{RewardsPeriodUtils, SendMessage};
         use sp_io::TestExternalities;
 
         TestExternalities::default().execute_with(|| {
-            let rewards_utils = EraRewardsUtils {
-                era_index: 1,
-                era_start_timestamp: 1_700_000_000,
+            let rewards_utils = RewardsPeriodUtils {
+                period_index: 1,
+                period_start: 1_700_000_000,
+                duration: runtime_params::dynamic_params::runtime_config::RewardsDuration::get(),
                 total_points: 1000,
                 individual_points: vec![
                     (H160::from_low_u64_be(1), 500),
@@ -1812,7 +1816,7 @@ mod tests {
 
     #[test]
     fn test_rewards_send_adapter_with_valid_config() {
-        use pallet_external_validators_rewards::types::{EraRewardsUtils, SendMessage};
+        use pallet_external_validators_rewards::types::{RewardsPeriodUtils, SendMessage};
 
         TestExternalities::default().execute_with(|| {
             let service_manager = H160::from_low_u64_be(0x1234567890abcdef);
@@ -1844,9 +1848,10 @@ mod tests {
             snowbridge_pallet_system::NativeToForeignId::<Runtime>::insert(reanchored.clone(), token_id);
             snowbridge_pallet_system::ForeignToNativeId::<Runtime>::insert(token_id, reanchored);
 
-            let rewards_utils = EraRewardsUtils {
-                era_index: 1,
-                era_start_timestamp: 1_700_000_000,
+            let rewards_utils = RewardsPeriodUtils {
+                period_index: 1,
+                period_start: 1_700_000_000,
+                duration: runtime_params::dynamic_params::runtime_config::RewardsDuration::get(),
                 total_points: 1000,
                 individual_points: vec![(H160::from_low_u64_be(1), 600), (H160::from_low_u64_be(2), 400)],
                 inflation_amount: 1_000_000_000,

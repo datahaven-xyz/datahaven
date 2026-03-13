@@ -108,7 +108,7 @@ contract RewardsSubmitterTest is AVSDeployer {
         emit IDataHavenServiceManagerEvents.RewardsInitiatorSet(snowbridgeAgent, newInitiator);
         serviceManager.setRewardsInitiator(newInitiator);
 
-        assertEq(serviceManager.rewardsInitiator(), newInitiator);
+        assertEq(serviceManager.snowbridgeInitiator(), newInitiator);
     }
 
     function test_setRewardsInitiator_revertsIfNotOwner() public {

@@ -31,7 +31,7 @@ contract StorageLayoutTest is AVSDeployer {
 
         // 2. Record state before upgrade
         bool allowlistBefore = serviceManager.validatorsAllowlist(testValidator);
-        address rewardsInitiatorBefore = serviceManager.rewardsInitiator();
+        address snowbridgeInitiatorBefore = serviceManager.snowbridgeInitiator();
         address ownerBefore = serviceManager.owner();
         address gatewayBefore = serviceManager.snowbridgeGateway();
         address submitterBefore = serviceManager.validatorSetSubmitter();
@@ -51,9 +51,9 @@ contract StorageLayoutTest is AVSDeployer {
             "validatorsAllowlist should be preserved"
         );
         assertEq(
-            serviceManager.rewardsInitiator(),
-            rewardsInitiatorBefore,
-            "rewardsInitiator should be preserved"
+            serviceManager.snowbridgeInitiator(),
+            snowbridgeInitiatorBefore,
+            "snowbridgeInitiator should be preserved"
         );
         assertEq(serviceManager.owner(), ownerBefore, "owner should be preserved");
         assertEq(

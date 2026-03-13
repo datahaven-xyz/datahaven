@@ -189,7 +189,7 @@ interface IDataHavenServiceManager is
     /**
      * @notice Initializes the DataHaven Service Manager
      * @param initialOwner Address of the initial owner (AVS owner)
-     * @param rewardsInitiator Address authorized to initiate rewards
+     * @param snowbridgeInitiator Address authorized to initiate rewards
      * @param validatorsStrategiesAndMultipliers Array of strategy-multiplier pairs for the validators
      *        operator set. Each multiplier must be non-zero.
      * @param _snowbridgeGatewayAddress Address of the Snowbridge Gateway
@@ -198,7 +198,7 @@ interface IDataHavenServiceManager is
      */
     function initialize(
         address initialOwner,
-        address rewardsInitiator,
+        address snowbridgeInitiator,
         IRewardsCoordinatorTypes.StrategyAndMultiplier[] memory validatorsStrategiesAndMultipliers,
         address _snowbridgeGatewayAddress,
         address _validatorSetSubmitter,

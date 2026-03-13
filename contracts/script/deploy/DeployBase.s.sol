@@ -44,7 +44,7 @@ import {ValidatorsUtils} from "../../script/utils/ValidatorsUtils.sol";
 // Shared structs
 struct ServiceManagerInitParams {
     address avsOwner;
-    address rewardsInitiator;
+    address snowbridgeInitiator;
     IRewardsCoordinatorTypes.StrategyAndMultiplier[] validatorsStrategiesAndMultipliers;
     address gateway;
     address validatorSetSubmitter;
@@ -270,7 +270,7 @@ abstract contract DeployBase is Script, DeployParams, Accounts {
         // Create service manager initialisation parameters struct
         ServiceManagerInitParams memory initParams = ServiceManagerInitParams({
             avsOwner: avsConfig.avsOwner,
-            rewardsInitiator: agentAddress,
+            snowbridgeInitiator: agentAddress,
             validatorsStrategiesAndMultipliers: strategiesAndMultipliers,
             gateway: address(gateway),
             validatorSetSubmitter: avsConfig.validatorSetSubmitter,

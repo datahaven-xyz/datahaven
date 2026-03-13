@@ -2149,7 +2149,7 @@ export const dataHavenServiceManagerAbi = [
     type: 'function',
     inputs: [
       { name: 'initialOwner', internalType: 'address', type: 'address' },
-      { name: '_rewardsInitiator', internalType: 'address', type: 'address' },
+      { name: '_snowbridgeInitiator', internalType: 'address', type: 'address' },
       {
         name: 'validatorsStrategiesAndMultipliers',
         internalType: 'struct IRewardsCoordinatorTypes.StrategyAndMultiplier[]',
@@ -2228,7 +2228,7 @@ export const dataHavenServiceManagerAbi = [
   {
     type: 'function',
     inputs: [],
-    name: 'rewardsInitiator',
+    name: 'snowbridgeInitiator',
     outputs: [{ name: '', internalType: 'address', type: 'address' }],
     stateMutability: 'view',
   },
@@ -11022,12 +11022,12 @@ export const readDataHavenServiceManagerOwner =
   })
 
 /**
- * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"rewardsInitiator"`
+ * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"snowbridgeInitiator"`
  */
 export const readDataHavenServiceManagerRewardsInitiator =
   /*#__PURE__*/ createReadContract({
     abi: dataHavenServiceManagerAbi,
-    functionName: 'rewardsInitiator',
+    functionName: 'snowbridgeInitiator',
   })
 
 /**

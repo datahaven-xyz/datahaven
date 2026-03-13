@@ -109,7 +109,7 @@ contract DeployLive is DeployBase {
         DataHavenServiceManager implementation,
         ProxyAdmin, // Ignored for live deployment
         ServiceManagerInitParams memory params
-    ) internal override returns (DataHavenServiceManager) {
+    ) internal override returns (DataHavenServiceManager, ProxyAdmin) {
         // Live deployment creates its own ProxyAdmin for the service manager
         vm.broadcast(_deployerPrivateKey);
         ProxyAdmin proxyAdmin = new ProxyAdmin();
@@ -117,7 +117,7 @@ contract DeployLive is DeployBase {
 
         // Transfer ProxyAdmin ownership to AVS owner so upgrades can only be performed by AVS owner
         vm.broadcast(_deployerPrivateKey);
-        proxyAdmin.transferOwnership(_avsOwner);
+        proxyAdmin.transferOwnership(params.avsOwner);
         Logging.logStep("ProxyAdmin ownership transferred to AVS owner");
 
         vm.broadcast(_deployerPrivateKey);
@@ -134,7 +134,7 @@ contract DeployLive is DeployBase {
         TransparentUpgradeableProxy proxy =
             new TransparentUpgradeableProxy(address(implementation), address(proxyAdmin), initData);
 
-        return DataHavenServiceManager(address(proxy));
+        return (DataHavenServiceManager(address(proxy)), proxyAdmin);
     }
 
     function _outputDeployedAddresses(

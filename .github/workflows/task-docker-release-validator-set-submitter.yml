@@ -89,7 +89,7 @@ jobs:
         uses: ./.github/workflow-templates/publish-docker
         with:
           dockerfile: ./test/tools/validator-set-submitter/Dockerfile
-          context: .
+          context: ./test
           registry: docker.io
           registry_username: ${{ secrets.DOCKERHUB_USERNAME }}
           registry_password: ${{ secrets.DOCKERHUB_TOKEN }}

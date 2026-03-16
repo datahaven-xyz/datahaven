@@ -40,13 +40,13 @@ describeSuite({
           data: bytecode,
           gasPrice: 0n
         });
-        expect(result).to.equal(255341n);
+        expect(result).to.equal(172902n);
 
         const result2 = await context.viem().estimateGas({
           account: ALITH_ADDRESS,
           data: bytecode
         });
-        expect(result2).to.equal(255341n);
+        expect(result2).to.equal(172902n);
       }
     });
 

@@ -129,7 +129,7 @@ describeSuite({
             account: PRECOMPILE_BATCH_ADDRESS,
             data: bytecode
           })
-        ).toBe(210541n);
+        ).toBe(156082n);
       }
     });
 

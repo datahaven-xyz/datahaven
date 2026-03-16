@@ -197,7 +197,7 @@ contract DeployLocal is DeployBase {
         DataHavenServiceManager implementation,
         ProxyAdmin proxyAdmin,
         ServiceManagerInitParams memory params
-    ) internal override returns (DataHavenServiceManager) {
+    ) internal override returns (DataHavenServiceManager, ProxyAdmin) {
         // Prepare strategies for service manager (local deployment has deployed strategies)
         _prepareStrategiesForServiceManager(params);
 
@@ -215,7 +215,7 @@ contract DeployLocal is DeployBase {
         TransparentUpgradeableProxy proxy =
             new TransparentUpgradeableProxy(address(implementation), address(proxyAdmin), initData);
 
-        return DataHavenServiceManager(address(proxy));
+        return (DataHavenServiceManager(address(proxy)), proxyAdmin);
     }
 
     function _outputDeployedAddresses(

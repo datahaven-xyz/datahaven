@@ -67,7 +67,8 @@ contract AVSDeployer is Test {
     address public proxyAdminOwner = address(uint160(uint256(keccak256("proxyAdminOwner"))));
     address public regularDeployer = address(uint160(uint256(keccak256("regularDeployer"))));
     address public avsOwner = address(uint160(uint256(keccak256("avsOwner"))));
-    address public snowbridgeInitiator = address(uint160(uint256(keccak256("snowbridgeInitiator"))));
+    address public snowbridgeInitiator =
+        address(uint160(uint256(keccak256("snowbridgeInitiator"))));
     address public pauser = address(uint160(uint256(keccak256("pauser"))));
     address public unpauser = address(uint160(uint256(keccak256("unpauser"))));
     address public rewardsUpdater = address(uint160(uint256(keccak256("rewardsUpdater"))));

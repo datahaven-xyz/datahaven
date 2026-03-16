@@ -1,0 +1,105 @@
+name: Docker Build & Publish Validator Set Submitter (Release)
+
+on:
+  workflow_dispatch:
+    inputs:
+      label:
+        description: "Label for the Docker image"
+        required: true
+        type: string
+      branch:
+        description: "Branch to checkout and build"
+        required: true
+        type: string
+  workflow_call:
+    secrets:
+      DOCKERHUB_USERNAME:
+        description: "Docker Hub username"
+        required: true
+      DOCKERHUB_TOKEN:
+        description: "Docker Hub access token"
+        required: true
+    outputs:
+      image-tag:
+        description: "The tag portion of the docker image (without registry)"
+        value: "${{ jobs.build-test-push.outputs.image-tag }}"
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: docker-build-release-validator-set-submitter-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test-push:
+    runs-on: ubuntu-latest
+    # Require approval before publishing to Docker Hub
+    environment: production
+    outputs:
+      image-tag: ${{ steps.extract_tag.outputs.image-tag }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch || github.ref }}
+
+      - uses: ./.github/workflows/actions/cleanup-runner
+
+      # --- Docker metadata ---
+      - name: Docker meta (dispatch)
+        if: github.event_name == 'workflow_dispatch'
+        id: meta-dispatch
+        uses: docker/metadata-action@v5
+        with:
+          images: datahavenxyz/validator-set-submitter
+          flavor: |
+            latest=false
+          tags: |
+            type=raw,value=${{ github.event.inputs.label }}
+
+      - name: Docker meta (CI - main push)
+        if: github.event_name != 'workflow_dispatch'
+        id: meta-ci
+        uses: docker/metadata-action@v5
+        with:
+          images: datahavenxyz/validator-set-submitter
+          flavor: |
+            latest=true
+          tags: |
+            type=raw,value=latest
+            type=sha,format=short,prefix=sha-
+
+      - name: Extract tag for job output
+        id: extract_tag
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            FULL_TAG=$(echo '${{ steps.meta-dispatch.outputs.json }}' | jq -r '.tags[-1]')
+          else
+            FULL_TAG=$(echo '${{ steps.meta-ci.outputs.json }}' | jq -r '.tags[-1]')
+          fi
+          TAG_ONLY=$(echo "$FULL_TAG" | sed 's|.*:||')
+          echo "image-tag=$TAG_ONLY" >> $GITHUB_OUTPUT
+          echo "image-name=datahavenxyz/validator-set-submitter:$TAG_ONLY" >> $GITHUB_OUTPUT
+
+      # --- Build and push Docker image ---
+      - name: Build and push Docker image
+        uses: ./.github/workflow-templates/publish-docker
+        with:
+          dockerfile: ./test/tools/validator-set-submitter/Dockerfile
+          context: ./test
+          registry: docker.io
+          registry_username: ${{ secrets.DOCKERHUB_USERNAME }}
+          registry_password: ${{ secrets.DOCKERHUB_TOKEN }}
+          image_tags: ${{ steps.meta-dispatch.outputs.tags || steps.meta-ci.outputs.tags }}
+          image_title: "Validator Set Submitter - Release"
+          image_description: "Release build of DataHaven validator set submitter"
+          cache_scope: validator-set-submitter-release-build
+
+      # --- Smoke tests ---
+      - name: Pull and test submitter --help
+        run: |
+          docker pull ${{ steps.extract_tag.outputs.image-name }}
+          docker run --rm ${{ steps.extract_tag.outputs.image-name }} --help

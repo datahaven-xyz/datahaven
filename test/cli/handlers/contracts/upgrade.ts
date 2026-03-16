@@ -4,12 +4,13 @@ import path from "node:path";
 import { logger, printDivider } from "utils";
 import { type Deployments, parseDeploymentsFile } from "utils/contracts";
 import { encodeFunctionData } from "viem";
-import { CHAIN_CONFIGS } from "../../../configs/contracts/config";
+import { buildNetworkId, CHAIN_CONFIGS } from "../../../configs/contracts/config";
 import { buildContracts } from "../../../scripts/deploy-contracts";
 import { verifyContracts } from "./verify";
 
 interface ContractsUpgradeOptions {
   chain: string;
+  environment?: string;
   rpcUrl?: string;
   privateKeyFile?: string;
   verify?: boolean;
@@ -114,10 +115,14 @@ const executeCommand = async (
  */
 export const contractsUpgrade = async (options: ContractsUpgradeOptions) => {
   const isDryRun = !options.execute;
+  const networkId = buildNetworkId(options.chain, options.environment);
 
   try {
     logger.info("🔄 Starting contract upgrade...");
     logger.info(`📡 Using chain: ${options.chain}`);
+    if (options.environment) {
+      logger.info(`📡 Using environment: ${options.environment}`);
+    }
     if (isDryRun) {
       logger.info(
         "ℹ️  Dry-run mode: the proxy upgrade transaction will NOT be broadcast. Calldata will be printed for manual multisig execution."
@@ -149,19 +154,19 @@ export const contractsUpgrade = async (options: ContractsUpgradeOptions) => {
 
     // Deploy new implementation contracts (signed by deployer — any funded account)
     const serviceManagerImplAddress = await deployImplementationContracts(
-      options.chain,
+      networkId,
       rpcUrl,
       deployerKey
     );
 
     if (isDryRun) {
       // Print the calldata for the proxy upgrade so the multisig team can execute it
-      await printProxyUpgradeCalldata(options.chain, serviceManagerImplAddress, targetVersion);
+      await printProxyUpgradeCalldata(networkId, serviceManagerImplAddress, targetVersion);
     } else {
       // Update proxy contracts to point to new implementations AND update version in one transaction.
       // Must be signed by the AVS owner, who owns both the ProxyAdmin and the ServiceManager.
       await updateProxyContracts(
-        options.chain,
+        networkId,
         rpcUrl,
         avsOwnerKey as string,
         serviceManagerImplAddress,
@@ -173,6 +178,7 @@ export const contractsUpgrade = async (options: ContractsUpgradeOptions) => {
         logger.info("🔍 Verifying upgraded contracts...");
         await verifyContracts({
           chain: options.chain,
+          environment: options.environment,
           rpcUrl,
           skipVerification: false
         });
@@ -195,7 +201,7 @@ export const contractsUpgrade = async (options: ContractsUpgradeOptions) => {
  * Deploys only the implementation contracts
  */
 const deployImplementationContracts = async (
-  chain: string,
+  networkId: string,
   rpcUrl: string,
   privateKey: string
 ): Promise<string> => {
@@ -203,15 +209,15 @@ const deployImplementationContracts = async (
 
   // Deploy new ServiceManager implementation
   const serviceManagerImplAddress = await deployServiceManagerImplementation(
-    chain,
+    networkId,
     rpcUrl,
     privateKey
   );
   logger.success(`ServiceManager Implementation deployed: ${serviceManagerImplAddress}`);
 
   // Persist the new implementation address so it becomes the source-of-truth for subsequent steps.
-  const deploymentPath = `../contracts/deployments/${chain}.json`;
-  const currentDeployments = await parseDeploymentsFile(chain);
+  const deploymentPath = `../contracts/deployments/${networkId}.json`;
+  const currentDeployments = await parseDeploymentsFile(networkId);
   const updatedDeployments = {
     ...currentDeployments,
     ServiceManagerImplementation: serviceManagerImplAddress as `0x${string}`
@@ -226,13 +232,13 @@ const deployImplementationContracts = async (
  * Deploys new ServiceManager implementation contract
  */
 const deployServiceManagerImplementation = async (
-  chain: string,
+  networkId: string,
   rpcUrl: string,
   privateKey: string
 ): Promise<string> => {
   logger.info("📦 Deploying ServiceManager implementation...");
 
-  const actualDeployments = await parseDeploymentsFile(chain);
+  const actualDeployments = await parseDeploymentsFile(networkId);
 
   // Note: Private key is passed via PRIVATE_KEY environment variable (not command-line)
   // to prevent it from appearing in system process lists (security best practice)
@@ -315,11 +321,11 @@ const PROXY_ADMIN_ABI = [
  * The call combines the proxy upgrade and the version update in one atomic transaction.
  */
 const printProxyUpgradeCalldata = async (
-  chain: string,
+  networkId: string,
   serviceManagerImplAddress: string,
   version: string
 ) => {
-  const deployments = await parseDeploymentsFile(chain);
+  const deployments = await parseDeploymentsFile(networkId);
 
   const proxyAdmin = deployments.ProxyAdmin ?? process.env.PROXY_ADMIN;
   if (!proxyAdmin) {
@@ -380,7 +386,7 @@ const printProxyUpgradeCalldata = async (
  * Updates proxy contracts to point to new implementations and sets version
  */
 const updateProxyContracts = async (
-  chain: string,
+  networkId: string,
   rpcUrl: string,
   avsOwnerKey: string,
   serviceManagerImplAddress: string,
@@ -388,7 +394,7 @@ const updateProxyContracts = async (
 ) => {
   logger.info("🔄 Updating proxy contracts and version...");
 
-  const deployments = await parseDeploymentsFile(chain);
+  const deployments = await parseDeploymentsFile(networkId);
 
   // Update ServiceManager proxy to point to new implementation and update version in one transaction
   await updateServiceManagerProxyWithVersion(
@@ -438,7 +444,11 @@ const updateServiceManagerProxyWithVersion = async (
   // about using the default sender when vm.broadcast is called with a key loaded
   // from an environment variable rather than --private-key.
   const { privateKeyToAccount } = await import("viem/accounts");
-  const avsOwnerAddress = privateKeyToAccount(avsOwnerKey as `0x${string}`).address;
+  const normalizedAvsKey = (
+    avsOwnerKey.startsWith("0x") ? avsOwnerKey : `0x${avsOwnerKey}`
+  ) as `0x${string}`;
+  const avsOwnerAddress = privateKeyToAccount(normalizedAvsKey).address;
+  logger.info(`🔑 Proxy upgrade will be signed by AVS owner: ${avsOwnerAddress}`);
 
   const updateArgs = [
     "script",
@@ -459,8 +469,22 @@ const updateServiceManagerProxyWithVersion = async (
     logger.success(`ServiceManager proxy updated and version set to ${version}`);
     logger.debug(result);
   } catch (error) {
-    logger.error(`❌ Failed to update ServiceManager proxy: ${error}`);
-    throw error;
+    const errorMessage = error instanceof Error ? error.message : String(error);
+
+    // Forge may fail to fetch the transaction receipt from the RPC even though the
+    // transaction was successfully broadcast and confirmed on-chain. Detect this
+    // specific failure and downgrade it to a warning instead of a hard error.
+    if (errorMessage.includes("Failure on receiving a receipt for")) {
+      const txHashMatch = errorMessage.match(/receipt for (0x[a-fA-F0-9]{64})/);
+      const txHash = txHashMatch ? txHashMatch[1] : "unknown";
+      logger.warn(
+        `⚠️  Forge could not fetch the transaction receipt (tx: ${txHash}), but the transaction was likely broadcast successfully. ` +
+          "Verify the transaction status on a block explorer before proceeding."
+      );
+    } else {
+      logger.error(`❌ Failed to update ServiceManager proxy: ${error}`);
+      throw error;
+    }
   }
 };
 

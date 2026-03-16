@@ -109,7 +109,20 @@ export const verifyContracts = async (options: ContractsVerifyOptions) => {
       contractPath: "lib/snowbridge/contracts/src/AgentExecutor.sol",
       constructorArgs: [],
       constructorArgTypes: []
-    }
+    },
+    ...(deployments.ProxyAdmin
+      ? [
+          {
+            name: "ProxyAdmin",
+            address: deployments.ProxyAdmin,
+            artifactName: "ProxyAdmin",
+            contractPath:
+              "lib/eigenlayer-contracts/lib/openzeppelin-contracts-v4.9.0/contracts/proxy/transparent/ProxyAdmin.sol",
+            constructorArgs: [],
+            constructorArgTypes: []
+          }
+        ]
+      : [])
   ];
 
   if (!gatewayImplAddress) {

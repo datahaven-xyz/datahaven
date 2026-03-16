@@ -131,7 +131,8 @@ abstract contract DeployBase is Script, DeployParams, Accounts {
         // Deploy DataHaven contracts (same for both modes)
         (
             DataHavenServiceManager serviceManager,
-            DataHavenServiceManager serviceManagerImplementation
+            DataHavenServiceManager serviceManagerImplementation,
+            ProxyAdmin actualProxyAdmin
         ) = _deployDataHavenContracts(avsConfig, proxyAdmin, gateway, agentAddress);
 
         Logging.logFooter();
@@ -151,7 +152,7 @@ abstract contract DeployBase is Script, DeployParams, Accounts {
             serviceManager,
             serviceManagerImplementation,
             agentAddress,
-            proxyAdmin
+            actualProxyAdmin
         );
 
         _outputAgentInfo(agentAddress, snowbridgeConfig.messageOrigin);
@@ -242,7 +243,7 @@ abstract contract DeployBase is Script, DeployParams, Accounts {
         ProxyAdmin proxyAdmin,
         IGatewayV2 gateway,
         address agentAddress
-    ) internal returns (DataHavenServiceManager, DataHavenServiceManager) {
+    ) internal returns (DataHavenServiceManager, DataHavenServiceManager, ProxyAdmin) {
         Logging.logHeader("DATAHAVEN CUSTOM CONTRACTS DEPLOYMENT");
 
         // Deploy the Service Manager
@@ -278,7 +279,7 @@ abstract contract DeployBase is Script, DeployParams, Accounts {
         });
 
         // Create the service manager proxy (different logic for local vs testnet)
-        DataHavenServiceManager serviceManager =
+        (DataHavenServiceManager serviceManager, ProxyAdmin actualProxyAdmin) =
             _createServiceManagerProxy(serviceManagerImplementation, proxyAdmin, initParams);
         Logging.logContractDeployed("ServiceManager Proxy", address(serviceManager));
 
@@ -293,17 +294,19 @@ abstract contract DeployBase is Script, DeployParams, Accounts {
             Logging.logInfo("TX EXECUTION DISABLED: call updateAVSMetadataURI via multisig");
         }
 
-        return (serviceManager, serviceManagerImplementation);
+        return (serviceManager, serviceManagerImplementation, actualProxyAdmin);
     }
 
     /**
      * @notice Create service manager proxy - implementation varies by deployment type
+     * @return serviceManager The proxied ServiceManager instance
+     * @return actualProxyAdmin The ProxyAdmin that controls the proxy (may differ from the input for live deployments)
      */
     function _createServiceManagerProxy(
         DataHavenServiceManager implementation,
         ProxyAdmin proxyAdmin,
         ServiceManagerInitParams memory params
-    ) internal virtual returns (DataHavenServiceManager);
+    ) internal virtual returns (DataHavenServiceManager serviceManager, ProxyAdmin actualProxyAdmin);
 
     /**
      * @notice Output deployed addresses with mode-specific logic

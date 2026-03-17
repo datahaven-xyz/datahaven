@@ -2149,7 +2149,11 @@ export const dataHavenServiceManagerAbi = [
     type: 'function',
     inputs: [
       { name: 'initialOwner', internalType: 'address', type: 'address' },
-      { name: '_snowbridgeInitiator', internalType: 'address', type: 'address' },
+      {
+        name: '_snowbridgeInitiator',
+        internalType: 'address',
+        type: 'address',
+      },
       {
         name: 'validatorsStrategiesAndMultipliers',
         internalType: 'struct IRewardsCoordinatorTypes.StrategyAndMultiplier[]',
@@ -2224,13 +2228,6 @@ export const dataHavenServiceManagerAbi = [
     name: 'renounceOwnership',
     outputs: [],
     stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'snowbridgeInitiator',
-    outputs: [{ name: '', internalType: 'address', type: 'address' }],
-    stateMutability: 'view',
   },
   {
     type: 'function',
@@ -2322,6 +2319,13 @@ export const dataHavenServiceManagerAbi = [
     type: 'function',
     inputs: [],
     name: 'snowbridgeGateway',
+    outputs: [{ name: '', internalType: 'address', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'snowbridgeInitiator',
     outputs: [{ name: '', internalType: 'address', type: 'address' }],
     stateMutability: 'view',
   },
@@ -11022,21 +11026,21 @@ export const readDataHavenServiceManagerOwner =
   })
 
 /**
- * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"snowbridgeInitiator"`
- */
-export const readDataHavenServiceManagerRewardsInitiator =
-  /*#__PURE__*/ createReadContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'snowbridgeInitiator',
-  })
-
-/**
  * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"snowbridgeGateway"`
  */
 export const readDataHavenServiceManagerSnowbridgeGateway =
   /*#__PURE__*/ createReadContract({
     abi: dataHavenServiceManagerAbi,
     functionName: 'snowbridgeGateway',
+  })
+
+/**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"snowbridgeInitiator"`
+ */
+export const readDataHavenServiceManagerSnowbridgeInitiator =
+  /*#__PURE__*/ createReadContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: 'snowbridgeInitiator',
   })
 
 /**

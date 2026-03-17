@@ -2243,15 +2243,6 @@ export const dataHavenServiceManagerAbi = [
   {
     type: 'function',
     inputs: [
-      { name: 'newRewardsInitiator', internalType: 'address', type: 'address' },
-    ],
-    name: 'setSnowbridgeInitiator',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
       {
         name: '_newSnowbridgeGateway',
         internalType: 'address',
@@ -2259,6 +2250,19 @@ export const dataHavenServiceManagerAbi = [
       },
     ],
     name: 'setSnowbridgeGateway',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      {
+        name: 'newSnowbridgeInitiator',
+        internalType: 'address',
+        type: 'address',
+      },
+    ],
+    name: 'setSnowbridgeInitiator',
     outputs: [],
     stateMutability: 'nonpayable',
   },
@@ -2523,25 +2527,6 @@ export const dataHavenServiceManagerAbi = [
     anonymous: false,
     inputs: [
       {
-        name: 'oldInitiator',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-      {
-        name: 'newInitiator',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-    ],
-    name: 'SnowbridgeInitiatorSet',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
         name: 'totalAmount',
         internalType: 'uint256',
         type: 'uint256',
@@ -2569,6 +2554,25 @@ export const dataHavenServiceManagerAbi = [
       },
     ],
     name: 'SnowbridgeGatewaySet',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'oldInitiator',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'newInitiator',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+    ],
+    name: 'SnowbridgeInitiatorSet',
   },
   {
     type: 'event',
@@ -11204,21 +11208,21 @@ export const writeDataHavenServiceManagerSendNewValidatorSetForEra =
   })
 
 /**
- * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"setSnowbridgeInitiator"`
- */
-export const writeDataHavenServiceManagerSetRewardsInitiator =
-  /*#__PURE__*/ createWriteContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'setSnowbridgeInitiator',
-  })
-
-/**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"setSnowbridgeGateway"`
  */
 export const writeDataHavenServiceManagerSetSnowbridgeGateway =
   /*#__PURE__*/ createWriteContract({
     abi: dataHavenServiceManagerAbi,
     functionName: 'setSnowbridgeGateway',
+  })
+
+/**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"setSnowbridgeInitiator"`
+ */
+export const writeDataHavenServiceManagerSetSnowbridgeInitiator =
+  /*#__PURE__*/ createWriteContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: 'setSnowbridgeInitiator',
   })
 
 /**
@@ -11390,21 +11394,21 @@ export const simulateDataHavenServiceManagerSendNewValidatorSetForEra =
   })
 
 /**
- * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"setSnowbridgeInitiator"`
- */
-export const simulateDataHavenServiceManagerSetRewardsInitiator =
-  /*#__PURE__*/ createSimulateContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'setSnowbridgeInitiator',
-  })
-
-/**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"setSnowbridgeGateway"`
  */
 export const simulateDataHavenServiceManagerSetSnowbridgeGateway =
   /*#__PURE__*/ createSimulateContract({
     abi: dataHavenServiceManagerAbi,
     functionName: 'setSnowbridgeGateway',
+  })
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"setSnowbridgeInitiator"`
+ */
+export const simulateDataHavenServiceManagerSetSnowbridgeInitiator =
+  /*#__PURE__*/ createSimulateContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: 'setSnowbridgeInitiator',
   })
 
 /**
@@ -11522,15 +11526,6 @@ export const watchDataHavenServiceManagerOwnershipTransferredEvent =
   })
 
 /**
- * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `eventName` set to `"SnowbridgeInitiatorSet"`
- */
-export const watchDataHavenServiceManagerSnowbridgeInitiatorSetEvent =
-  /*#__PURE__*/ createWatchContractEvent({
-    abi: dataHavenServiceManagerAbi,
-    eventName: 'SnowbridgeInitiatorSet',
-  })
-
-/**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `eventName` set to `"RewardsSubmitted"`
  */
 export const watchDataHavenServiceManagerRewardsSubmittedEvent =
@@ -11555,6 +11550,15 @@ export const watchDataHavenServiceManagerSnowbridgeGatewaySetEvent =
   /*#__PURE__*/ createWatchContractEvent({
     abi: dataHavenServiceManagerAbi,
     eventName: 'SnowbridgeGatewaySet',
+  })
+
+/**
+ * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `eventName` set to `"SnowbridgeInitiatorSet"`
+ */
+export const watchDataHavenServiceManagerSnowbridgeInitiatorSetEvent =
+  /*#__PURE__*/ createWatchContractEvent({
+    abi: dataHavenServiceManagerAbi,
+    eventName: 'SnowbridgeInitiatorSet',
   })
 
 /**

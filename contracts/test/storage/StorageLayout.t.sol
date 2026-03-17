@@ -20,12 +20,12 @@ contract StorageLayoutTest is AVSDeployer {
     function test_upgradePreservesState() public {
         // 1. Populate state
         address testValidator = address(0x1234);
-        address newRewardsInitiator = address(0x9999);
+        address newSnowbridgeInitiator = address(0x9999);
         address testSubmitter = address(0x5678);
 
         vm.startPrank(avsOwner);
         serviceManager.addValidatorToAllowlist(testValidator);
-        serviceManager.setRewardsInitiator(newRewardsInitiator);
+        serviceManager.setSnowbridgeInitiator(newSnowbridgeInitiator);
         serviceManager.setValidatorSetSubmitter(testSubmitter);
         vm.stopPrank();
 

@@ -2245,7 +2245,7 @@ export const dataHavenServiceManagerAbi = [
     inputs: [
       { name: 'newRewardsInitiator', internalType: 'address', type: 'address' },
     ],
-    name: 'setRewardsInitiator',
+    name: 'setSnowbridgeInitiator',
     outputs: [],
     stateMutability: 'nonpayable',
   },
@@ -2535,7 +2535,7 @@ export const dataHavenServiceManagerAbi = [
         indexed: true,
       },
     ],
-    name: 'RewardsInitiatorSet',
+    name: 'SnowbridgeInitiatorSet',
   },
   {
     type: 'event',
@@ -11204,12 +11204,12 @@ export const writeDataHavenServiceManagerSendNewValidatorSetForEra =
   })
 
 /**
- * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"setRewardsInitiator"`
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"setSnowbridgeInitiator"`
  */
 export const writeDataHavenServiceManagerSetRewardsInitiator =
   /*#__PURE__*/ createWriteContract({
     abi: dataHavenServiceManagerAbi,
-    functionName: 'setRewardsInitiator',
+    functionName: 'setSnowbridgeInitiator',
   })
 
 /**
@@ -11390,12 +11390,12 @@ export const simulateDataHavenServiceManagerSendNewValidatorSetForEra =
   })
 
 /**
- * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"setRewardsInitiator"`
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"setSnowbridgeInitiator"`
  */
 export const simulateDataHavenServiceManagerSetRewardsInitiator =
   /*#__PURE__*/ createSimulateContract({
     abi: dataHavenServiceManagerAbi,
-    functionName: 'setRewardsInitiator',
+    functionName: 'setSnowbridgeInitiator',
   })
 
 /**
@@ -11522,12 +11522,12 @@ export const watchDataHavenServiceManagerOwnershipTransferredEvent =
   })
 
 /**
- * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `eventName` set to `"RewardsInitiatorSet"`
+ * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `eventName` set to `"SnowbridgeInitiatorSet"`
  */
-export const watchDataHavenServiceManagerRewardsInitiatorSetEvent =
+export const watchDataHavenServiceManagerSnowbridgeInitiatorSetEvent =
   /*#__PURE__*/ createWatchContractEvent({
     abi: dataHavenServiceManagerAbi,
-    eventName: 'RewardsInitiatorSet',
+    eventName: 'SnowbridgeInitiatorSet',
   })
 
 /**

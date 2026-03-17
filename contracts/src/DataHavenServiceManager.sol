@@ -180,7 +180,7 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         __Ownable_init();
         _transferOwnership(initialOwner);
         snowbridgeInitiator = _snowbridgeInitiator;
-        emit RewardsInitiatorSet(address(0), _snowbridgeInitiator);
+        emit SnowbridgeInitiatorSet(address(0), _snowbridgeInitiator);
 
         // Set version from parameter (allows flexibility per deployment environment)
         _version = initialVersion;
@@ -567,13 +567,13 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
     }
 
     /// @inheritdoc IDataHavenServiceManager
-    function setRewardsInitiator(
-        address newRewardsInitiator
+    function setSnowbridgeInitiator(
+        address newSnowbridgeInitiator
     ) external override onlyOwner {
-        require(newRewardsInitiator != address(0), ZeroAddress());
+        require(newSnowbridgeInitiator != address(0), ZeroAddress());
         address oldInitiator = snowbridgeInitiator;
-        snowbridgeInitiator = newRewardsInitiator;
-        emit RewardsInitiatorSet(oldInitiator, newRewardsInitiator);
+        snowbridgeInitiator = newSnowbridgeInitiator;
+        emit SnowbridgeInitiatorSet(oldInitiator, newSnowbridgeInitiator);
     }
 
     // ============ AVS Management Functions ============

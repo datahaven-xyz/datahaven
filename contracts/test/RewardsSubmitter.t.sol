@@ -98,6 +98,12 @@ contract RewardsSubmitterTest is AVSDeployer {
         });
     }
 
+    function _eraIndexForStart(
+        uint32 startTimestamp
+    ) internal pure returns (uint32) {
+        return (startTimestamp - GENESIS_REWARDS_TIMESTAMP) / TEST_CALCULATION_INTERVAL;
+    }
+
     // ============ Configuration Tests ============
 
     function test_setRewardsInitiator() public {
@@ -126,7 +132,7 @@ contract RewardsSubmitterTest is AVSDeployer {
 
         vm.prank(operator1);
         vm.expectRevert(abi.encodeWithSignature("OnlyRewardsInitiator()"));
-        serviceManager.submitRewards(submission);
+        serviceManager.submitRewards(_eraIndexForStart(submission.startTimestamp), submission);
     }
 
     // ============ Success Tests ============
@@ -143,7 +149,7 @@ contract RewardsSubmitterTest is AVSDeployer {
         vm.prank(snowbridgeAgent);
         vm.expectEmit(false, false, false, true);
         emit IDataHavenServiceManagerEvents.RewardsSubmitted(rewardAmount, 1);
-        serviceManager.submitRewards(submission);
+        serviceManager.submitRewards(_eraIndexForStart(submission.startTimestamp), submission);
     }
 
     function test_submitRewards_multipleOperators() public {
@@ -190,7 +196,7 @@ contract RewardsSubmitterTest is AVSDeployer {
         vm.prank(snowbridgeAgent);
         vm.expectEmit(false, false, false, true);
         emit IDataHavenServiceManagerEvents.RewardsSubmitted(totalAmount, 2);
-        serviceManager.submitRewards(submission);
+        serviceManager.submitRewards(_eraIndexForStart(submission.startTimestamp), submission);
     }
 
     function test_submitRewards_multipleSubmissions() public {
@@ -203,7 +209,7 @@ contract RewardsSubmitterTest is AVSDeployer {
         submission0.startTimestamp = GENESIS_REWARDS_TIMESTAMP;
         vm.warp(submission0.startTimestamp + duration + 1);
         vm.prank(snowbridgeAgent);
-        serviceManager.submitRewards(submission0);
+        serviceManager.submitRewards(_eraIndexForStart(submission0.startTimestamp), submission0);
 
         // Submit for period 1
         IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission memory submission1 =
@@ -211,7 +217,7 @@ contract RewardsSubmitterTest is AVSDeployer {
         submission1.startTimestamp = GENESIS_REWARDS_TIMESTAMP + duration;
         vm.warp(submission1.startTimestamp + duration + 1);
         vm.prank(snowbridgeAgent);
-        serviceManager.submitRewards(submission1);
+        serviceManager.submitRewards(_eraIndexForStart(submission1.startTimestamp), submission1);
 
         // Submit for period 2
         IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission memory submission2 =
@@ -219,7 +225,32 @@ contract RewardsSubmitterTest is AVSDeployer {
         submission2.startTimestamp = GENESIS_REWARDS_TIMESTAMP + 2 * duration;
         vm.warp(submission2.startTimestamp + duration + 1);
         vm.prank(snowbridgeAgent);
-        serviceManager.submitRewards(submission2);
+        serviceManager.submitRewards(_eraIndexForStart(submission2.startTimestamp), submission2);
+    }
+
+    function test_submitRewards_revertsIfEraAlreadySubmittedForToken() public {
+        _registerOperator(operator1, operator1);
+        IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission memory submission =
+            _buildSubmission(1000e18, operator1);
+        uint32 eraIndex = _eraIndexForStart(submission.startTimestamp);
+
+        vm.warp(submission.startTimestamp + submission.duration + 1);
+
+        vm.prank(snowbridgeAgent);
+        serviceManager.submitRewards(eraIndex, submission);
+
+        assertTrue(
+            serviceManager.rewardsSubmittedForEra(eraIndex, address(rewardToken)),
+            "replay guard should be set for the submitted era and token"
+        );
+
+        vm.prank(snowbridgeAgent);
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "RewardsAlreadySubmittedForEra(uint32,address)", eraIndex, address(rewardToken)
+            )
+        );
+        serviceManager.submitRewards(eraIndex, submission);
     }
 
     function test_submitRewards_withCustomDescription() public {
@@ -249,11 +280,14 @@ contract RewardsSubmitterTest is AVSDeployer {
         vm.warp(submission.startTimestamp + submission.duration + 1);
 
         vm.prank(snowbridgeAgent);
-        serviceManager.submitRewards(submission);
+        serviceManager.submitRewards(_eraIndexForStart(submission.startTimestamp), submission);
     }
 
     function test_submitRewards_withDifferentToken() public {
         _registerOperator(operator1, operator1);
+        IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission memory firstSubmission =
+            _buildSubmission(1000e18, operator1);
+
         // Deploy a different token
         ERC20FixedSupply otherToken =
             new ERC20FixedSupply("Other", "OTHER", 1000000e18, address(this));
@@ -282,11 +316,24 @@ contract RewardsSubmitterTest is AVSDeployer {
             });
 
         vm.warp(submission.startTimestamp + submission.duration + 1);
+        uint32 eraIndex = _eraIndexForStart(submission.startTimestamp);
+
+        vm.prank(snowbridgeAgent);
+        serviceManager.submitRewards(eraIndex, firstSubmission);
 
         vm.prank(snowbridgeAgent);
         vm.expectEmit(false, false, false, true);
         emit IDataHavenServiceManagerEvents.RewardsSubmitted(500e18, 1);
-        serviceManager.submitRewards(submission);
+        serviceManager.submitRewards(eraIndex, submission);
+
+        assertTrue(
+            serviceManager.rewardsSubmittedForEra(eraIndex, address(rewardToken)),
+            "original token should be marked as submitted for the era"
+        );
+        assertTrue(
+            serviceManager.rewardsSubmittedForEra(eraIndex, address(otherToken)),
+            "different token should be independently tracked for the same era"
+        );
     }
 
     function test_submitRewards_translatesSolochainOperatorToEthOperator() public {
@@ -345,7 +392,7 @@ contract RewardsSubmitterTest is AVSDeployer {
             "submission should use solochain operator"
         );
         vm.prank(snowbridgeAgent);
-        serviceManager.submitRewards(submission);
+        serviceManager.submitRewards(_eraIndexForStart(submission.startTimestamp), submission);
     }
 
     function test_submitRewards_skipsUnknownSolochainAddress() public {
@@ -357,7 +404,7 @@ contract RewardsSubmitterTest is AVSDeployer {
         vm.prank(snowbridgeAgent);
         vm.expectEmit();
         emit IDataHavenServiceManagerEvents.RewardsSubmitted(0, 0);
-        serviceManager.submitRewards(submission);
+        serviceManager.submitRewards(_eraIndexForStart(submission.startTimestamp), submission);
     }
 
     function test_submitRewards_sortsTranslatedOperatorsByAddress() public {
@@ -437,6 +484,6 @@ contract RewardsSubmitterTest is AVSDeployer {
         vm.prank(snowbridgeAgent);
         vm.expectEmit(false, false, false, true);
         emit IDataHavenServiceManagerEvents.RewardsSubmitted(totalAmount, 2);
-        serviceManager.submitRewards(submission);
+        serviceManager.submitRewards(_eraIndexForStart(submission.startTimestamp), submission);
     }
 }

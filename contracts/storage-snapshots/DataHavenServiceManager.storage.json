@@ -105,12 +105,20 @@
       "type": "t_string_storage"
     },
     {
-      "astId": 23922,
+      "astId": 23924,
+      "contract": "src/DataHavenServiceManager.sol:DataHavenServiceManager",
+      "label": "rewardsSubmittedForEra",
+      "offset": 0,
+      "slot": "109",
+      "type": "t_mapping(t_uint32,t_mapping(t_address,t_bool))"
+    },
+    {
+      "astId": 23929,
       "contract": "src/DataHavenServiceManager.sol:DataHavenServiceManager",
       "label": "__GAP",
       "offset": 0,
-      "slot": "109",
-      "type": "t_array(t_uint256)42_storage"
+      "slot": "110",
+      "type": "t_array(t_uint256)41_storage"
     }
   ],
   "types": {
@@ -119,10 +127,10 @@
       "label": "address",
       "numberOfBytes": "20"
     },
-    "t_array(t_uint256)42_storage": {
+    "t_array(t_uint256)41_storage": {
       "encoding": "inplace",
-      "label": "uint256[42]",
-      "numberOfBytes": "1344",
+      "label": "uint256[41]",
+      "numberOfBytes": "1312",
       "base": "t_uint256"
     },
     "t_array(t_uint256)49_storage": {
@@ -173,6 +181,13 @@
       "numberOfBytes": "32",
       "value": "t_uint96"
     },
+    "t_mapping(t_uint32,t_mapping(t_address,t_bool))": {
+      "encoding": "mapping",
+      "key": "t_uint32",
+      "label": "mapping(uint32 => mapping(address => bool))",
+      "numberOfBytes": "32",
+      "value": "t_mapping(t_address,t_bool)"
+    },
     "t_string_storage": {
       "encoding": "bytes",
       "label": "string",
@@ -182,6 +197,11 @@
       "encoding": "inplace",
       "label": "uint256",
       "numberOfBytes": "32"
+    },
+    "t_uint32": {
+      "encoding": "inplace",
+      "label": "uint32",
+      "numberOfBytes": "4"
     },
     "t_uint8": {
       "encoding": "inplace",

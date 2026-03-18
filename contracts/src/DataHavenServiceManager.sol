@@ -83,9 +83,12 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
     /// `contracts/deployments/<chain>.json`.
     string private _version;
 
+    /// @notice Tracks whether rewards have already been submitted for a source-chain era and token.
+    mapping(uint32 => mapping(address => bool)) public rewardsSubmittedForEra;
+
     /// @notice Storage gap for upgradeability (must be at end of state variables)
     // solhint-disable-next-line var-name-mixedcase
-    uint256[42] private __GAP;
+    uint256[41] private __GAP;
 
     // ============ Modifiers ============
 
@@ -521,6 +524,7 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
 
     /// @inheritdoc IDataHavenServiceManager
     function submitRewards(
+        uint32 eraIndex,
         IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission calldata submission
     ) external override onlyRewardsInitiator {
         IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission memory translatedSubmission =
@@ -553,6 +557,12 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         if (resolvedCount == 0) return;
 
         _sortOperatorRewards(translatedSubmission.operatorRewards);
+
+        address token = address(submission.token);
+        require(
+            !rewardsSubmittedForEra[eraIndex][token], RewardsAlreadySubmittedForEra(eraIndex, token)
+        );
+        rewardsSubmittedForEra[eraIndex][token] = true;
 
         submission.token.safeIncreaseAllowance(address(_REWARDS_COORDINATOR), totalAmount);
 

@@ -6,6 +6,7 @@ import {DataHavenServiceManager} from "../src/DataHavenServiceManager.sol";
 import {
     IAllocationManagerTypes
 } from "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
+import {OperatorSet} from "eigenlayer-contracts/src/contracts/libraries/OperatorSetLib.sol";
 import {Test} from "forge-std/Test.sol";
 
 contract OperatorAddressMappingsTest is AVSDeployer {
@@ -170,6 +171,68 @@ contract OperatorAddressMappingsTest is AVSDeployer {
         vm.prank(address(allocationManager));
         vm.expectRevert(abi.encodeWithSignature("OperatorNotRegistered()"));
         serviceManager.deregisterOperator(operator1, address(serviceManager), operatorSetIds);
+    }
+
+    function test_removeValidatorFromAllowlist_deregistersRegisteredOperator() public {
+        address solo1 = address(0xBEEF);
+        _registerOperator(operator1, solo1);
+
+        assertEq(
+            serviceManager.validatorEthAddressToSolochainAddress(operator1),
+            solo1,
+            "forward mapping should be set before removal"
+        );
+        assertTrue(serviceManager.validatorsAllowlist(operator1), "operator should start allowlisted");
+        assertTrue(
+            allocationManager.isMemberOfOperatorSet(
+                operator1,
+                OperatorSet({avs: address(serviceManager), id: serviceManager.VALIDATORS_SET_ID()})
+            ),
+            "operator should start in validator set"
+        );
+
+        vm.prank(avsOwner);
+        serviceManager.removeValidatorFromAllowlist(operator1);
+
+        assertFalse(
+            serviceManager.validatorsAllowlist(operator1), "operator should be removed from allowlist"
+        );
+        assertFalse(
+            allocationManager.isMemberOfOperatorSet(
+                operator1,
+                OperatorSet({avs: address(serviceManager), id: serviceManager.VALIDATORS_SET_ID()})
+            ),
+            "operator should be removed from validator set"
+        );
+        assertEq(
+            serviceManager.validatorEthAddressToSolochainAddress(operator1),
+            address(0),
+            "forward mapping should be cleared"
+        );
+        assertEq(
+            serviceManager.validatorSolochainAddressToEthAddress(solo1),
+            address(0),
+            "reverse mapping should be cleared"
+        );
+    }
+
+    function test_removeValidatorFromAllowlist_succeedsForUnregisteredValidator() public {
+        vm.prank(avsOwner);
+        serviceManager.addValidatorToAllowlist(operator1);
+
+        assertTrue(serviceManager.validatorsAllowlist(operator1), "operator should start allowlisted");
+
+        vm.prank(avsOwner);
+        serviceManager.removeValidatorFromAllowlist(operator1);
+
+        assertFalse(
+            serviceManager.validatorsAllowlist(operator1), "operator should be removed from allowlist"
+        );
+        assertEq(
+            serviceManager.validatorEthAddressToSolochainAddress(operator1),
+            address(0),
+            "forward mapping should remain empty"
+        );
     }
 
     function test_updateSolochainAddressForValidator_revertsIfSameAddress() public {

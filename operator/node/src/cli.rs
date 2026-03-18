@@ -888,8 +888,7 @@ impl FishermanConfigurations {
                 maintenance_mode: false, // Skipping maintenance mode for now
                 filtering,
                 ordering,
-                // TODO: restore once PR https://github.com/Moonsong-Labs/storage-hub/pull/671 is merged
-                // blockchain_service,
+                blockchain_service,
             })
         } else {
             None

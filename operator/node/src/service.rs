@@ -1375,7 +1375,6 @@ where
         .with_blockchain(
             client.clone(),
             keystore.clone(),
-            Arc::new(rpc_handlers),
             rocks_db_path.clone(),
             maintenance_mode,
         )

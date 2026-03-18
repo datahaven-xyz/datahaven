@@ -72,6 +72,7 @@ pub struct BeefyDeps<AuthorityId: AuthorityIdBound> {
 pub struct FullDeps<P, B, AuthorityId: AuthorityIdBound, FL, FS, Runtime>
 where
     Runtime: StorageEnableRuntime,
+    FS: ForestStorageHandler<Runtime> + Clone + Send + Sync + 'static,
 {
     /// The client instance to use.
     pub client: Arc<StorageHubClient<Runtime::RuntimeApi>>,
@@ -138,7 +139,7 @@ where
     >,
     StorageHubClient<Runtime::RuntimeApi>: StorageProvider<Block, BE>,
     FL: FileStorageT,
-    FSH: ForestStorageHandler<Runtime> + Send + Sync + 'static,
+    FSH: ForestStorageHandler<Runtime> + Clone + Send + Sync + 'static,
 {
     use mmr_rpc::{Mmr, MmrApiServer};
     use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApiServer};

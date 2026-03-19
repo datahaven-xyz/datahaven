@@ -182,7 +182,9 @@ contract OperatorAddressMappingsTest is AVSDeployer {
             solo1,
             "forward mapping should be set before removal"
         );
-        assertTrue(serviceManager.validatorsAllowlist(operator1), "operator should start allowlisted");
+        assertTrue(
+            serviceManager.validatorsAllowlist(operator1), "operator should start allowlisted"
+        );
         assertTrue(
             allocationManager.isMemberOfOperatorSet(
                 operator1,
@@ -195,7 +197,8 @@ contract OperatorAddressMappingsTest is AVSDeployer {
         serviceManager.removeValidatorFromAllowlist(operator1);
 
         assertFalse(
-            serviceManager.validatorsAllowlist(operator1), "operator should be removed from allowlist"
+            serviceManager.validatorsAllowlist(operator1),
+            "operator should be removed from allowlist"
         );
         assertFalse(
             allocationManager.isMemberOfOperatorSet(
@@ -220,13 +223,16 @@ contract OperatorAddressMappingsTest is AVSDeployer {
         vm.prank(avsOwner);
         serviceManager.addValidatorToAllowlist(operator1);
 
-        assertTrue(serviceManager.validatorsAllowlist(operator1), "operator should start allowlisted");
+        assertTrue(
+            serviceManager.validatorsAllowlist(operator1), "operator should start allowlisted"
+        );
 
         vm.prank(avsOwner);
         serviceManager.removeValidatorFromAllowlist(operator1);
 
         assertFalse(
-            serviceManager.validatorsAllowlist(operator1), "operator should be removed from allowlist"
+            serviceManager.validatorsAllowlist(operator1),
+            "operator should be removed from allowlist"
         );
         assertEq(
             serviceManager.validatorEthAddressToSolochainAddress(operator1),

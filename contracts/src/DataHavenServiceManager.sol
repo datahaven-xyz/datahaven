@@ -434,6 +434,13 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         address validator
     ) external onlyOwner {
         validatorsAllowlist[validator] = false;
+
+        if (validatorEthAddressToSolochainAddress[validator] != address(0)) {
+            uint32[] memory operatorSetIds = new uint32[](1);
+            operatorSetIds[0] = VALIDATORS_SET_ID;
+            _deregisterOperatorFromOperatorSets(validator, operatorSetIds);
+        }
+
         emit ValidatorRemovedFromAllowlist(validator);
     }
 
@@ -590,6 +597,13 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         address operator,
         uint32[] calldata operatorSetIds
     ) external onlyOwner {
+        _deregisterOperatorFromOperatorSets(operator, operatorSetIds);
+    }
+
+    function _deregisterOperatorFromOperatorSets(
+        address operator,
+        uint32[] memory operatorSetIds
+    ) internal {
         IAllocationManagerTypes.DeregisterParams memory params =
             IAllocationManagerTypes.DeregisterParams({
                 operator: operator, avs: address(this), operatorSetIds: operatorSetIds

@@ -53,7 +53,7 @@ fn push_unsent_entry<T: Config>(window_start: u32, window_index: u32, duration: 
 }
 
 #[allow(clippy::multiple_bound_locations)]
-#[benchmarks(where T: pallet_balances::Config)]
+#[benchmarks(where T: pallet_balances::Config + pallet_timestamp::Config<Moment = u64>)]
 mod benchmarks {
     use super::*;
 
@@ -72,6 +72,14 @@ mod benchmarks {
 
         T::BenchmarkHelper::setup();
         <RewardPointsForEra<T>>::insert(1u32, era_reward_points);
+        pallet_timestamp::Now::<T>::put(35_000u64);
+        #[cfg(test)]
+        crate::mock::Mock::mutate(|mock| {
+            mock.active_era = Some(pallet_external_validators::traits::ActiveEraInfo {
+                index: 1,
+                start: Some(30_000),
+            });
+        });
 
         #[block]
         {

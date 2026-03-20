@@ -16,7 +16,10 @@
 
 use {
     crate::{self as pallet_external_validators_rewards, mock::*},
-    frame_support::{assert_noop, assert_ok, traits::fungible::Mutate},
+    frame_support::{
+        assert_noop, assert_ok,
+        traits::{fungible::Mutate, GetStorageVersion, Hooks, StorageVersion},
+    },
     pallet_external_validators::traits::{ActiveEraInfo, OnEraEnd, OnEraStart},
     sp_core::H160,
     sp_std::collections::btree_map::BTreeMap,
@@ -63,6 +66,129 @@ fn can_reward_validators() {
         expected_map.insert(H160::from_low_u64_be(5), 60);
         assert_eq!(era_points.individual, expected_map);
         assert_eq!(era_points.total, 20 + 40 + 60);
+    })
+}
+
+#[test]
+fn runtime_upgrade_schedules_window_mode_for_next_era_and_resets_retry_state() {
+    new_test_ext().execute_with(|| {
+        Mock::mutate(|mock| {
+            mock.active_era = Some(ActiveEraInfo {
+                index: 7,
+                start: Some(70_000),
+            })
+        });
+
+        StorageVersion::new(1).put::<crate::Pallet<Test>>();
+        crate::WindowModeStartsAtEra::<Test>::put(0);
+        crate::NextWindowToSubmit::<Test>::put(123);
+        crate::UnsentRewardWindow::<Test>::insert(
+            5,
+            crate::QueuedRewardsWindow {
+                window_start: 100,
+                window_index: 10,
+                duration: 10,
+            },
+        );
+        crate::UnsentRewardHead::<Test>::put(5);
+        crate::UnsentRewardTail::<Test>::put(9);
+
+        let _ = <crate::Pallet<Test> as Hooks<u64>>::on_runtime_upgrade();
+
+        assert_eq!(crate::WindowModeStartsAtEra::<Test>::get(), 8);
+        assert_eq!(crate::NextWindowToSubmit::<Test>::get(), 0);
+        assert_eq!(crate::UnsentRewardWindow::<Test>::iter().count(), 0);
+        assert_eq!(crate::UnsentRewardHead::<Test>::get(), 0);
+        assert_eq!(crate::UnsentRewardTail::<Test>::get(), 0);
+        assert_eq!(
+            <crate::Pallet<Test>>::on_chain_storage_version(),
+            StorageVersion::new(2)
+        );
+    })
+}
+
+#[test]
+fn transition_era_does_not_write_window_points_before_cutover() {
+    new_test_ext().execute_with(|| {
+        run_to_block(5); // now = 35s
+
+        RewardsWindowGenesisTimestamp::set(20);
+        RewardsWindowDuration::set(10);
+        crate::WindowModeStartsAtEra::<Test>::put(2);
+
+        Mock::mutate(|mock| {
+            mock.active_era = Some(ActiveEraInfo {
+                index: 1,
+                start: Some(20_000),
+            })
+        });
+
+        ExternalValidatorsRewards::reward_by_ids([(H160::from_low_u64_be(1), 10)]);
+
+        assert_eq!(
+            crate::RewardPointsForEra::<Test>::get(1).total,
+            10,
+            "era accounting should still accumulate during the discarded transition era"
+        );
+        assert!(
+            crate::WindowOperatorPoints::<Test>::get(30).is_empty(),
+            "window accounting must remain off until the cutover era"
+        );
+
+        Mock::mutate(|mock| {
+            mock.active_era = Some(ActiveEraInfo {
+                index: 2,
+                start: Some(40_000),
+            })
+        });
+
+        ExternalValidatorsRewards::reward_by_ids([(H160::from_low_u64_be(1), 10)]);
+
+        assert_eq!(
+            crate::WindowOperatorPoints::<Test>::get(30).get(&H160::from_low_u64_be(1)),
+            Some(&10),
+            "window accounting should start once the cutover era is reached"
+        );
+    })
+}
+
+#[test]
+fn transition_era_on_era_end_is_skipped_before_cutover() {
+    new_test_ext().execute_with(|| {
+        run_to_block(5); // now = 35s
+
+        RewardsWindowGenesisTimestamp::set(20);
+        RewardsWindowDuration::set(10);
+        crate::WindowModeStartsAtEra::<Test>::put(2);
+
+        Mock::mutate(|mock| {
+            mock.active_era = Some(ActiveEraInfo {
+                index: 1,
+                start: Some(20_000),
+            })
+        });
+
+        ExternalValidatorsRewards::reward_by_ids([(H160::from_low_u64_be(1), 10)]);
+        for _ in 0..600 {
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(1));
+        }
+
+        System::reset_events();
+        ExternalValidatorsRewards::on_era_end(1);
+
+        assert!(
+            !System::events().iter().any(|record| matches!(
+                &record.event,
+                RuntimeEvent::ExternalValidatorsRewards(
+                    crate::Event::RewardsWindowSubmitted { .. }
+                        | crate::Event::RewardsWindowSubmissionFailed { .. }
+                        | crate::Event::RewardsWindowSkipped { .. }
+                )
+            )),
+            "transition era should not emit window-processing events before cutover"
+        );
+        assert_eq!(crate::WindowInflationAmount::<Test>::iter().count(), 0);
+        assert_eq!(crate::NextWindowToSubmit::<Test>::get(), 0);
     })
 }
 

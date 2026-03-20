@@ -72,7 +72,7 @@ pub mod pallet {
     };
 
     /// The current storage version.
-    const STORAGE_VERSION: StorageVersion = StorageVersion::new(1);
+    const STORAGE_VERSION: StorageVersion = StorageVersion::new(2);
 
     pub type RewardPoints = u32;
     pub type EraIndex = u32;
@@ -193,6 +193,86 @@ pub mod pallet {
     impl<T: Config> Hooks<frame_system::pallet_prelude::BlockNumberFor<T>> for Pallet<T> {
         fn on_initialize(_n: frame_system::pallet_prelude::BlockNumberFor<T>) -> Weight {
             Self::process_unsent_reward_eras()
+        }
+
+        fn on_runtime_upgrade() -> Weight {
+            let on_chain = Pallet::<T>::on_chain_storage_version();
+
+            if on_chain >= STORAGE_VERSION {
+                return T::DbWeight::get().reads(1);
+            }
+
+            let cutover_era = T::EraIndexProvider::active_era().index.saturating_add(1);
+
+            // This upgrade intentionally drops any pre-window retry state and
+            // defers window accounting until the next full era so the current
+            // in-flight era is not partially accounted under mixed semantics.
+            WindowModeStartsAtEra::<T>::put(cutover_era);
+            NextWindowToSubmit::<T>::kill();
+            for slot in 0..UNSENT_QUEUE_CAPACITY {
+                UnsentRewardWindow::<T>::remove(slot);
+            }
+            UnsentRewardHead::<T>::put(0);
+            UnsentRewardTail::<T>::put(0);
+            STORAGE_VERSION.put::<Pallet<T>>();
+
+            log::info!(
+                target: "ext_validators_rewards",
+                "Migrated rewards pallet to storage version 2. Window mode will start at era {}.",
+                cutover_era,
+            );
+
+            T::DbWeight::get().reads_writes(2, 69)
+        }
+
+        #[cfg(feature = "try-runtime")]
+        fn pre_upgrade() -> Result<Vec<u8>, sp_runtime::TryRuntimeError> {
+            let on_chain = Pallet::<T>::on_chain_storage_version();
+            let active_era = T::EraIndexProvider::active_era().index;
+            let needs_upgrade = on_chain < STORAGE_VERSION;
+
+            Ok((needs_upgrade, active_era).encode())
+        }
+
+        #[cfg(feature = "try-runtime")]
+        fn post_upgrade(state: Vec<u8>) -> Result<(), sp_runtime::TryRuntimeError> {
+            let (needs_upgrade, active_era): (bool, EraIndex) = Decode::decode(&mut &state[..])
+                .map_err(|_| "Failed to decode pre-upgrade state")?;
+
+            if !needs_upgrade {
+                frame_support::ensure!(
+                    Pallet::<T>::on_chain_storage_version() >= STORAGE_VERSION,
+                    "Storage version regressed on a no-op upgrade",
+                );
+                return Ok(());
+            }
+
+            frame_support::ensure!(
+                Pallet::<T>::on_chain_storage_version() == STORAGE_VERSION,
+                "Rewards pallet storage version was not upgraded",
+            );
+            frame_support::ensure!(
+                WindowModeStartsAtEra::<T>::get() == active_era.saturating_add(1),
+                "Window cutover era was not initialized correctly",
+            );
+            frame_support::ensure!(
+                NextWindowToSubmit::<T>::get() == 0,
+                "NextWindowToSubmit was not reset",
+            );
+            frame_support::ensure!(
+                UnsentRewardHead::<T>::get() == 0,
+                "UnsentRewardHead was not reset",
+            );
+            frame_support::ensure!(
+                UnsentRewardTail::<T>::get() == 0,
+                "UnsentRewardTail was not reset",
+            );
+            frame_support::ensure!(
+                UnsentRewardWindow::<T>::iter().next().is_none(),
+                "UnsentRewardWindow entries were not cleared",
+            );
+
+            Ok(())
         }
     }
 
@@ -350,6 +430,11 @@ pub mod pallet {
     #[pallet::storage]
     pub type NextWindowToSubmit<T: Config> = StorageValue<_, u32, ValueQuery>;
 
+    /// Era at which window mode becomes active after a live upgrade.
+    /// `0` means window mode is active immediately (fresh chains/tests).
+    #[pallet::storage]
+    pub type WindowModeStartsAtEra<T: Config> = StorageValue<_, EraIndex, ValueQuery>;
+
     /// Maximum number of unsent reward entries in the ring buffer.
     pub const UNSENT_QUEUE_CAPACITY: u32 = 64;
 
@@ -378,6 +463,11 @@ pub mod pallet {
     impl<T: Config> Pallet<T> {
         fn now_seconds() -> u32 {
             T::UnixTime::now().as_secs().saturated_into::<u32>()
+        }
+
+        fn window_mode_is_active(era_index: EraIndex) -> bool {
+            let start_era = WindowModeStartsAtEra::<T>::get();
+            start_era == 0 || era_index >= start_era
         }
 
         fn rewards_window_config() -> (u32, u32) {
@@ -575,6 +665,7 @@ pub mod pallet {
             let now = Self::now_seconds();
             let (genesis, interval) = Self::rewards_window_config();
             let window_start = Self::window_start_for(now, genesis, interval);
+            let window_mode_active = Self::window_mode_is_active(active_era.index);
 
             RewardPointsForEra::<T>::mutate(active_era.index, |era_rewards| {
                 for (validator, points) in points.into_iter() {
@@ -582,13 +673,15 @@ pub mod pallet {
                         .saturating_accrue(points);
                     era_rewards.total.saturating_accrue(points);
 
-                    let operator = Self::account_to_h160(&validator);
-                    WindowOperatorPoints::<T>::mutate(window_start, |operators| {
-                        operators
-                            .entry(operator)
-                            .and_modify(|existing| *existing = existing.saturating_add(points))
-                            .or_insert(points);
-                    });
+                    if window_mode_active {
+                        let operator = Self::account_to_h160(&validator);
+                        WindowOperatorPoints::<T>::mutate(window_start, |operators| {
+                            operators
+                                .entry(operator)
+                                .and_modify(|existing| *existing = existing.saturating_add(points))
+                                .or_insert(points);
+                        });
+                    }
                 }
             })
         }
@@ -1120,6 +1213,15 @@ pub mod pallet {
 
     impl<T: Config> OnEraEnd for Pallet<T> {
         fn on_era_end(era_index: EraIndex) {
+            if !Self::window_mode_is_active(era_index) {
+                log::info!(
+                    target: "ext_validators_rewards",
+                    "Skipping transition-era rewards for era {} until window mode cutover",
+                    era_index,
+                );
+                return;
+            }
+
             // Calculate performance-scaled inflation based on blocks produced.
             let base_inflation = T::EraInflationProvider::get();
             let scaled_inflation = Self::calculate_scaled_inflation(era_index, base_inflation);

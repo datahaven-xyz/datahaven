@@ -424,15 +424,14 @@ fn window_mode_delivery_failure_emits_submission_failed_event() {
             "should not have emitted RewardsWindowSubmitted on delivery failure"
         );
 
-        // Storage should still be cleared even on failure
+        // Failed window state should be retained for retry
         assert!(
-            pallet_external_validators_rewards::WindowOperatorPoints::<Test>::get(30).is_empty(),
-            "window points should be cleared after failed submission"
+            !pallet_external_validators_rewards::WindowOperatorPoints::<Test>::get(30).is_empty(),
+            "window points should be retained after failed submission"
         );
-        assert_eq!(
-            pallet_external_validators_rewards::WindowInflationAmount::<Test>::get(30),
-            0,
-            "window inflation should be cleared after failed submission"
+        assert!(
+            pallet_external_validators_rewards::WindowInflationAmount::<Test>::get(30) > 0,
+            "window inflation should be retained after failed submission"
         );
 
         // NextWindowToSubmit should still advance
@@ -440,6 +439,7 @@ fn window_mode_delivery_failure_emits_submission_failed_event() {
             pallet_external_validators_rewards::NextWindowToSubmit::<Test>::get(),
             40
         );
+        assert_eq!(unsent_len(), 1, "failed window should be queued for retry");
     })
 }
 
@@ -4096,11 +4096,27 @@ fn test_era_end_uses_correct_era_blocks_not_session() {
 // Retry mechanism tests (ring-buffer storage)
 // ═══════════════════════════════════════════════════════════════════════════
 
-/// Helper: push an entry into the unsent ring buffer via the pallet API.
-fn push_unsent(era_index: u32, timestamp: u32, inflation: u128) {
+/// Helper: push a window entry into the unsent ring buffer via the pallet API.
+fn push_unsent(window_start: u32, window_index: u32, duration: u32) {
     assert!(
-        ExternalValidatorsRewards::unsent_queue_push((era_index, timestamp, inflation)),
+        ExternalValidatorsRewards::unsent_queue_push(crate::QueuedRewardsWindow {
+            window_start,
+            window_index,
+            duration,
+        }),
         "unsent_queue_push should succeed"
+    );
+}
+
+/// Helper: seed persisted rewards state for a closed window.
+fn seed_window(window_start: u32, inflation_amount: u128, operator_points: &[(u64, u32)]) {
+    crate::WindowInflationAmount::<Test>::insert(window_start, inflation_amount);
+    crate::WindowOperatorPoints::<Test>::insert(
+        window_start,
+        operator_points
+            .iter()
+            .map(|(operator, points)| (H160::from_low_u64_be(*operator), *points))
+            .collect::<BTreeMap<_, _>>(),
     );
 }
 
@@ -4115,7 +4131,7 @@ fn unsent_is_empty() -> bool {
 }
 
 #[test]
-fn send_failure_emits_window_submission_failed() {
+fn send_failure_emits_window_submission_failed_and_queues_window() {
     new_test_ext().execute_with(|| {
         run_to_block(1);
 
@@ -4144,9 +4160,6 @@ fn send_failure_emits_window_submission_failed() {
         System::reset_events();
         ExternalValidatorsRewards::on_era_end(1);
 
-        // Unsent queue should NOT be populated (window approach doesn't use it)
-        assert!(unsent_is_empty());
-
         // Verify window submission failure event
         let window_index = window_start.saturating_sub(genesis) / window_duration;
         System::assert_has_event(RuntimeEvent::ExternalValidatorsRewards(
@@ -4155,11 +4168,21 @@ fn send_failure_emits_window_submission_failed() {
                 window_index,
             },
         ));
+
+        assert_eq!(unsent_len(), 1, "failed window should be queued for retry");
+        assert!(
+            !crate::WindowOperatorPoints::<Test>::get(window_start).is_empty(),
+            "failed window points must be retained for retry"
+        );
+        assert!(
+            crate::WindowInflationAmount::<Test>::get(window_start) > 0,
+            "failed window inflation must be retained for retry"
+        );
     })
 }
 
 #[test]
-fn on_initialize_retries_and_succeeds() {
+fn failed_window_is_retried_on_initialize() {
     new_test_ext().execute_with(|| {
         run_to_block(1);
 
@@ -4168,13 +4191,26 @@ fn on_initialize_retries_and_succeeds() {
                 index: 1,
                 start: Some(30_000),
             });
+            mock.send_message_fails = true;
         });
 
-        // Set up reward points for era 1
         ExternalValidatorsRewards::reward_by_ids([(H160::from_low_u64_be(1), 100)]);
+        for _ in 0..600 {
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(1));
+        }
 
-        // Manually populate the unsent queue
-        push_unsent(1, 30, 42);
+        let duration = RewardsWindowDuration::get();
+        let genesis = RewardsWindowGenesisTimestamp::get();
+        let now = (Timestamp::get() / 1000) as u32;
+        let window_start = now - (now - genesis) % duration;
+        let window_index = window_start.saturating_sub(genesis) / duration;
+
+        Timestamp::set_timestamp(((window_start + duration + 1) as u64) * 1000);
+        ExternalValidatorsRewards::on_era_end(1);
+
+        assert_eq!(unsent_len(), 1);
+
+        Mock::mutate(|mock| mock.send_message_fails = false);
 
         // Sending should succeed (send_message_fails is false by default)
         System::reset_events();
@@ -4185,9 +4221,49 @@ fn on_initialize_retries_and_succeeds() {
 
         // Verify retry event
         System::assert_has_event(RuntimeEvent::ExternalValidatorsRewards(
-            crate::Event::RewardsMessageRetried {
+            crate::Event::RewardsWindowRetried {
                 message_id: Default::default(),
-                era_index: 1,
+                window_start,
+                window_index,
+                total_points: 100,
+                inflation_amount: 30,
+            },
+        ));
+
+        assert!(
+            crate::WindowOperatorPoints::<Test>::get(window_start).is_empty(),
+            "window points should be cleared after successful retry"
+        );
+        assert_eq!(
+            crate::WindowInflationAmount::<Test>::get(window_start),
+            0,
+            "window inflation should be cleared after successful retry"
+        );
+    })
+}
+
+#[test]
+fn on_initialize_retries_and_succeeds() {
+    new_test_ext().execute_with(|| {
+        run_to_block(1);
+
+        let window_start = 30;
+        let window_index = 3;
+        let duration = RewardsWindowDuration::get();
+
+        seed_window(window_start, 42, &[(1, 100)]);
+        push_unsent(window_start, window_index, duration);
+
+        System::reset_events();
+        ExternalValidatorsRewards::process_unsent_reward_eras();
+
+        assert!(unsent_is_empty());
+
+        System::assert_has_event(RuntimeEvent::ExternalValidatorsRewards(
+            crate::Event::RewardsWindowRetried {
+                message_id: Default::default(),
+                window_start,
+                window_index,
                 total_points: 100,
                 inflation_amount: 42,
             },
@@ -4201,75 +4277,64 @@ fn on_initialize_moves_failed_entry_to_back() {
         run_to_block(1);
 
         Mock::mutate(|mock| {
-            mock.active_era = Some(ActiveEraInfo {
-                index: 2,
-                start: Some(30_000),
-            });
             mock.send_message_fails = true;
         });
 
-        // Set up reward points for eras 1 and 2
-        ExternalValidatorsRewards::reward_by_ids([(H160::from_low_u64_be(1), 100)]);
-        Mock::mutate(|mock| {
-            mock.active_era = Some(ActiveEraInfo {
-                index: 1,
-                start: Some(30_000),
-            });
-        });
-        ExternalValidatorsRewards::reward_by_ids([(H160::from_low_u64_be(1), 200)]);
+        let duration = RewardsWindowDuration::get();
+        seed_window(30, 42, &[(1, 100)]);
+        seed_window(40, 84, &[(1, 200)]);
 
-        // Push two entries: era 1 then era 2
-        push_unsent(1, 30, 42);
-        push_unsent(2, 30, 84);
+        push_unsent(30, 3, duration);
+        push_unsent(40, 4, duration);
 
-        // First call: tries era 1, fails, moves era 1 to back of queue
-        ExternalValidatorsRewards::process_unsent_reward_eras();
-        // Queue length stays the same (entry moved, not removed)
-        assert_eq!(unsent_len(), 2);
-
-        // Second call: tries era 2 (NOT era 1 again), fails, moves era 2 to back
+        // First call: tries window 30, fails, moves it to the back of the queue
         ExternalValidatorsRewards::process_unsent_reward_eras();
         assert_eq!(unsent_len(), 2);
 
-        // Re-enable sending
+        // Second call: tries window 40, fails, moves it to the back
+        ExternalValidatorsRewards::process_unsent_reward_eras();
+        assert_eq!(unsent_len(), 2);
+
         Mock::mutate(|mock| mock.send_message_fails = false);
 
-        // Third call: era 1 (now at front again), succeeds
+        // Third call: window 30 (now at front again), succeeds
         System::reset_events();
         ExternalValidatorsRewards::process_unsent_reward_eras();
         assert_eq!(unsent_len(), 1);
         System::assert_has_event(RuntimeEvent::ExternalValidatorsRewards(
-            crate::Event::RewardsMessageRetried {
+            crate::Event::RewardsWindowRetried {
                 message_id: Default::default(),
-                era_index: 1,
-                total_points: 200,
+                window_start: 30,
+                window_index: 3,
+                total_points: 100,
                 inflation_amount: 42,
             },
         ));
 
-        // Fourth call: era 2, succeeds
+        // Fourth call: window 40 succeeds
         ExternalValidatorsRewards::process_unsent_reward_eras();
         assert!(unsent_is_empty());
     })
 }
 
 #[test]
-fn on_initialize_removes_expired_era() {
+fn on_initialize_removes_expired_window() {
     new_test_ext().execute_with(|| {
         run_to_block(1);
 
-        // Populate unsent queue with era 999 but do NOT add RewardPointsForEra for it
-        push_unsent(999, 0, 42);
+        let duration = RewardsWindowDuration::get();
+        push_unsent(999, 99, duration);
 
         System::reset_events();
         ExternalValidatorsRewards::process_unsent_reward_eras();
 
-        // Entry should be removed
         assert!(unsent_is_empty());
 
-        // Verify expired event
         System::assert_has_event(RuntimeEvent::ExternalValidatorsRewards(
-            crate::Event::UnsentEraExpired { era_index: 999 },
+            crate::Event::UnsentWindowExpired {
+                window_start: 999,
+                window_index: 99,
+            },
         ));
     })
 }
@@ -4296,31 +4361,16 @@ fn on_initialize_processes_only_head() {
     new_test_ext().execute_with(|| {
         run_to_block(1);
 
-        Mock::mutate(|mock| {
-            mock.active_era = Some(ActiveEraInfo {
-                index: 3,
-                start: Some(30_000),
-            });
-        });
+        let duration = RewardsWindowDuration::get();
+        seed_window(30, 42, &[(1, 100)]);
+        seed_window(40, 84, &[(2, 200)]);
 
-        // Set up reward points for both eras
-        ExternalValidatorsRewards::reward_by_ids([(H160::from_low_u64_be(1), 100)]);
-        Mock::mutate(|mock| {
-            mock.active_era = Some(ActiveEraInfo {
-                index: 2,
-                start: Some(30_000),
-            });
-        });
-        ExternalValidatorsRewards::reward_by_ids([(H160::from_low_u64_be(2), 200)]);
-
-        // Push two entries
-        push_unsent(3, 30, 42);
-        push_unsent(2, 20, 84);
+        push_unsent(30, 3, duration);
+        push_unsent(40, 4, duration);
 
         System::reset_events();
         ExternalValidatorsRewards::process_unsent_reward_eras();
 
-        // Only the head entry (era 3) should be processed (and removed on success)
         assert_eq!(unsent_len(), 1);
     })
 }
@@ -4330,33 +4380,25 @@ fn retry_extrinsic_success() {
     new_test_ext().execute_with(|| {
         run_to_block(1);
 
-        Mock::mutate(|mock| {
-            mock.active_era = Some(ActiveEraInfo {
-                index: 1,
-                start: Some(30_000),
-            });
-        });
-
-        // Set up reward points
-        ExternalValidatorsRewards::reward_by_ids([(H160::from_low_u64_be(1), 100)]);
-
-        // Populate unsent queue
-        push_unsent(1, 30, 42);
+        let window_start = 30;
+        let window_index = 3;
+        let duration = RewardsWindowDuration::get();
+        seed_window(window_start, 42, &[(1, 100)]);
+        push_unsent(window_start, window_index, duration);
 
         System::reset_events();
-        assert_ok!(ExternalValidatorsRewards::retry_unsent_reward_era(
+        assert_ok!(ExternalValidatorsRewards::retry_unsent_reward_window(
             RuntimeOrigin::root(),
-            1
+            window_start
         ));
 
-        // Queue should be empty
         assert!(unsent_is_empty());
 
-        // Verify retry event
         System::assert_has_event(RuntimeEvent::ExternalValidatorsRewards(
-            crate::Event::RewardsMessageRetried {
+            crate::Event::RewardsWindowRetried {
                 message_id: Default::default(),
-                era_index: 1,
+                window_start,
+                window_index,
                 total_points: 100,
                 inflation_amount: 42,
             },
@@ -4365,28 +4407,27 @@ fn retry_extrinsic_success() {
 }
 
 #[test]
-fn retry_extrinsic_era_not_in_queue() {
+fn retry_extrinsic_window_not_in_queue() {
     new_test_ext().execute_with(|| {
         run_to_block(1);
 
         assert_noop!(
-            ExternalValidatorsRewards::retry_unsent_reward_era(RuntimeOrigin::root(), 1),
-            crate::Error::<Test>::EraNotInUnsentQueue
+            ExternalValidatorsRewards::retry_unsent_reward_window(RuntimeOrigin::root(), 1),
+            crate::Error::<Test>::WindowNotInUnsentQueue
         );
     })
 }
 
 #[test]
-fn retry_extrinsic_pruned_data() {
+fn retry_extrinsic_missing_window_state() {
     new_test_ext().execute_with(|| {
         run_to_block(1);
 
-        // Queue an era but don't create reward points for it
-        push_unsent(999, 0, 42);
+        push_unsent(999, 99, RewardsWindowDuration::get());
 
         assert_noop!(
-            ExternalValidatorsRewards::retry_unsent_reward_era(RuntimeOrigin::root(), 999),
-            crate::Error::<Test>::RewardPointsPruned
+            ExternalValidatorsRewards::retry_unsent_reward_window(RuntimeOrigin::root(), 999),
+            crate::Error::<Test>::WindowRewardsMissing
         );
     })
 }
@@ -4397,7 +4438,7 @@ fn retry_extrinsic_requires_root() {
         run_to_block(1);
 
         assert_noop!(
-            ExternalValidatorsRewards::retry_unsent_reward_era(
+            ExternalValidatorsRewards::retry_unsent_reward_window(
                 RuntimeOrigin::signed(H160::from_low_u64_be(1)),
                 1
             ),
@@ -4407,7 +4448,7 @@ fn retry_extrinsic_requires_root() {
 }
 
 #[test]
-fn send_failure_clears_window_and_advances_pointer() {
+fn send_failure_retains_window_and_advances_pointer() {
     new_test_ext().execute_with(|| {
         run_to_block(1);
 
@@ -4436,45 +4477,45 @@ fn send_failure_clears_window_and_advances_pointer() {
         System::reset_events();
         ExternalValidatorsRewards::on_era_end(1);
 
-        // Even though send failed, the window data should be cleared
-        // and the next_window pointer should have advanced
         let next_window = crate::NextWindowToSubmit::<Test>::get();
         assert!(
             next_window > window_start,
             "NextWindowToSubmit should advance past the failed window"
         );
 
-        // Window storage should be cleared
         assert!(
-            crate::WindowOperatorPoints::<Test>::get(window_start).is_empty(),
-            "Window operator points should be cleared after failed submission"
+            !crate::WindowOperatorPoints::<Test>::get(window_start).is_empty(),
+            "Window operator points should be retained after failed submission"
+        );
+        assert!(
+            crate::WindowInflationAmount::<Test>::get(window_start) > 0,
+            "Window inflation should be retained after failed submission"
         );
         assert_eq!(
-            crate::WindowInflationAmount::<Test>::get(window_start),
-            0,
-            "Window inflation should be cleared after failed submission"
+            unsent_len(),
+            1,
+            "failed window should be present in retry queue"
         );
     })
 }
 
 #[test]
-fn on_era_start_prunes_unsent_entry() {
+fn on_era_start_prunes_unsent_window_without_state() {
     new_test_ext().execute_with(|| {
         run_to_block(1);
 
-        // Set up: era 1 has an unsent entry
-        push_unsent(1, 0, 42);
+        push_unsent(30, 3, RewardsWindowDuration::get());
 
-        // HistoryDepth is 10, so era 11 should prune era 1
         System::reset_events();
         ExternalValidatorsRewards::on_era_start(11, 0, 11);
 
-        // Unsent entry should be removed
         assert!(unsent_is_empty());
 
-        // Verify expired event
         System::assert_has_event(RuntimeEvent::ExternalValidatorsRewards(
-            crate::Event::UnsentEraExpired { era_index: 1 },
+            crate::Event::UnsentWindowExpired {
+                window_start: 30,
+                window_index: 3,
+            },
         ));
     })
 }
@@ -4484,26 +4525,15 @@ fn retry_extrinsic_send_still_fails() {
     new_test_ext().execute_with(|| {
         run_to_block(1);
 
-        Mock::mutate(|mock| {
-            mock.active_era = Some(ActiveEraInfo {
-                index: 1,
-                start: Some(30_000),
-            });
-            mock.send_message_fails = true;
-        });
-
-        // Set up reward points
-        ExternalValidatorsRewards::reward_by_ids([(H160::from_low_u64_be(1), 100)]);
-
-        // Populate unsent queue
-        push_unsent(1, 30, 42);
+        Mock::mutate(|mock| mock.send_message_fails = true);
+        seed_window(30, 42, &[(1, 100)]);
+        push_unsent(30, 3, RewardsWindowDuration::get());
 
         assert_noop!(
-            ExternalValidatorsRewards::retry_unsent_reward_era(RuntimeOrigin::root(), 1),
+            ExternalValidatorsRewards::retry_unsent_reward_window(RuntimeOrigin::root(), 30),
             crate::Error::<Test>::MessageSendFailed
         );
 
-        // Queue should still have the entry
         assert_eq!(unsent_len(), 1);
     })
 }
@@ -4513,57 +4543,50 @@ fn head_of_line_blocking_avoided() {
     new_test_ext().execute_with(|| {
         run_to_block(1);
 
-        // Set up reward points for eras 1, 2, 3
-        for era in 1..=3u32 {
-            Mock::mutate(|mock| {
-                mock.active_era = Some(ActiveEraInfo {
-                    index: era,
-                    start: Some(30_000),
-                });
-            });
-            ExternalValidatorsRewards::reward_by_ids([(H160::from_low_u64_be(1), 100)]);
-        }
+        let duration = RewardsWindowDuration::get();
+        seed_window(30, 10, &[(1, 100)]);
+        seed_window(40, 20, &[(1, 100)]);
+        seed_window(50, 30, &[(1, 100)]);
 
-        // Push eras 1, 2, 3 into the queue
-        push_unsent(1, 30, 10);
-        push_unsent(2, 30, 20);
-        push_unsent(3, 30, 30);
+        push_unsent(30, 3, duration);
+        push_unsent(40, 4, duration);
+        push_unsent(50, 5, duration);
 
-        // Make sending fail
         Mock::mutate(|mock| mock.send_message_fails = true);
 
-        // Block 1: tries era 1, fails, advances head → era 2
+        // Block 1: tries window 30, fails, advances head → window 40
         ExternalValidatorsRewards::process_unsent_reward_eras();
-        // Block 2: tries era 2, fails, advances head → era 3
+        // Block 2: tries window 40, fails, advances head → window 50
         ExternalValidatorsRewards::process_unsent_reward_eras();
 
-        // Now re-enable sending
         Mock::mutate(|mock| mock.send_message_fails = false);
 
-        // Block 3: tries era 3, succeeds
+        // Block 3: tries window 50, succeeds
         System::reset_events();
         ExternalValidatorsRewards::process_unsent_reward_eras();
         System::assert_has_event(RuntimeEvent::ExternalValidatorsRewards(
-            crate::Event::RewardsMessageRetried {
+            crate::Event::RewardsWindowRetried {
                 message_id: Default::default(),
-                era_index: 3,
+                window_start: 50,
+                window_index: 5,
                 total_points: 100,
                 inflation_amount: 30,
             },
         ));
 
-        // Block 4: wraps around to era 1, succeeds
+        // Block 4: wraps around to window 30, succeeds
         ExternalValidatorsRewards::process_unsent_reward_eras();
         System::assert_has_event(RuntimeEvent::ExternalValidatorsRewards(
-            crate::Event::RewardsMessageRetried {
+            crate::Event::RewardsWindowRetried {
                 message_id: Default::default(),
-                era_index: 1,
+                window_start: 30,
+                window_index: 3,
                 total_points: 100,
                 inflation_amount: 10,
             },
         ));
 
-        // Block 5: era 2, succeeds
+        // Block 5: window 40 succeeds
         ExternalValidatorsRewards::process_unsent_reward_eras();
         assert!(unsent_is_empty());
     })

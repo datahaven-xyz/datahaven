@@ -8532,8 +8532,8 @@ dependencies = [
 
 [[package]]
 name = "pallet-bucket-nfts"
-version = "0.4.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?branch=main#4001f9b1cc2a7948bffde65af7590bdbfc33dca9"
+version = "0.5.0"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.5.0#5c5d25216fe7fe1e68f09d939ed1cf2fcf5590c4"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -8588,8 +8588,8 @@ dependencies = [
 
 [[package]]
 name = "pallet-cr-randomness"
-version = "0.4.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?branch=main#4001f9b1cc2a7948bffde65af7590bdbfc33dca9"
+version = "0.5.0"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.5.0#5c5d25216fe7fe1e68f09d939ed1cf2fcf5590c4"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -8866,8 +8866,8 @@ dependencies = [
 
 [[package]]
 name = "pallet-evm-precompile-file-system"
-version = "0.4.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?branch=main#4001f9b1cc2a7948bffde65af7590bdbfc33dca9"
+version = "0.5.0"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.5.0#5c5d25216fe7fe1e68f09d939ed1cf2fcf5590c4"
 dependencies = [
  "fp-account",
  "fp-evm",
@@ -9098,8 +9098,8 @@ dependencies = [
 
 [[package]]
 name = "pallet-file-system"
-version = "0.4.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?branch=main#4001f9b1cc2a7948bffde65af7590bdbfc33dca9"
+version = "0.5.0"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.5.0#5c5d25216fe7fe1e68f09d939ed1cf2fcf5590c4"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -9126,8 +9126,8 @@ dependencies = [
 
 [[package]]
 name = "pallet-file-system-runtime-api"
-version = "0.4.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?branch=main#4001f9b1cc2a7948bffde65af7590bdbfc33dca9"
+version = "0.5.0"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.5.0#5c5d25216fe7fe1e68f09d939ed1cf2fcf5590c4"
 dependencies = [
  "parity-scale-codec",
  "scale-info",
@@ -9334,8 +9334,8 @@ dependencies = [
 
 [[package]]
 name = "pallet-payment-streams"
-version = "0.4.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?branch=main#4001f9b1cc2a7948bffde65af7590bdbfc33dca9"
+version = "0.5.0"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.5.0#5c5d25216fe7fe1e68f09d939ed1cf2fcf5590c4"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -9354,8 +9354,8 @@ dependencies = [
 
 [[package]]
 name = "pallet-payment-streams-runtime-api"
-version = "0.4.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?branch=main#4001f9b1cc2a7948bffde65af7590bdbfc33dca9"
+version = "0.5.0"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.5.0#5c5d25216fe7fe1e68f09d939ed1cf2fcf5590c4"
 dependencies = [
  "parity-scale-codec",
  "scale-info",
@@ -9381,8 +9381,8 @@ dependencies = [
 
 [[package]]
 name = "pallet-proofs-dealer"
-version = "0.4.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?branch=main#4001f9b1cc2a7948bffde65af7590bdbfc33dca9"
+version = "0.5.0"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.5.0#5c5d25216fe7fe1e68f09d939ed1cf2fcf5590c4"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -9406,8 +9406,8 @@ dependencies = [
 
 [[package]]
 name = "pallet-proofs-dealer-runtime-api"
-version = "0.4.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?branch=main#4001f9b1cc2a7948bffde65af7590bdbfc33dca9"
+version = "0.5.0"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.5.0#5c5d25216fe7fe1e68f09d939ed1cf2fcf5590c4"
 dependencies = [
  "parity-scale-codec",
  "scale-info",
@@ -9443,8 +9443,8 @@ dependencies = [
 
 [[package]]
 name = "pallet-randomness"
-version = "0.4.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?branch=main#4001f9b1cc2a7948bffde65af7590bdbfc33dca9"
+version = "0.5.0"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.5.0#5c5d25216fe7fe1e68f09d939ed1cf2fcf5590c4"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -9663,8 +9663,8 @@ dependencies = [
 
 [[package]]
 name = "pallet-storage-providers"
-version = "0.4.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?branch=main#4001f9b1cc2a7948bffde65af7590bdbfc33dca9"
+version = "0.5.0"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.5.0#5c5d25216fe7fe1e68f09d939ed1cf2fcf5590c4"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -9684,8 +9684,8 @@ dependencies = [
 
 [[package]]
 name = "pallet-storage-providers-runtime-api"
-version = "0.4.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?branch=main#4001f9b1cc2a7948bffde65af7590bdbfc33dca9"
+version = "0.5.0"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.5.0#5c5d25216fe7fe1e68f09d939ed1cf2fcf5590c4"
 dependencies = [
  "parity-scale-codec",
  "scale-info",
@@ -13773,8 +13773,8 @@ dependencies = [
 
 [[package]]
 name = "shc-actors-derive"
-version = "0.4.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?branch=main#4001f9b1cc2a7948bffde65af7590bdbfc33dca9"
+version = "0.5.0"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.5.0#5c5d25216fe7fe1e68f09d939ed1cf2fcf5590c4"
 dependencies = [
  "once_cell",
  "proc-macro2",
@@ -13786,8 +13786,8 @@ dependencies = [
 
 [[package]]
 name = "shc-actors-framework"
-version = "0.4.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?branch=main#4001f9b1cc2a7948bffde65af7590bdbfc33dca9"
+version = "0.5.0"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.5.0#5c5d25216fe7fe1e68f09d939ed1cf2fcf5590c4"
 dependencies = [
  "anyhow",
  "bincode",
@@ -13805,8 +13805,8 @@ dependencies = [
 
 [[package]]
 name = "shc-blockchain-service"
-version = "0.4.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?branch=main#4001f9b1cc2a7948bffde65af7590bdbfc33dca9"
+version = "0.5.0"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.5.0#5c5d25216fe7fe1e68f09d939ed1cf2fcf5590c4"
 dependencies = [
  "anyhow",
  "array-bytes",
@@ -13861,8 +13861,8 @@ dependencies = [
 
 [[package]]
 name = "shc-blockchain-service-db"
-version = "0.4.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?branch=main#4001f9b1cc2a7948bffde65af7590bdbfc33dca9"
+version = "0.5.0"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.5.0#5c5d25216fe7fe1e68f09d939ed1cf2fcf5590c4"
 dependencies = [
  "chrono",
  "diesel",
@@ -13885,8 +13885,8 @@ dependencies = [
 
 [[package]]
 name = "shc-client"
-version = "0.4.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?branch=main#4001f9b1cc2a7948bffde65af7590bdbfc33dca9"
+version = "0.5.0"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.5.0#5c5d25216fe7fe1e68f09d939ed1cf2fcf5590c4"
 dependencies = [
  "anyhow",
  "array-bytes",
@@ -13960,8 +13960,8 @@ dependencies = [
 
 [[package]]
 name = "shc-common"
-version = "0.4.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?branch=main#4001f9b1cc2a7948bffde65af7590bdbfc33dca9"
+version = "0.5.0"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.5.0#5c5d25216fe7fe1e68f09d939ed1cf2fcf5590c4"
 dependencies = [
  "anyhow",
  "bigdecimal",
@@ -14024,8 +14024,8 @@ dependencies = [
 
 [[package]]
 name = "shc-file-manager"
-version = "0.4.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?branch=main#4001f9b1cc2a7948bffde65af7590bdbfc33dca9"
+version = "0.5.0"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.5.0#5c5d25216fe7fe1e68f09d939ed1cf2fcf5590c4"
 dependencies = [
  "bincode",
  "hash-db",
@@ -14049,8 +14049,8 @@ dependencies = [
 
 [[package]]
 name = "shc-file-transfer-service"
-version = "0.4.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?branch=main#4001f9b1cc2a7948bffde65af7590bdbfc33dca9"
+version = "0.5.0"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.5.0#5c5d25216fe7fe1e68f09d939ed1cf2fcf5590c4"
 dependencies = [
  "anyhow",
  "array-bytes",
@@ -14080,8 +14080,8 @@ dependencies = [
 
 [[package]]
 name = "shc-fisherman-service"
-version = "0.4.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?branch=main#4001f9b1cc2a7948bffde65af7590bdbfc33dca9"
+version = "0.5.0"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.5.0#5c5d25216fe7fe1e68f09d939ed1cf2fcf5590c4"
 dependencies = [
  "async-trait",
  "diesel",
@@ -14111,8 +14111,8 @@ dependencies = [
 
 [[package]]
 name = "shc-forest-manager"
-version = "0.4.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?branch=main#4001f9b1cc2a7948bffde65af7590bdbfc33dca9"
+version = "0.5.0"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.5.0#5c5d25216fe7fe1e68f09d939ed1cf2fcf5590c4"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -14137,8 +14137,8 @@ dependencies = [
 
 [[package]]
 name = "shc-indexer-db"
-version = "0.4.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?branch=main#4001f9b1cc2a7948bffde65af7590bdbfc33dca9"
+version = "0.5.0"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.5.0#5c5d25216fe7fe1e68f09d939ed1cf2fcf5590c4"
 dependencies = [
  "bigdecimal",
  "chrono",
@@ -14165,8 +14165,8 @@ dependencies = [
 
 [[package]]
 name = "shc-indexer-service"
-version = "0.4.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?branch=main#4001f9b1cc2a7948bffde65af7590bdbfc33dca9"
+version = "0.5.0"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.5.0#5c5d25216fe7fe1e68f09d939ed1cf2fcf5590c4"
 dependencies = [
  "anyhow",
  "array-bytes",
@@ -14216,8 +14216,8 @@ dependencies = [
 
 [[package]]
 name = "shc-rpc"
-version = "0.4.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?branch=main#4001f9b1cc2a7948bffde65af7590bdbfc33dca9"
+version = "0.5.0"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.5.0#5c5d25216fe7fe1e68f09d939ed1cf2fcf5590c4"
 dependencies = [
  "array-bytes",
  "async-trait",
@@ -14263,8 +14263,8 @@ dependencies = [
 
 [[package]]
 name = "shc-telemetry"
-version = "0.4.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?branch=main#4001f9b1cc2a7948bffde65af7590bdbfc33dca9"
+version = "0.5.0"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.5.0#5c5d25216fe7fe1e68f09d939ed1cf2fcf5590c4"
 dependencies = [
  "log",
  "substrate-prometheus-endpoint",
@@ -14280,8 +14280,8 @@ checksum = "0fda2ff0d084019ba4d7c6f371c95d8fd75ce3524c3cb8fb653a3023f6323e64"
 
 [[package]]
 name = "shp-constants"
-version = "0.4.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?branch=main#4001f9b1cc2a7948bffde65af7590bdbfc33dca9"
+version = "0.5.0"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.5.0#5c5d25216fe7fe1e68f09d939ed1cf2fcf5590c4"
 dependencies = [
  "sp-core",
  "sp-runtime",
@@ -14289,8 +14289,8 @@ dependencies = [
 
 [[package]]
 name = "shp-data-price-updater"
-version = "0.4.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?branch=main#4001f9b1cc2a7948bffde65af7590bdbfc33dca9"
+version = "0.5.0"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.5.0#5c5d25216fe7fe1e68f09d939ed1cf2fcf5590c4"
 dependencies = [
  "frame-support",
  "parity-scale-codec",
@@ -14303,8 +14303,8 @@ dependencies = [
 
 [[package]]
 name = "shp-file-key-verifier"
-version = "0.4.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?branch=main#4001f9b1cc2a7948bffde65af7590bdbfc33dca9"
+version = "0.5.0"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.5.0#5c5d25216fe7fe1e68f09d939ed1cf2fcf5590c4"
 dependencies = [
  "frame-support",
  "parity-scale-codec",
@@ -14320,8 +14320,8 @@ dependencies = [
 
 [[package]]
 name = "shp-file-metadata"
-version = "0.4.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?branch=main#4001f9b1cc2a7948bffde65af7590bdbfc33dca9"
+version = "0.5.0"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.5.0#5c5d25216fe7fe1e68f09d939ed1cf2fcf5590c4"
 dependencies = [
  "hex",
  "num-bigint",
@@ -14336,8 +14336,8 @@ dependencies = [
 
 [[package]]
 name = "shp-forest-verifier"
-version = "0.4.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?branch=main#4001f9b1cc2a7948bffde65af7590bdbfc33dca9"
+version = "0.5.0"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.5.0#5c5d25216fe7fe1e68f09d939ed1cf2fcf5590c4"
 dependencies = [
  "frame-support",
  "parity-scale-codec",
@@ -14352,16 +14352,16 @@ dependencies = [
 
 [[package]]
 name = "shp-opaque"
-version = "0.4.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?branch=main#4001f9b1cc2a7948bffde65af7590bdbfc33dca9"
+version = "0.5.0"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.5.0#5c5d25216fe7fe1e68f09d939ed1cf2fcf5590c4"
 dependencies = [
  "sp-runtime",
 ]
 
 [[package]]
 name = "shp-session-keys"
-version = "0.4.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?branch=main#4001f9b1cc2a7948bffde65af7590bdbfc33dca9"
+version = "0.5.0"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.5.0#5c5d25216fe7fe1e68f09d939ed1cf2fcf5590c4"
 dependencies = [
  "async-trait",
  "parity-scale-codec",
@@ -14374,8 +14374,8 @@ dependencies = [
 
 [[package]]
 name = "shp-traits"
-version = "0.4.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?branch=main#4001f9b1cc2a7948bffde65af7590bdbfc33dca9"
+version = "0.5.0"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.5.0#5c5d25216fe7fe1e68f09d939ed1cf2fcf5590c4"
 dependencies = [
  "frame-support",
  "parity-scale-codec",
@@ -14387,8 +14387,8 @@ dependencies = [
 
 [[package]]
 name = "shp-treasury-funding"
-version = "0.4.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?branch=main#4001f9b1cc2a7948bffde65af7590bdbfc33dca9"
+version = "0.5.0"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.5.0#5c5d25216fe7fe1e68f09d939ed1cf2fcf5590c4"
 dependencies = [
  "log",
  "shp-traits",
@@ -14398,8 +14398,8 @@ dependencies = [
 
 [[package]]
 name = "shp-tx-implicits-runtime-api"
-version = "0.4.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?branch=main#4001f9b1cc2a7948bffde65af7590bdbfc33dca9"
+version = "0.5.0"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.5.0#5c5d25216fe7fe1e68f09d939ed1cf2fcf5590c4"
 dependencies = [
  "parity-scale-codec",
  "scale-info",
@@ -14410,8 +14410,8 @@ dependencies = [
 
 [[package]]
 name = "shp-types"
-version = "0.4.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?branch=main#4001f9b1cc2a7948bffde65af7590bdbfc33dca9"
+version = "0.5.0"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.5.0#5c5d25216fe7fe1e68f09d939ed1cf2fcf5590c4"
 dependencies = [
  "sp-core",
  "sp-runtime",

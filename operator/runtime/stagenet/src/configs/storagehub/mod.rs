@@ -628,16 +628,16 @@ parameter_types! {
 /// "\x19Ethereum Signed Message:\n" + len(message) + message"
 pub struct Eip191Adapter;
 impl shp_traits::MessageAdapter for Eip191Adapter {
-    fn bytes_to_verify(message: &[u8]) -> Vec<u8> {
+    fn bytes_to_verify(intention: &[u8], _context: &[u8]) -> Vec<u8> {
         const PREFIX: &str = "\x19Ethereum Signed Message:\n";
-        let len = message.len();
+        let len = intention.len();
         let mut len_string_buffer = itoa::Buffer::new();
         let len_string = len_string_buffer.format(len);
 
         let mut eth_message = Vec::with_capacity(PREFIX.len() + len_string.len() + len);
         eth_message.extend_from_slice(PREFIX.as_bytes());
         eth_message.extend_from_slice(len_string.as_bytes());
-        eth_message.extend_from_slice(message);
+        eth_message.extend_from_slice(intention);
         eth_message
     }
 }
@@ -701,6 +701,8 @@ impl pallet_file_system::Config for Runtime {
     type OffchainPublicKey = <Signature as Verify>::Signer;
     type MaxFileDeletionsPerExtrinsic = ConstU32<100>;
     type IntentionMsgAdapter = Eip191Adapter;
+    type MaxBspVolunteers = ConstU32<1000>;
+    type MaxMspRespondFileKeys = ConstU32<10>;
 }
 
 impl MostlyStablePriceIndexUpdaterConfig for Runtime {

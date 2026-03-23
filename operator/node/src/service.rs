@@ -1331,11 +1331,10 @@ where
             // Set the indexer db pool
             builder.with_indexer_db_pool(Some(db_pool));
 
-            // TODO: restore once PR https://github.com/Moonsong-Labs/storage-hub/pull/671 is merged
             // Configure blockchain service options for the fisherman
-            // if let Some(c) = fisherman_options.blockchain_service.clone() {
-            //     builder.with_blockchain_service_config(c);
-            // }
+            if let Some(c) = fisherman_options.blockchain_service.clone() {
+                builder.with_blockchain_service_config(c);
+            }
 
             // Spawn the fisherman service
             builder

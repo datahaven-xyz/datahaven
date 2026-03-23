@@ -18,7 +18,7 @@ on:
 
 permissions:
   contents: read
-  packages: write   # Required for docker-build-release
+  packages: write   # Required for docker build release jobs
 
 concurrency:
   group: release-${{ github.workflow }}-${{ github.ref }}
@@ -27,6 +27,12 @@ concurrency:
 jobs:
   docker-build-release:
     uses: ./.github/workflows/task-docker-release.yml
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+
+  validator-set-submitter-docker-build-release:
+    uses: ./.github/workflows/task-docker-release-validator-set-submitter.yml
     secrets:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}

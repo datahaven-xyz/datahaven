@@ -604,19 +604,20 @@ fn fails_if_called_by_smart_contract() {
 
 #[test]
 fn succeed_if_called_by_precompile() {
+    // AddressU64<2> is registered in the precompile set as RevertPrecompile and is the only
+    // precompile allowed to call Proxy via CallableByPrecompile<OnlyFrom<AddressU64<2>>>.
+    let precompile2 = MockAccount::from_u64(2);
     ExtBuilder::default()
-        .with_balances(vec![(Alice.into(), 1000), (Bob.into(), 1000)])
+        .with_balances(vec![
+            (Alice.into(), 1000),
+            (Bob.into(), 1000),
+            (precompile2.into(), 1000),
+        ])
         .build()
         .execute_with(|| {
-            // Set dummy code to Alice address as it if was a precompile.
-            pallet_evm::AccountCodes::<Runtime>::insert(
-                H160::from(Alice),
-                vec![0x60, 0x00, 0x60, 0x00, 0xfd],
-            );
-
             PrecompilesValue::get()
                 .prepare_test(
-                    Alice,
+                    precompile2,
                     Precompile1,
                     PCall::add_proxy {
                         delegate: Address(Bob.into()),

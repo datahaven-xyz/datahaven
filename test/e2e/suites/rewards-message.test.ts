@@ -168,7 +168,9 @@ describe("Rewards Message Flow", () => {
 
     expect(payload).toBeDefined();
     expect(payload.era).toBeGreaterThan(eraIndex);
-    logger.debug(`ExternalValidators.NewEra received: previousEra=${eraIndex}, newEra=${payload.era}`);
+    logger.debug(
+      `ExternalValidators.NewEra received: previousEra=${eraIndex}, newEra=${payload.era}`
+    );
   });
 
   it("should verify reward points were recorded for the era", async () => {

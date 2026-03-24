@@ -194,7 +194,7 @@ contract ValidatorSetSubmitterTest is SnowbridgeAndAVSDeployer {
                     abi.encodeWithSelector(
                         DataHavenServiceManager.initialize.selector,
                         avsOwner,
-                        rewardsInitiator,
+                        snowbridgeInitiator,
                         emptyStrategies,
                         address(snowbridgeGatewayMock),
                         address(0),

@@ -20,7 +20,7 @@ contract OperatorAddressMappingsTest is AVSDeployer {
         // Configure the rewards initiator (not strictly needed for these tests,
         // but keeps setup consistent with other suites).
         vm.prank(avsOwner);
-        serviceManager.setRewardsInitiator(snowbridgeAgent);
+        serviceManager.setSnowbridgeInitiator(snowbridgeAgent);
     }
 
     function _registerOperator(

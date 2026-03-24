@@ -109,7 +109,7 @@ impl pallet_proxy::Config for Test {
     type CallHasher = BlakeTwo256;
     type AnnouncementDepositBase = AnnouncementDepositBase;
     type AnnouncementDepositFactor = AnnouncementDepositFactor;
-    type BlockNumberProvider = ();
+    type BlockNumberProvider = System;
 }
 
 impl Config for Test {

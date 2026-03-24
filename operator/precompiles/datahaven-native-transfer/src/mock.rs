@@ -21,7 +21,7 @@ use super::*;
 use frame_support::traits::Everything;
 use frame_support::{construct_runtime, parameter_types, weights::Weight};
 use pallet_evm::{EnsureAddressNever, EnsureAddressRoot, FrameSystemAccountProvider};
-use parity_scale_codec::{Decode, Encode};
+use parity_scale_codec::{Decode, DecodeWithMemTracking, Encode};
 use precompile_utils::{mock_account, precompile_set::*, testing::MockAccount};
 use snowbridge_core::TokenId;
 use snowbridge_outbound_queue_primitives::v1::Ticket;
@@ -146,6 +146,8 @@ impl pallet_evm::Config for Runtime {
     type GasWeightMapping = pallet_evm::FixedGasWeightMapping<Self>;
     type WeightPerGas = WeightPerGas;
     type CallOrigin = EnsureAddressRoot<AccountId>;
+    type CreateOriginFilter = ();
+    type CreateInnerOriginFilter = ();
     type WithdrawOrigin = EnsureAddressNever<AccountId>;
     type AddressMapping = AccountId;
     type Currency = Balances;
@@ -194,7 +196,7 @@ impl SendMessage for MockOutboundQueue {
     }
 }
 
-#[derive(Clone, Encode, Decode)]
+#[derive(Clone, Encode, Decode, DecodeWithMemTracking)]
 pub struct MockTicket;
 
 impl Ticket for MockTicket {

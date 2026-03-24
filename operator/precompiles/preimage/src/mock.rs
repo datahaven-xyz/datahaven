@@ -125,6 +125,8 @@ impl pallet_evm::Config for Runtime {
     type GasWeightMapping = pallet_evm::FixedGasWeightMapping<Self>;
     type WeightPerGas = WeightPerGas;
     type CallOrigin = EnsureAddressRoot<AccountId>;
+    type CreateOriginFilter = ();
+    type CreateInnerOriginFilter = ();
     type WithdrawOrigin = EnsureAddressNever<AccountId>;
     type AddressMapping = AccountId;
     type Currency = Balances;

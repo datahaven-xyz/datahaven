@@ -21,6 +21,10 @@ fp-evm = { workspace = true }
 pallet-evm = { workspace = true, features = [ "forbid-evm-reentrancy" ] }
 precompile-utils = { workspace = true }
 
+# Temp
+## TODO/ remove it once we move to 2506
+serde = { workspace = true }
+
 [dev-dependencies]
 
 pallet-balances = { workspace = true, features = [ "std" ] }

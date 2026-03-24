@@ -133,6 +133,8 @@ impl pallet_evm::Config for Runtime {
     type GasWeightMapping = pallet_evm::FixedGasWeightMapping<Self>;
     type WeightPerGas = WeightPerGas;
     type CallOrigin = EnsureAddressRoot<AccountId>;
+    type CreateOriginFilter = ();
+    type CreateInnerOriginFilter = ();
     type WithdrawOrigin = EnsureAddressNever<AccountId>;
     type AddressMapping = AccountId;
     type Currency = Balances;
@@ -266,7 +268,7 @@ impl pallet_conviction_voting::Config for Runtime {
     type WeightInfo = ();
     type MaxTurnout = TotalIssuanceOf<Balances, Self::AccountId>;
     type Polls = TestPolls;
-    type BlockNumberProvider = ();
+    type BlockNumberProvider = frame_system::Pallet<Runtime>;
     type VotingHooks = ();
 }
 

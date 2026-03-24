@@ -166,6 +166,8 @@ impl pallet_evm::Config for Runtime {
     type GasWeightMapping = pallet_evm::FixedGasWeightMapping<Self>;
     type WeightPerGas = WeightPerGas;
     type CallOrigin = EnsureAddressRoot<AccountId>;
+    type CreateOriginFilter = ();
+    type CreateInnerOriginFilter = ();
     type WithdrawOrigin = EnsureAddressNever<AccountId>;
     type AddressMapping = AccountId;
     type Currency = Balances;
@@ -247,7 +249,9 @@ parameter_types! {
 pub struct TestTracksInfo;
 
 // Simple tally implementation for testing
-#[derive(Debug, Clone, PartialEq, Eq, Encode, Decode, TypeInfo, MaxEncodedLen)]
+#[derive(
+    Debug, Clone, PartialEq, Eq, Encode, Decode, DecodeWithMemTracking, TypeInfo, MaxEncodedLen,
+)]
 pub struct Tally {
     pub ayes: u128,
     pub nays: u128,
@@ -328,9 +332,9 @@ impl TracksInfo<Balance, u32> for TestTracksInfo {
 
     fn tracks() -> impl Iterator<Item = Cow<'static, Track<Self::Id, Balance, u32>>> {
         static DATA: [Track<u8, u128, u32>; 2] = [
-            (
-                0,
-                TrackInfo {
+            Track {
+                id: 0,
+                info: TrackInfo {
                     name: str_array("root"),
                     max_deciding: 1,
                     decision_deposit: 10,
@@ -349,10 +353,10 @@ impl TracksInfo<Balance, u32> for TestTracksInfo {
                         ceil: Perbill::from_percent(50),
                     },
                 },
-            ),
-            (
-                1,
-                TrackInfo {
+            },
+            Track {
+                id: 1,
+                info: TrackInfo {
                     name: str_array("none"),
                     max_deciding: 1,
                     decision_deposit: 10,
@@ -371,9 +375,9 @@ impl TracksInfo<Balance, u32> for TestTracksInfo {
                         ceil: Perbill::from_percent(50),
                     },
                 },
-            ),
+            },
         ];
-        TRACKS
+        DATA.iter().map(Cow::Borrowed)
     }
 
     fn track_for(origin: &Self::RuntimeOrigin) -> Result<Self::Id, ()> {
@@ -402,6 +406,7 @@ impl pallet_referenda::Config for Runtime {
     type AlarmInterval = ();
     type Tracks = TestTracksInfo;
     type Preimages = Preimage;
+    type BlockNumberProvider = ();
 }
 
 pub(crate) struct ExtBuilder {

@@ -296,7 +296,7 @@ fn submit_track_id_oob_fails() {
         .execute_with(|| {
             let proposal = vec![1, 2, 3];
             let proposal_hash = sp_runtime::traits::BlakeTwo256::hash(&proposal);
-            let oob_track_id = <Runtime as pallet_referenda::Config>::Tracks::tracks().len();
+            let oob_track_id = <Runtime as pallet_referenda::Config>::Tracks::tracks().count();
 
             // submit with an invalid track_id
             let input: Vec<u8> = PCall::submit_at {

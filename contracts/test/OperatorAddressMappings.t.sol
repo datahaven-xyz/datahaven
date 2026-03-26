@@ -159,8 +159,8 @@ contract OperatorAddressMappingsTest is AVSDeployer {
         );
         assertEq(
             serviceManager.validatorSolochainAddressToEthAddress(solo1),
-            address(0),
-            "reverse mapping should be cleared"
+            operator1,
+            "reverse mapping should remain slashable until deallocation delay passes"
         );
     }
 
@@ -214,8 +214,8 @@ contract OperatorAddressMappingsTest is AVSDeployer {
         );
         assertEq(
             serviceManager.validatorSolochainAddressToEthAddress(solo1),
-            address(0),
-            "reverse mapping should be cleared"
+            operator1,
+            "reverse mapping should remain slashable until deallocation delay passes"
         );
     }
 
@@ -238,6 +238,39 @@ contract OperatorAddressMappingsTest is AVSDeployer {
             serviceManager.validatorEthAddressToSolochainAddress(operator1),
             address(0),
             "forward mapping should remain empty"
+        );
+    }
+
+    function test_registerOperator_reclaimsExpiredSolochainMapping() public {
+        address solo1 = address(0xBEEF);
+        _registerOperator(operator1, solo1);
+
+        vm.prank(avsOwner);
+        serviceManager.removeValidatorFromAllowlist(operator1);
+
+        vm.roll(block.number + uint32(7 days) + 1);
+
+        vm.prank(avsOwner);
+        serviceManager.addValidatorToAllowlist(operator2);
+        vm.prank(operator2);
+        delegationManager.registerAsOperator(address(0), 0, "");
+
+        uint32[] memory operatorSetIds = new uint32[](1);
+        operatorSetIds[0] = serviceManager.VALIDATORS_SET_ID();
+        IAllocationManagerTypes.RegisterParams memory registerParams =
+            IAllocationManagerTypes.RegisterParams({
+                avs: address(serviceManager),
+                operatorSetIds: operatorSetIds,
+                data: abi.encodePacked(solo1)
+            });
+
+        vm.prank(operator2);
+        allocationManager.registerForOperatorSets(operator2, registerParams);
+
+        assertEq(
+            serviceManager.validatorSolochainAddressToEthAddress(solo1),
+            operator2,
+            "expired reverse mapping should be reclaimed by the new operator"
         );
     }
 

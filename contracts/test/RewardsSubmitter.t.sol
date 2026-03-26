@@ -360,6 +360,54 @@ contract RewardsSubmitterTest is AVSDeployer {
         serviceManager.submitRewards(submission);
     }
 
+    function test_submitRewards_afterAllowlistRemovalStillTranslatesDuringDeallocationDelay()
+        public
+    {
+        address solochainOperator = address(0xBEEF);
+        _registerOperator(operator1, solochainOperator);
+
+        vm.prank(avsOwner);
+        serviceManager.removeValidatorFromAllowlist(operator1);
+
+        uint256 rewardAmount = 1000e18;
+        IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission memory submission =
+            _buildSubmission(rewardAmount, solochainOperator);
+
+        vm.warp(submission.startTimestamp + submission.duration + 1);
+
+        IRewardsCoordinatorTypes.OperatorReward[] memory expectedOperatorRewards =
+            new IRewardsCoordinatorTypes.OperatorReward[](1);
+        expectedOperatorRewards[0] =
+            IRewardsCoordinatorTypes.OperatorReward({operator: operator1, amount: rewardAmount});
+
+        IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission memory expectedSubmission =
+            IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission({
+                strategiesAndMultipliers: submission.strategiesAndMultipliers,
+                token: submission.token,
+                operatorRewards: expectedOperatorRewards,
+                startTimestamp: submission.startTimestamp,
+                duration: submission.duration,
+                description: submission.description
+            });
+
+        IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission[] memory submissions =
+            new IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission[](1);
+        submissions[0] = expectedSubmission;
+
+        OperatorSet memory operatorSet =
+            OperatorSet({avs: address(serviceManager), id: serviceManager.VALIDATORS_SET_ID()});
+        vm.expectCall(
+            address(rewardsCoordinator),
+            abi.encodeCall(
+                IRewardsCoordinator.createOperatorDirectedOperatorSetRewardsSubmission,
+                (operatorSet, submissions)
+            )
+        );
+
+        vm.prank(snowbridgeAgent);
+        serviceManager.submitRewards(submission);
+    }
+
     function test_submitRewards_sortsTranslatedOperatorsByAddress() public {
         (address ethLow, address ethHigh) =
             operator1 < operator2 ? (operator1, operator2) : (operator2, operator1);

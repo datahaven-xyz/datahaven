@@ -165,4 +165,60 @@ contract SlashingTest is AVSDeployer {
         emit IDataHavenServiceManagerEvents.SlashingComplete();
         serviceManager.slashValidatorsOperator(slashings);
     }
+
+    function test_fulfilSlashingRequest_afterAllowlistRemovalStillResolvesDuringDeallocationDelay()
+        public
+    {
+        address solochainOperator = address(0xBEEF);
+
+        vm.prank(avsOwner);
+        serviceManager.addValidatorToAllowlist(operator);
+
+        vm.prank(avsOwner);
+        serviceManager.setRewardsInitiator(snowbridgeAgent);
+
+        vm.prank(operator);
+        delegationManager.registerAsOperator(address(0), 0, "");
+
+        uint32[] memory operatorSetIds = new uint32[](1);
+        operatorSetIds[0] = serviceManager.VALIDATORS_SET_ID();
+        IAllocationManagerTypes.RegisterParams memory registerParams =
+            IAllocationManagerTypes.RegisterParams({
+                avs: address(serviceManager),
+                operatorSetIds: operatorSetIds,
+                data: abi.encodePacked(solochainOperator)
+            });
+
+        vm.prank(operator);
+        allocationManager.registerForOperatorSets(operator, registerParams);
+
+        vm.prank(avsOwner);
+        serviceManager.removeValidatorFromAllowlist(operator);
+
+        DataHavenServiceManager.SlashingRequest[] memory slashings =
+            new DataHavenServiceManager.SlashingRequest[](1);
+        uint256[] memory wadsToSlash = new uint256[](3);
+        wadsToSlash[0] = 1e16;
+        wadsToSlash[1] = 1e16;
+        wadsToSlash[2] = 1e16;
+
+        OperatorSet memory operatorSet =
+            OperatorSet({avs: address(serviceManager), id: serviceManager.VALIDATORS_SET_ID()});
+        IStrategy[] memory strategies = allocationManager.getStrategiesInOperatorSet(operatorSet);
+
+        slashings[0] = IDataHavenServiceManager.SlashingRequest(
+            solochainOperator, strategies, wadsToSlash, "Testing slashing"
+        );
+
+        uint256[] memory wadsToSlashed = new uint256[](3);
+
+        vm.prank(snowbridgeAgent);
+        vm.expectEmit();
+        emit IAllocationManagerEvents.OperatorSlashed(
+            operator, operatorSet, strategies, wadsToSlashed, "Testing slashing"
+        );
+        vm.expectEmit();
+        emit IDataHavenServiceManagerEvents.SlashingComplete();
+        serviceManager.slashValidatorsOperator(slashings);
+    }
 }

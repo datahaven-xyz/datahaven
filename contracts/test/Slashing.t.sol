@@ -34,7 +34,7 @@ contract SlashingTest is AVSDeployer {
 
         // Configure the rewards initiator (because only the reward agent can submit slashing request)
         vm.prank(avsOwner);
-        serviceManager.setRewardsInitiator(snowbridgeAgent);
+        serviceManager.setSnowbridgeInitiator(snowbridgeAgent);
 
         vm.prank(operator);
         delegationManager.registerAsOperator(address(0), 0, "");
@@ -93,7 +93,7 @@ contract SlashingTest is AVSDeployer {
 
         // Configure the rewards initiator (because only the reward agent can submit slashing request)
         vm.prank(avsOwner);
-        serviceManager.setRewardsInitiator(snowbridgeAgent);
+        serviceManager.setSnowbridgeInitiator(snowbridgeAgent);
 
         vm.prank(operator);
         delegationManager.registerAsOperator(address(0), 0, "");
@@ -147,7 +147,7 @@ contract SlashingTest is AVSDeployer {
     function test_fulfilSlashingRequest_skipsUnknownSolochainAddress() public {
         // Configure the rewards initiator (because only the reward agent can submit slashing request)
         vm.prank(avsOwner);
-        serviceManager.setRewardsInitiator(snowbridgeAgent);
+        serviceManager.setSnowbridgeInitiator(snowbridgeAgent);
 
         address unknownSolochainOperator = address(0xDEAD);
         DataHavenServiceManager.SlashingRequest[] memory slashings =

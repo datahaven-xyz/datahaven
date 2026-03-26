@@ -18,10 +18,10 @@
 
 use crate::time::DAYS;
 use crate::Balance;
+use core::marker::PhantomData;
 use frame_support::{parameter_types, traits::Contains};
 use pallet_tx_pause::RuntimeCallNameOf;
 use polkadot_primitives::BlockNumber;
-use sp_std::marker::PhantomData;
 
 // Safe Mode Constants
 parameter_types! {

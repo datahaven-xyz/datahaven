@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // SPDX-FileCopyrightText: 2023 Snowfork <hello@snowfork.com>
+use core::marker::PhantomData;
 use frame_support::storage::StorageMap;
-use sp_std::marker::PhantomData;
 
 /// Sparse bitmap interface.
 pub trait SparseBitmap<BitMap>

@@ -25,10 +25,12 @@ use frame_system::{EnsureRoot, EnsureSignedBy};
 use pallet_evm::{EnsureAddressNever, EnsureAddressRoot, FrameSystemAccountProvider};
 use pallet_identity::legacy::IdentityInfo;
 use precompile_utils::mock_account;
-use precompile_utils::{
-    precompile_set::*,
-    testing::{MockAccount, MockSignature},
-};
+use precompile_utils::testing::MockSigner;
+use precompile_utils::{precompile_set::*, testing::MockAccount};
+use scale_info::TypeInfo;
+use serde::{Deserialize, Serialize};
+use sp_core::keccak_256;
+use sp_core::{Decode, DecodeWithMemTracking, Encode};
 use sp_core::{H256, U256};
 use sp_runtime::{
     traits::{BlakeTwo256, IdentityLookup},
@@ -39,6 +41,60 @@ pub type AccountId = MockAccount;
 pub type Balance = u128;
 
 type Block = frame_system::mocking::MockBlockU32<Runtime>;
+
+// TODO: remove this chunk once we moved to 2506. `MockSignature` was missing the `DecodeWithMemTracking` trait in frontier 2503.
+// We should be able to use the one from frontier when migrating to 2506
+#[derive(
+    Eq,
+    PartialEq,
+    Clone,
+    Encode,
+    Decode,
+    DecodeWithMemTracking,
+    sp_core::RuntimeDebug,
+    TypeInfo,
+    Serialize,
+    Deserialize,
+)]
+pub struct MockSignature(sp_core::ecdsa::Signature);
+
+impl From<sp_core::ecdsa::Signature> for MockSignature {
+    fn from(x: sp_core::ecdsa::Signature) -> Self {
+        MockSignature(x)
+    }
+}
+
+impl From<sp_runtime::MultiSignature> for MockSignature {
+    fn from(signature: sp_runtime::MultiSignature) -> Self {
+        match signature {
+            sp_runtime::MultiSignature::Ed25519(_) => {
+                panic!("Ed25519 not supported for MockSignature")
+            }
+            sp_runtime::MultiSignature::Sr25519(_) => {
+                panic!("Sr25519 not supported for MockSignature")
+            }
+            sp_runtime::MultiSignature::Ecdsa(sig) => Self(sig),
+        }
+    }
+}
+
+impl sp_runtime::traits::Verify for MockSignature {
+    type Signer = MockSigner;
+    fn verify<L: sp_runtime::traits::Lazy<[u8]>>(&self, mut msg: L, signer: &MockAccount) -> bool {
+        let mut m = [0u8; 32];
+        m.copy_from_slice(keccak_256(msg.get()).as_slice());
+        match sp_io::crypto::secp256k1_ecdsa_recover(self.0.as_ref(), &m) {
+            Ok(pubkey) => {
+                MockAccount(sp_core::H160::from_slice(
+                    &keccak_256(&pubkey).as_slice()[12..32],
+                )) == *signer
+            }
+            Err(sp_io::EcdsaVerifyError::BadRS) => false,
+            Err(sp_io::EcdsaVerifyError::BadV) => false,
+            Err(sp_io::EcdsaVerifyError::BadSignature) => false,
+        }
+    }
+}
 
 construct_runtime!(
     pub enum Runtime	{
@@ -136,6 +192,8 @@ impl pallet_evm::Config for Runtime {
     type GasWeightMapping = pallet_evm::FixedGasWeightMapping<Self>;
     type WeightPerGas = WeightPerGas;
     type CallOrigin = EnsureAddressRoot<AccountId>;
+    type CreateOriginFilter = ();
+    type CreateInnerOriginFilter = ();
     type WithdrawOrigin = EnsureAddressNever<AccountId>;
     type AddressMapping = AccountId;
     type Currency = Balances;
@@ -240,6 +298,7 @@ impl ExtBuilder {
 
         pallet_balances::GenesisConfig::<Runtime> {
             balances: self.balances.clone(),
+            dev_accounts: Default::default(),
         }
         .assimilate_storage(&mut t)
         .expect("Pallet balances storage can be assimilated");

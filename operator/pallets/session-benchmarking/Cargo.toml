@@ -19,7 +19,6 @@ frame-support = { workspace = true }
 frame-system = { workspace = true }
 pallet-session = { workspace = true }
 sp-runtime = { workspace = true }
-sp-std = { workspace = true }
 
 [features]
 default = ["std"]
@@ -30,7 +29,6 @@ std = [
     "frame-system/std",
     "pallet-session/std",
     "sp-runtime/std",
-    "sp-std/std",
 ]
 runtime-benchmarks = [
     "frame-benchmarking/runtime-benchmarks",

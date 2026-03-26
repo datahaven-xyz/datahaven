@@ -21,6 +21,7 @@
 //! obstacles to including it here.
 
 #![cfg_attr(not(feature = "std"), no_std)]
+extern crate alloc;
 
 #[cfg(test)]
 mod mock;
@@ -32,9 +33,9 @@ pub use pallet::*;
 
 #[pallet]
 pub mod pallet {
+    use alloc::vec::Vec;
     use frame_support::pallet_prelude::*;
     use frame_system::pallet_prelude::BlockNumberFor;
-    use sp_std::vec::Vec;
 
     /// Pallet for configuring proxy at genesis
     #[pallet::pallet]
@@ -44,7 +45,11 @@ pub mod pallet {
     /// This pallet requires pallet-proxy to be installed.
     #[pallet::config]
     pub trait Config:
-        frame_system::Config + pallet_proxy::Config<ProxyType = <Self as Config>::ProxyType>
+        frame_system::Config
+        + pallet_proxy::Config<
+            ProxyType = <Self as Config>::ProxyType,
+            BlockNumberProvider = frame_system::Pallet<Self>,
+        >
     {
         /// This MUST be the same as in pallet_proxy or it won't compile
         type ProxyType: MaybeSerializeDeserialize + Clone;

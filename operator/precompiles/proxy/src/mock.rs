@@ -168,6 +168,8 @@ impl pallet_evm::Config for Runtime {
     type GasWeightMapping = pallet_evm::FixedGasWeightMapping<Self>;
     type WeightPerGas = WeightPerGas;
     type CallOrigin = EnsureAddressAlways;
+    type CreateOriginFilter = ();
+    type CreateInnerOriginFilter = ();
     type WithdrawOrigin = EnsureAddressNever<AccountId>;
     type AddressMapping = AccountId;
     type Currency = Balances;
@@ -269,6 +271,7 @@ impl pallet_proxy::Config for Runtime {
     type CallHasher = BlakeTwo256;
     type AnnouncementDepositBase = ();
     type AnnouncementDepositFactor = ();
+    type BlockNumberProvider = ();
 }
 
 /// Build test externalities, prepopulated with data for testing democracy precompiles
@@ -298,6 +301,7 @@ impl ExtBuilder {
 
         pallet_balances::GenesisConfig::<Runtime> {
             balances: self.balances.clone(),
+            dev_accounts: Default::default(),
         }
         .assimilate_storage(&mut t)
         .expect("Pallet balances storage can be assimilated");

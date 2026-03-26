@@ -50,7 +50,7 @@
 #![allow(unused_imports)]
 
 use frame_support::{traits::Get, weights::{Weight, constants::RocksDbWeight}};
-use sp_std::marker::PhantomData;
+use core::marker::PhantomData;
 
 /// Weights for `pallet_utility`.
 pub struct WeightInfo<T>(PhantomData<T>);
@@ -118,5 +118,12 @@ impl<T: frame_system::Config> pallet_utility::WeightInfo for WeightInfo<T> {
 			// Standard Error: 2_759
 			.saturating_add(Weight::from_parts(6_595_620, 0).saturating_mul(c.into()))
 			.saturating_add(T::DbWeight::get().reads(2_u64))
+	}
+	fn dispatch_as_fallible() -> Weight {
+		todo!()
+	}
+
+	fn if_else() -> Weight {
+		todo!()
 	}
 }

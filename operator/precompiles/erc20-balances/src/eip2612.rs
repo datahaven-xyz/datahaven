@@ -15,6 +15,7 @@
 // along with Moonbeam.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::*;
+use alloc::vec::Vec;
 use frame_support::{
     ensure,
     traits::{Get, Time},
@@ -22,7 +23,6 @@ use frame_support::{
 use sp_core::H256;
 use sp_io::hashing::keccak_256;
 use sp_runtime::traits::UniqueSaturatedInto;
-use sp_std::vec::Vec;
 
 /// EIP2612 permit typehash.
 pub const PERMIT_TYPEHASH: [u8; 32] = keccak256!(
@@ -39,9 +39,11 @@ pub struct Eip2612<Runtime, Metadata, Instance = ()>(PhantomData<(Runtime, Metad
 impl<Runtime, Metadata, Instance> Eip2612<Runtime, Metadata, Instance>
 where
     Runtime: pallet_balances::Config<Instance> + pallet_evm::Config,
-    Runtime::RuntimeCall: Dispatchable<PostInfo = PostDispatchInfo> + GetDispatchInfo,
-    Runtime::RuntimeCall: From<pallet_balances::Call<Runtime, Instance>>,
-    <Runtime::RuntimeCall as Dispatchable>::RuntimeOrigin: From<Option<Runtime::AccountId>>,
+    <Runtime as frame_system::Config>::RuntimeCall:
+        Dispatchable<PostInfo = PostDispatchInfo> + GetDispatchInfo,
+    <Runtime as frame_system::Config>::RuntimeCall: From<pallet_balances::Call<Runtime, Instance>>,
+    <<Runtime as frame_system::Config>::RuntimeCall as Dispatchable>::RuntimeOrigin:
+        From<Option<Runtime::AccountId>>,
     BalanceOf<Runtime, Instance>: TryFrom<U256> + Into<U256>,
     Metadata: Erc20Metadata,
     Instance: InstanceToPrefix + 'static,

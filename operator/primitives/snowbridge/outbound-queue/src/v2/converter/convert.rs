@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // SPDX-FileCopyrightText: 2023 Snowfork <hello@snowfork.com>
 //! Converts XCM messages into InboundMessage that can be processed by the Gateway contract
+extern crate alloc;
 
 use codec::DecodeAll;
 use core::slice::Iter;
@@ -13,9 +14,10 @@ use crate::v2::{
 };
 
 use crate::v2::convert::XcmConverterError::{AssetResolutionFailed, FilterDoesNotConsumeAllAssets};
+use alloc::vec::Vec;
+use core::{iter::Peekable, marker::PhantomData};
 use sp_core::H160;
 use sp_runtime::traits::MaybeEquivalence;
-use sp_std::{iter::Peekable, marker::PhantomData, prelude::*};
 use xcm::prelude::*;
 use xcm_executor::traits::ConvertLocation;
 use XcmConverterError::*;

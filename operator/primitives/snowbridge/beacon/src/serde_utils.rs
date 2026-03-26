@@ -100,7 +100,7 @@ pub struct HexVisitor<const LENGTH: usize>();
 impl<'de, const LENGTH: usize> serde::de::Visitor<'de> for HexVisitor<LENGTH> {
     type Value = [u8; LENGTH];
 
-    fn expecting(&self, formatter: &mut Formatter) -> sp_std::fmt::Result {
+    fn expecting(&self, formatter: &mut Formatter) -> core::fmt::Result {
         formatter.write_str("a hex string with an '0x' prefix")
     }
 

@@ -18,6 +18,8 @@
 //!
 //! * [`Call::register_token`]: Register a token location as a wrapped ERC20 contract on Ethereum.
 #![cfg_attr(not(feature = "std"), no_std)]
+extern crate alloc;
+
 #[cfg(test)]
 mod mock;
 
@@ -32,6 +34,7 @@ pub mod api;
 pub mod weights;
 pub use weights::*;
 
+use alloc::boxed::Box;
 use frame_support::{
     pallet_prelude::*,
     traits::{
@@ -53,7 +56,6 @@ use snowbridge_outbound_queue_primitives::{
 use sp_core::{RuntimeDebug, H160, H256};
 use sp_io::hashing::blake2_256;
 use sp_runtime::{traits::MaybeEquivalence, DispatchError, SaturatedConversion};
-use sp_std::prelude::*;
 use xcm::prelude::*;
 use xcm_executor::traits::ConvertLocation;
 

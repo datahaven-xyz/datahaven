@@ -68,7 +68,7 @@
     /// The address of the account that initiates the rewards calculation.
     /// This is for the EigenLayer rewards distribution way, using the RewardsCoordinator.
     /// But for now, we're not using it, and instead sending the rewards directly.
-    "rewardsInitiator": "0x14dC79964da2C08b23698B3D3cc7Ca32193d9955",
+    "snowbridgeInitiator": "0x14dC79964da2C08b23698B3D3cc7Ca32193d9955",
     /// The EigenLayer strategy addresses for the Validators to stake into.
     /// The beaconChainETHStrategy is a virtual address representing native beacon chain ETH.
     /// All networks:

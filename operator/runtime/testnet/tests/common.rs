@@ -168,9 +168,12 @@ impl ExtBuilder {
             .build_storage()
             .expect("System pallet builds valid default genesis config");
 
-        pallet_balances::GenesisConfig::<Runtime> { balances }
-            .assimilate_storage(&mut t)
-            .expect("Pallet balances storage can be assimilated");
+        pallet_balances::GenesisConfig::<Runtime> {
+            balances,
+            dev_accounts: Default::default(),
+        }
+        .assimilate_storage(&mut t)
+        .expect("Pallet balances storage can be assimilated");
 
         // Set up session keys for validators
         let session_keys: Vec<_> = validators

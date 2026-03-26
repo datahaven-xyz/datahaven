@@ -84,9 +84,7 @@ describeSuite({
           value,
           input,
           accessList,
-          oddYParity,
-          r,
-          s
+          signature
         } = extrinsic.asEip2930;
         expect(chainId.toNumber()).to.equal(DATAHAVEN_CHAIN_ID);
         expect(nonce.toNumber()).to.equal(currentNonce);
@@ -96,11 +94,11 @@ describeSuite({
         expect(value.toBigInt()).to.equal(512n);
         expect(input.toHex()).to.equal("0x");
         expect(accessList.toString()).toBe("[]");
-        expect(oddYParity.isFalse).to.be.true;
-        expect(r.toHex()).to.equal(
+        expect(signature.oddYParity.isFalse).to.be.true;
+        expect(signature.r.toHex()).to.equal(
           "0x1a703ae78b4f5bd48b04e848a0e261c195e037f39a4e1e2b2637edfe7bdf5328"
         );
-        expect(s.toHex()).to.equal(
+        expect(signature.s.toHex()).to.equal(
           "0x772b2d95acc14739bdd57565a87ce4e51fb7457724e4c42b148c544e4ae3e968"
         );
       }
@@ -141,9 +139,7 @@ describeSuite({
           value,
           input,
           accessList,
-          oddYParity,
-          r,
-          s
+          signature
         } = extrinsic.asEip1559;
         expect(chainId.toNumber()).to.equal(DATAHAVEN_CHAIN_ID);
         expect(nonce.toNumber()).to.equal(currentNonce);
@@ -154,11 +150,11 @@ describeSuite({
         expect(value.toBigInt()).to.equal(512n);
         expect(input.toHex()).to.equal("0x");
         expect(accessList.toString()).toBe("[]");
-        expect(oddYParity.isFalse).to.be.true;
-        expect(r.toHex()).to.equal(
+        expect(signature.oddYParity.isFalse).to.be.true;
+        expect(signature.r.toHex()).to.equal(
           "0x07a83a8cea51ecfc21533dbec98de47b37d7f54110395b2b9fd514a9216bb741"
         );
-        expect(s.toHex()).to.equal(
+        expect(signature.s.toHex()).to.equal(
           "0x6448665043b9a23baa7d58c3f26c8a291f0db6c38a36a7df21bcc26091f1c5aa"
         );
       }

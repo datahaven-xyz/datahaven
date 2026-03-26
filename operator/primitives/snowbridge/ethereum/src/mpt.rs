@@ -2,8 +2,9 @@
 // SPDX-FileCopyrightText: 2023 Snowfork <hello@snowfork.com>
 //! Helper types to work with Ethereum's Merkle Patricia Trie nodes
 
+use alloc::boxed::Box;
+use alloc::vec::Vec;
 use ethereum_types::H256;
-use sp_std::prelude::*;
 
 pub trait Node {
     fn contains_hash(&self, hash: H256) -> bool;

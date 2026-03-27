@@ -29,12 +29,12 @@ pallet-authorship = { workspace = true }
 pallet-balances = { workspace = true, optional = true }
 pallet-external-validators = { workspace = true }
 pallet-session = { workspace = true, features = [ "historical" ] }
+pallet-timestamp = { workspace = true }
 
 snowbridge-core = { workspace = true }
 snowbridge-outbound-queue-primitives = { workspace = true }
 
 [dev-dependencies]
-pallet-timestamp = { workspace = true }
 sp-io = { workspace = true }
 
 [features]

@@ -42,7 +42,7 @@ contract RewardsSubmitterTest is AVSDeployer {
 
         // Configure the rewards initiator
         vm.prank(avsOwner);
-        serviceManager.setRewardsInitiator(snowbridgeAgent);
+        serviceManager.setSnowbridgeInitiator(snowbridgeAgent);
 
         // Fund the service manager with reward tokens
         IERC20(address(rewardToken)).safeTransfer(address(serviceManager), 100000e18);
@@ -102,21 +102,21 @@ contract RewardsSubmitterTest is AVSDeployer {
 
     // ============ Configuration Tests ============
 
-    function test_setRewardsInitiator() public {
+    function test_setSnowbridgeInitiator() public {
         address newInitiator = address(0x123);
 
         vm.prank(avsOwner);
         vm.expectEmit(true, true, false, false);
-        emit IDataHavenServiceManagerEvents.RewardsInitiatorSet(snowbridgeAgent, newInitiator);
-        serviceManager.setRewardsInitiator(newInitiator);
+        emit IDataHavenServiceManagerEvents.SnowbridgeInitiatorSet(snowbridgeAgent, newInitiator);
+        serviceManager.setSnowbridgeInitiator(newInitiator);
 
-        assertEq(serviceManager.rewardsInitiator(), newInitiator);
+        assertEq(serviceManager.snowbridgeInitiator(), newInitiator);
     }
 
-    function test_setRewardsInitiator_revertsIfNotOwner() public {
+    function test_setSnowbridgeInitiator_revertsIfNotOwner() public {
         vm.prank(operator1);
         vm.expectRevert(bytes("Ownable: caller is not the owner"));
-        serviceManager.setRewardsInitiator(address(0x123));
+        serviceManager.setSnowbridgeInitiator(address(0x123));
     }
 
     // ============ Access Control Tests ============

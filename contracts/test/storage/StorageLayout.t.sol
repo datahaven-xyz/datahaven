@@ -20,18 +20,18 @@ contract StorageLayoutTest is AVSDeployer {
     function test_upgradePreservesState() public {
         // 1. Populate state
         address testValidator = address(0x1234);
-        address newRewardsInitiator = address(0x9999);
+        address newSnowbridgeInitiator = address(0x9999);
         address testSubmitter = address(0x5678);
 
         vm.startPrank(avsOwner);
         serviceManager.addValidatorToAllowlist(testValidator);
-        serviceManager.setRewardsInitiator(newRewardsInitiator);
+        serviceManager.setSnowbridgeInitiator(newSnowbridgeInitiator);
         serviceManager.setValidatorSetSubmitter(testSubmitter);
         vm.stopPrank();
 
         // 2. Record state before upgrade
         bool allowlistBefore = serviceManager.validatorsAllowlist(testValidator);
-        address rewardsInitiatorBefore = serviceManager.rewardsInitiator();
+        address snowbridgeInitiatorBefore = serviceManager.snowbridgeInitiator();
         address ownerBefore = serviceManager.owner();
         address gatewayBefore = serviceManager.snowbridgeGateway();
         address submitterBefore = serviceManager.validatorSetSubmitter();
@@ -51,9 +51,9 @@ contract StorageLayoutTest is AVSDeployer {
             "validatorsAllowlist should be preserved"
         );
         assertEq(
-            serviceManager.rewardsInitiator(),
-            rewardsInitiatorBefore,
-            "rewardsInitiator should be preserved"
+            serviceManager.snowbridgeInitiator(),
+            snowbridgeInitiatorBefore,
+            "snowbridgeInitiator should be preserved"
         );
         assertEq(serviceManager.owner(), ownerBefore, "owner should be preserved");
         assertEq(

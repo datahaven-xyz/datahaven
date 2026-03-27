@@ -24,7 +24,6 @@ use {
     crate::types::BenchmarkHelper,
     frame_benchmarking::{account, v2::*, BenchmarkError},
     frame_support::traits::{Currency, EnsureOrigin},
-    sp_std::prelude::*,
 };
 
 const SEED: u32 = 0;

@@ -18,6 +18,7 @@
 //! Storage will be cleared after a period of time.
 
 #![cfg_attr(not(feature = "std"), no_std)]
+extern crate alloc;
 
 #[cfg(test)]
 mod mock;
@@ -33,6 +34,7 @@ pub mod weights;
 
 pub use pallet::*;
 
+use alloc::vec::Vec;
 use {
     crate::types::{HandleInflation, RewardsPeriodUtils, SendMessage},
     frame_support::traits::{Get, UnixTime, ValidatorSet},
@@ -44,7 +46,6 @@ use {
         Perbill,
     },
     sp_staking::SessionIndex,
-    sp_std::vec::Vec,
 };
 
 /// Trait for checking if a validator has been slashed in a given era
@@ -65,10 +66,10 @@ pub mod pallet {
     use sp_runtime::PerThing;
 
     pub use crate::weights::WeightInfo;
+    use alloc::collections::BTreeMap;
     use {
         super::*, frame_support::pallet_prelude::*, frame_system::pallet_prelude::OriginFor,
-        pallet_external_validators::traits::EraIndexProvider, sp_runtime::traits::Saturating,
-        sp_std::collections::btree_map::BTreeMap,
+        pallet_external_validators::traits::EraIndexProvider, sp_runtime::Saturating,
     };
 
     /// The current storage version.

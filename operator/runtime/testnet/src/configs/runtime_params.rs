@@ -14,11 +14,11 @@
 // You should have received a copy of the GNU General Public License
 // along with DataHaven.  If not, see <http://www.gnu.org/licenses/>.
 
+use alloc::vec;
 use frame_support::dynamic_params::{dynamic_pallet_params, dynamic_params};
 use hex_literal::hex;
 use sp_core::{ConstU32, H160, H256};
 use sp_runtime::{BoundedVec, Perbill};
-use sp_std::vec;
 
 use crate::Runtime;
 

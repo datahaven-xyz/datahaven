@@ -33,7 +33,7 @@
 #![allow(unused_imports)]
 
 use frame_support::{traits::Get, weights::{Weight, constants::RocksDbWeight}};
-use sp_std::marker::PhantomData;
+use core::marker::PhantomData;
 
 /// Weights for `pallet_randomness`.
 pub struct WeightInfo<T>(PhantomData<T>);

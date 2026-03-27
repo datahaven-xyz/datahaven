@@ -73,6 +73,7 @@ fn author_does_receive_priority_fee() {
                 max_priority_fee_per_gas: Some(U256::from(200 * MILLIHAVE)),
                 nonce: Some(U256::from(0)),
                 access_list: Vec::new(),
+                authorization_list: Vec::new(),
             })
             .dispatch(<Runtime as frame_system::Config>::RuntimeOrigin::root()));
 
@@ -115,6 +116,7 @@ fn total_issuance_after_evm_transaction_with_priority_fee() {
                 max_priority_fee_per_gas: Some(U256::from(BASE_FEE_GENESIS)),
                 nonce: Some(U256::from(0)),
                 access_list: Vec::new(),
+                authorization_list: Vec::new(),
             })
             .dispatch(<Runtime as frame_system::Config>::RuntimeOrigin::root()));
 
@@ -184,6 +186,7 @@ fn total_issuance_after_evm_transaction_without_priority_fee() {
                 max_priority_fee_per_gas: None,
                 nonce: Some(U256::from(0)),
                 access_list: Vec::new(),
+                authorization_list: Vec::new(),
             })
             .dispatch(<Runtime as frame_system::Config>::RuntimeOrigin::root()));
 

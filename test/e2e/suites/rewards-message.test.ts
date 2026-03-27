@@ -141,16 +141,16 @@ describe("Rewards Message Flow", () => {
     expect(serviceManager.address).toBeDefined();
     expect(gateway.address).toBeDefined();
 
-    const rewardsInitiator = (await publicClient.readContract({
+    const snowbridgeInitiator = (await publicClient.readContract({
       address: serviceManager.address,
       abi: serviceManager.abi,
-      functionName: "rewardsInitiator",
+      functionName: "snowbridgeInitiator",
       args: []
     })) as Address;
 
-    // ServiceManager must have a rewardsInitiator configured for EigenLayer rewards submission
-    expect(rewardsInitiator).toBeDefined();
-    logger.debug(`ServiceManager rewardsInitiator: ${rewardsInitiator}`);
+    // ServiceManager must have a snowbridgeInitiator configured for EigenLayer rewards submission
+    expect(snowbridgeInitiator).toBeDefined();
+    logger.debug(`ServiceManager snowbridgeInitiator: ${snowbridgeInitiator}`);
   });
 
   it("should wait for era end and record reward points", async () => {

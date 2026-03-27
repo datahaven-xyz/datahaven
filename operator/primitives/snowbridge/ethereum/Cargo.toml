@@ -28,7 +28,6 @@ serde-big-array = { optional = true, features = [
 
 sp-io = { workspace = true }
 sp-runtime = { workspace = true }
-sp-std = { workspace = true }
 
 ethabi = { workspace = true }
 
@@ -51,5 +50,4 @@ std = [
     "serde-big-array",
     "sp-io/std",
     "sp-runtime/std",
-    "sp-std/std",
 ]

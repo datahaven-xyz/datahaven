@@ -79,11 +79,11 @@ describeSuite({
         const account = await context.polkadotJs().query.system.account(CHARLETH_ADDRESS);
         expect(account.data.free.toBigInt()).toBe(DEFAULT_GENESIS_BALANCE);
 
-        expect(result!.events.length === 8).to.be.true;
-        expect(context.polkadotJs().events.system.NewAccount.is(result!.events[3].event)).to.be
+        expect(result!.events.length).to.eq(7);
+        expect(context.polkadotJs().events.system.NewAccount.is(result!.events[2].event)).to.be
           .true;
-        expect(context.polkadotJs().events.balances.Endowed.is(result!.events[4].event)).to.be.true;
-        expect(context.polkadotJs().events.system.ExtrinsicFailed.is(result!.events[7].event)).to.be
+        expect(context.polkadotJs().events.balances.Endowed.is(result!.events[3].event)).to.be.true;
+        expect(context.polkadotJs().events.system.ExtrinsicFailed.is(result!.events[6].event)).to.be
           .true;
       },
     });

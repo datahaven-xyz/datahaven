@@ -9,9 +9,9 @@ pub use polkadot_parachain_primitives::primitives::{
 };
 pub use sp_core::U256;
 
+use alloc::vec::Vec;
 use codec::Encode;
 use sp_core::H256;
-use sp_std::prelude::*;
 use xcm::prelude::{
     AccountId32, AccountKey20, GeneralIndex, GeneralKey, GlobalConsensus, Location, PalletInstance,
 };
@@ -56,7 +56,7 @@ impl DescribeLocation for DescribeHere {
         }
     }
 }
-pub struct DescribeGlobalPrefix<DescribeInterior>(sp_std::marker::PhantomData<DescribeInterior>);
+pub struct DescribeGlobalPrefix<DescribeInterior>(core::marker::PhantomData<DescribeInterior>);
 impl<Suffix: DescribeLocation> DescribeLocation for DescribeGlobalPrefix<Suffix> {
     fn describe_location(l: &Location) -> Option<Vec<u8>> {
         match (l.parent_count(), l.first_interior()) {

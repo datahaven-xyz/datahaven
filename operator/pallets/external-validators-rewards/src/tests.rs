@@ -20,9 +20,9 @@ use {
         assert_noop, assert_ok,
         traits::{fungible::Mutate, GetStorageVersion, Hooks, StorageVersion},
     },
+    alloc::collections::btree_map::BTreeMap,
     pallet_external_validators::traits::{ActiveEraInfo, OnEraEnd, OnEraStart},
     sp_core::H160,
-    sp_std::collections::btree_map::BTreeMap,
 };
 
 #[test]

@@ -55,6 +55,7 @@ fn push_unsent_entry<T: Config>(window_start: u32, window_index: u32, duration: 
 #[benchmarks(where T: pallet_balances::Config + pallet_timestamp::Config<Moment = u64>)]
 mod benchmarks {
     use super::*;
+    use alloc::collections::BTreeMap;
 
     // worst case for the end of an era.
     #[benchmark]
@@ -93,7 +94,7 @@ mod benchmarks {
         window_start: u32,
         inflation_amount: u128,
     ) {
-        let mut operator_points = sp_std::collections::btree_map::BTreeMap::new();
+        let mut operator_points = BTreeMap::new();
 
         for i in 0..1000 {
             let _ = create_funded_user::<T>("candidate", i, 100);

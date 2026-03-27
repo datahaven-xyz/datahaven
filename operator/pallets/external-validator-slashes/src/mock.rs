@@ -134,7 +134,9 @@ thread_local! {
     pub static SENT_ETHEREUM_MESSAGE_NONCE: RefCell<u64> = const { RefCell::new(0) };
     pub static MOCK_REPORT_OFFENCE_SHOULD_FAIL: RefCell<bool> = const { RefCell::new(false) };
     pub static MOCK_REPORT_OFFENCE_CALLED: RefCell<bool> = const { RefCell::new(false) };
+    pub static MOCK_SEND_MESSAGE_SHOULD_FAIL: RefCell<bool> = const { RefCell::new(false) };
     pub static LAST_SENT_SLASHES: RefCell<Vec<crate::SlashData<AccountId>>> = RefCell::new(Vec::new());
+    pub static LAST_BUILT_ERA: RefCell<Option<EraIndex>> = const { RefCell::new(None) };
 }
 
 impl MockEraIndexProvider {
@@ -222,19 +224,32 @@ impl MockOkOutboundQueue {
     pub fn last_sent_slashes() -> Vec<crate::SlashData<AccountId>> {
         LAST_SENT_SLASHES.with(|r| r.borrow().clone())
     }
+
+    pub fn last_built_era() -> Option<EraIndex> {
+        LAST_BUILT_ERA.with(|r| *r.borrow())
+    }
+
+    pub fn set_should_fail(fail: bool) {
+        MOCK_SEND_MESSAGE_SHOULD_FAIL.with(|r| *r.borrow_mut() = fail);
+    }
 }
 impl crate::SendMessage<AccountId> for MockOkOutboundQueue {
     type Ticket = ();
     type Message = ();
-    fn build(slashes: &Vec<crate::SlashData<AccountId>>, _: u32) -> Option<Self::Ticket> {
+    fn build(slashes: &Vec<crate::SlashData<AccountId>>, era: u32) -> Option<Self::Ticket> {
         LAST_SENT_SLASHES.with(|r| *r.borrow_mut() = slashes.clone());
+        LAST_BUILT_ERA.with(|r| *r.borrow_mut() = Some(era));
         Some(())
     }
     fn validate(_: Self::Ticket) -> Result<Self::Ticket, SendError> {
         Ok(())
     }
     fn deliver(_: Self::Ticket) -> Result<H256, SendError> {
-        Ok(H256::zero())
+        if MOCK_SEND_MESSAGE_SHOULD_FAIL.with(|r| *r.borrow()) {
+            Err(SendError::MessageTooLarge)
+        } else {
+            Ok(H256::zero())
+        }
     }
 }
 
@@ -271,6 +286,7 @@ impl external_validator_slashes::Config for Test {
     type QueuedSlashesProcessedPerBlock = ConstU32<20>;
     type WeightInfo = ();
     type SendMessage = MockOkOutboundQueue;
+    type GovernanceOrigin = frame_system::EnsureRoot<u64>;
 }
 
 pub struct FullIdentificationOf;
@@ -286,6 +302,9 @@ impl pallet_session::historical::Config for Test {
 }
 // Build genesis storage according to the mock runtime.
 pub fn new_test_ext() -> sp_io::TestExternalities {
+    MOCK_SEND_MESSAGE_SHOULD_FAIL.with(|r| *r.borrow_mut() = false);
+    LAST_SENT_SLASHES.with(|r| r.borrow_mut().clear());
+    LAST_BUILT_ERA.with(|r| *r.borrow_mut() = None);
     system::GenesisConfig::<Test>::default()
         .build_storage()
         .unwrap()

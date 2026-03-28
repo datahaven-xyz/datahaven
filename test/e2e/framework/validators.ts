@@ -111,7 +111,10 @@ export const addValidatorToAllowlist = async (
     account: getOwnerAccount(),
     chain: null
   });
-  await connectors.publicClient.waitForTransactionReceipt({ hash });
+  const receipt = await connectors.publicClient.waitForTransactionReceipt({ hash });
+  if (receipt.status !== "success") {
+    throw new Error(`Add validator to allowlist failed: ${receipt.status}`);
+  }
 
   logger.debug(`Validator ${validatorName} added to allowlist`);
 };

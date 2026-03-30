@@ -1122,6 +1122,8 @@ impl_runtime_apis! {
             access_list: Option<Vec<(H160, Vec<H256>)>>,
             authorization_list: Option<AuthorizationList>,
         ) -> Result<pallet_evm::CreateInfo, sp_runtime::DispatchError> {
+            use pallet_evm::GasWeightMapping as _;
+
             let config = if estimate {
                 let mut config = <Runtime as pallet_evm::Config>::config().clone();
                 config.estimate = true;
@@ -1132,6 +1134,16 @@ impl_runtime_apis! {
             let is_transactional = false;
             let validate = true;
 
+            // Estimated encoded transaction size for create (EIP1559-style) for PoV validation.
+            // Base: from 20 + value 32 + gas_limit 32 + nonce 32 + action variant 1 + chain_id 8 + signature 65 = 190.
+            let mut estimated_transaction_len = data.len()
+                + 190
+                + if max_fee_per_gas.is_some() { 32 } else { 0 }
+                + if max_priority_fee_per_gas.is_some() { 32 } else { 0 };
+            if let Some(ref list) = access_list {
+                estimated_transaction_len += list.encode().len();
+            }
+
             let gas_limit = if gas_limit > U256::from(u64::MAX) {
                 u64::MAX
             } else {
@@ -1141,8 +1153,14 @@ impl_runtime_apis! {
             let without_base_extrinsic_weight = true;
             let weight_limit = <Runtime as pallet_evm::Config>::GasWeightMapping::gas_to_weight(
                 gas_limit,
-                without_base_extrinsic_weight
+                without_base_extrinsic_weight,
             );
+            let (weight_limit, proof_size_base_cost) =
+                if weight_limit.proof_size() > 0 {
+                    (Some(weight_limit), Some(estimated_transaction_len as u64))
+                } else {
+                    (None, None)
+                };
 
             #[allow(clippy::or_fun_call)]
             <Runtime as pallet_evm::Config>::Runner::create(
@@ -1157,10 +1175,11 @@ impl_runtime_apis! {
                 authorization_list.unwrap_or_default(),
                 is_transactional,
                 validate,
-                Some(weight_limit),
-                None,
+                weight_limit,
+                proof_size_base_cost,
                 config.as_ref().unwrap_or(<Runtime as pallet_evm::Config>::config()),
-            ).map_err(|err| err.error.into())
+            )
+            .map_err(|err| err.error.into())
         }
 
         fn current_transaction_statuses() -> Option<Vec<TransactionStatus>> {

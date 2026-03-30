@@ -57,6 +57,7 @@ pub trait WeightInfo {
 	fn force_inject_slash() -> Weight;
 	fn root_test_send_msg_to_eth() -> Weight;
 	fn process_slashes_queue(s: u32, ) -> Weight;
+	fn retry_unsent_slash_era() -> Weight;
 	fn set_slashing_mode() -> Weight;
 }
 
@@ -134,6 +135,11 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 			.saturating_add(T::DbWeight::get().reads(4_u64))
 			.saturating_add(T::DbWeight::get().writes(2_u64))
 			.saturating_add(Weight::from_parts(0, 42).saturating_mul(s.into()))
+	}
+
+	fn retry_unsent_slash_era() -> Weight {
+		// Same as the success path for one queued batch.
+		Self::process_slashes_queue(10)
 	}
 
 	fn set_slashing_mode() -> Weight {
@@ -219,6 +225,10 @@ impl WeightInfo for () {
 			.saturating_add(RocksDbWeight::get().reads(4_u64))
 			.saturating_add(RocksDbWeight::get().writes(2_u64))
 			.saturating_add(Weight::from_parts(0, 42).saturating_mul(s.into()))
+	}
+
+	fn retry_unsent_slash_era() -> Weight {
+		Self::process_slashes_queue(10)
 	}
 
 	fn set_slashing_mode() -> Weight {

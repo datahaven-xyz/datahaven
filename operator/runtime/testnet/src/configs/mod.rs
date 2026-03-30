@@ -1733,6 +1733,7 @@ impl pallet_external_validator_slashes::Config for Runtime {
     type QueuedSlashesProcessedPerBlock = ConstU32<10>;
     type WeightInfo = testnet_weights::pallet_external_validator_slashes::WeightInfo<Runtime>;
     type SendMessage = SlashesSendAdapter;
+    type GovernanceOrigin = EnsureRootWithSuccess<AccountId, RootLocation>;
 }
 
 parameter_types! {

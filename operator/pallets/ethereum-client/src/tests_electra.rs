@@ -247,6 +247,10 @@ fn compute_fork_version() {
             version: [0, 0, 0, 5],
             epoch: 50,
         },
+        fulu: Fork {
+            version: [0, 0, 0, 6],
+            epoch: 60,
+        },
     };
     new_tester().execute_with(|| {
         assert_eq!(
@@ -280,6 +284,10 @@ fn compute_fork_version() {
         assert_eq!(
             EthereumBeaconClient::select_fork_version(&mock_fork_versions, 50),
             [0, 0, 0, 5]
+        );
+        assert_eq!(
+            EthereumBeaconClient::select_fork_version(&mock_fork_versions, 60),
+            [0, 0, 0, 6]
         );
     });
 }

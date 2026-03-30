@@ -6,9 +6,9 @@ use crate::{
         BeaconHeader, ExecutionPayloadHeader, ForkData, SigningData, SyncAggregate, SyncCommittee,
     },
 };
+use alloc::{vec, vec::Vec};
 use byte_slice_cast::AsByteSlice;
 use sp_core::H256;
-use sp_std::{vec, vec::Vec};
 use ssz_rs::{
     prelude::{List, Vector},
     Bitvector, Deserialize, DeserializeError, SimpleSerialize, SimpleSerializeError, Sized, U256,
@@ -204,9 +204,9 @@ pub mod deneb {
         ssz::hash_tree_root,
         types::deneb::ExecutionPayloadHeader,
     };
+    use alloc::{vec, vec::Vec};
     use byte_slice_cast::AsByteSlice;
     use sp_core::H256;
-    use sp_std::{vec, vec::Vec};
     use ssz_rs::{
         prelude::{List, Vector},
         Deserialize, DeserializeError, SimpleSerializeError, Sized, U256,

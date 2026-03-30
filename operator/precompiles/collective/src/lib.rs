@@ -17,7 +17,10 @@
 //! Precompile to interact with pallet_collective instances.
 
 #![cfg_attr(not(feature = "std"), no_std)]
+extern crate alloc;
 
+use alloc::boxed::Box;
+use alloc::vec::Vec;
 use core::marker::PhantomData;
 use fp_account::AccountId20;
 use fp_evm::Log;
@@ -32,7 +35,6 @@ use parity_scale_codec::{DecodeLimit as _, MaxEncodedLen};
 use precompile_utils::prelude::*;
 use sp_core::{Decode, Get, H160, H256};
 use sp_runtime::traits::Dispatchable;
-use sp_std::{boxed::Box, vec::Vec};
 
 #[cfg(test)]
 mod mock;

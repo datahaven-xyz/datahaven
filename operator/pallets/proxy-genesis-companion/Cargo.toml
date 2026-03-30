@@ -13,7 +13,6 @@ frame-system = { workspace = true }
 pallet-proxy = { workspace = true }
 scale-info = { workspace = true, features = ["derive"] }
 sp-runtime = { workspace = true }
-sp-std = { workspace = true }
 
 [dev-dependencies]
 pallet-balances = { workspace = true, features = ["insecure_zero_ed", "std"] }
@@ -30,7 +29,6 @@ std = [
     "pallet-proxy/std",
     "scale-info/std",
     "sp-runtime/std",
-    "sp-std/std",
 ]
 try-runtime = [
     "frame-support/try-runtime",

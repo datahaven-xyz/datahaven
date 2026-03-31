@@ -25,6 +25,13 @@ use {
     sp_core::H160,
 };
 
+fn run_rewards_initialize() {
+    let next_block = System::block_number() + 1;
+    System::set_block_number(next_block);
+    Timestamp::set_timestamp(Timestamp::get() + BLOCK_TIME);
+    let _ = <crate::Pallet<Test> as Hooks<u64>>::on_initialize(next_block);
+}
+
 #[test]
 fn basic_setup_works() {
     new_test_ext().execute_with(|| {
@@ -82,22 +89,13 @@ fn runtime_upgrade_schedules_window_mode_for_next_era_and_resets_retry_state() {
         StorageVersion::new(1).put::<crate::Pallet<Test>>();
         crate::WindowModeStartsAtEra::<Test>::put(0);
         crate::NextWindowToSubmit::<Test>::put(123);
-        crate::UnsentRewardWindow::<Test>::insert(
-            5,
-            crate::QueuedRewardsWindow {
-                window_start: 100,
-                window_index: 10,
-                duration: 10,
-            },
-        );
         crate::UnsentRewardHead::<Test>::put(5);
         crate::UnsentRewardTail::<Test>::put(9);
 
         let _ = <crate::Pallet<Test> as Hooks<u64>>::on_runtime_upgrade();
 
         assert_eq!(crate::WindowModeStartsAtEra::<Test>::get(), 8);
-        assert_eq!(crate::NextWindowToSubmit::<Test>::get(), 0);
-        assert_eq!(crate::UnsentRewardWindow::<Test>::iter().count(), 0);
+        assert_eq!(crate::NextWindowToSubmit::<Test>::get(), None);
         assert_eq!(crate::UnsentRewardHead::<Test>::get(), 0);
         assert_eq!(crate::UnsentRewardTail::<Test>::get(), 0);
         assert_eq!(
@@ -188,7 +186,7 @@ fn transition_era_on_era_end_is_skipped_before_cutover() {
             "transition era should not emit window-processing events before cutover"
         );
         assert_eq!(crate::WindowInflationAmount::<Test>::iter().count(), 0);
-        assert_eq!(crate::NextWindowToSubmit::<Test>::get(), 0);
+        assert_eq!(crate::NextWindowToSubmit::<Test>::get(), None);
     })
 }
 
@@ -246,6 +244,8 @@ fn window_mode_submits_closed_windows_and_advances_pointer() {
 
         run_to_block(15); // now = 45s, window [30,40) is closed
         ExternalValidatorsRewards::on_era_end(1);
+        run_rewards_initialize();
+        run_rewards_initialize();
 
         // Inflation is 42 (default). After 20% treasury split: rewards_amount = 34.
         // Era spans 20s to 45s = 25s. Window [20,30) overlap = 10s, [30,40) overlap = 10s,
@@ -267,7 +267,7 @@ fn window_mode_submits_closed_windows_and_advances_pointer() {
 
         assert_eq!(
             pallet_external_validators_rewards::NextWindowToSubmit::<Test>::get(),
-            40
+            Some(40)
         );
         assert!(
             pallet_external_validators_rewards::WindowOperatorPoints::<Test>::get(30).is_empty()
@@ -311,7 +311,7 @@ fn window_mode_era_inflation_split_across_multiple_windows() {
             ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(1));
         }
 
-        // on_era_end allocates inflation across windows then processes closed ones.
+        // on_era_end allocates inflation across windows; on_initialize submits closed ones.
         // Era spans from 5s to now=35s (30s duration).
         // Window overlaps:
         //   [0,10):  overlap [5,10)  = 5s  → 5/30 of inflation
@@ -319,6 +319,9 @@ fn window_mode_era_inflation_split_across_multiple_windows() {
         //   [20,30): overlap [20,30) = 10s → 10/30 of inflation
         //   [30,40): overlap [30,35) = 5s  → 5/30 of inflation (current, not closed)
         ExternalValidatorsRewards::on_era_end(1);
+        run_rewards_initialize();
+        run_rewards_initialize();
+        run_rewards_initialize();
 
         // on_era_end allocates mint_result.rewards_amount (post-treasury split) to windows.
         // Inflation = 42, treasury = 20% of 42 = 8, rewards_amount = 34.
@@ -327,7 +330,7 @@ fn window_mode_era_inflation_split_across_multiple_windows() {
         let treasury_amount = InflationTreasuryProportion::get().mul_floor(inflation);
         let rewards_amount = inflation - treasury_amount;
 
-        // Closed windows are cleared by process_closed_windows, so verify via events.
+        // Closed windows are cleared one per block, so verify via events after draining them.
         let events = System::events();
 
         let expected_w0 = rewards_amount * 5 / 30;
@@ -431,6 +434,9 @@ fn window_mode_submits_multiple_closed_windows_in_single_era_end() {
         // Window [60,70) is current.
         run_to_block(35); // now = 65s
         ExternalValidatorsRewards::on_era_end(1);
+        run_rewards_initialize();
+        run_rewards_initialize();
+        run_rewards_initialize();
 
         let events = System::events();
 
@@ -475,7 +481,7 @@ fn window_mode_submits_multiple_closed_windows_in_single_era_end() {
         // NextWindowToSubmit should advance past all closed windows
         assert_eq!(
             pallet_external_validators_rewards::NextWindowToSubmit::<Test>::get(),
-            60
+            Some(60)
         );
 
         // All closed windows should have their storage cleared
@@ -522,6 +528,8 @@ fn window_mode_delivery_failure_emits_submission_failed_event() {
         // Advance to block 15 (now=45s), window [30,40) is closed
         run_to_block(15); // now = 45s
         ExternalValidatorsRewards::on_era_end(1);
+        run_rewards_initialize();
+        run_rewards_initialize();
 
         let events = System::events();
 
@@ -563,7 +571,7 @@ fn window_mode_delivery_failure_emits_submission_failed_event() {
         // NextWindowToSubmit should still advance
         assert_eq!(
             pallet_external_validators_rewards::NextWindowToSubmit::<Test>::get(),
-            40
+            Some(40)
         );
         assert_eq!(unsent_len(), 1, "failed window should be queued for retry");
     })
@@ -660,6 +668,7 @@ fn test_on_era_end() {
 
         run_to_block(10);
         ExternalValidatorsRewards::on_era_end(1);
+        run_rewards_initialize();
 
         let inflation =
             <Test as pallet_external_validators_rewards::Config>::EraInflationProvider::get();
@@ -4285,6 +4294,7 @@ fn send_failure_emits_window_submission_failed_and_queues_window() {
 
         System::reset_events();
         ExternalValidatorsRewards::on_era_end(1);
+        run_rewards_initialize();
 
         // Verify window submission failure event
         let window_index = window_start.saturating_sub(genesis) / window_duration;
@@ -4333,6 +4343,7 @@ fn failed_window_is_retried_on_initialize() {
 
         Timestamp::set_timestamp(((window_start + duration + 1) as u64) * 1000);
         ExternalValidatorsRewards::on_era_end(1);
+        run_rewards_initialize();
 
         assert_eq!(unsent_len(), 1);
 
@@ -4340,7 +4351,7 @@ fn failed_window_is_retried_on_initialize() {
 
         // Sending should succeed (send_message_fails is false by default)
         System::reset_events();
-        ExternalValidatorsRewards::process_unsent_reward_eras();
+        run_rewards_initialize();
 
         // Queue should be empty
         assert!(unsent_is_empty());
@@ -4381,7 +4392,7 @@ fn on_initialize_retries_and_succeeds() {
         push_unsent(window_start, window_index, duration);
 
         System::reset_events();
-        ExternalValidatorsRewards::process_unsent_reward_eras();
+        run_rewards_initialize();
 
         assert!(unsent_is_empty());
 
@@ -4414,18 +4425,18 @@ fn on_initialize_moves_failed_entry_to_back() {
         push_unsent(40, 4, duration);
 
         // First call: tries window 30, fails, moves it to the back of the queue
-        ExternalValidatorsRewards::process_unsent_reward_eras();
+        run_rewards_initialize();
         assert_eq!(unsent_len(), 2);
 
         // Second call: tries window 40, fails, moves it to the back
-        ExternalValidatorsRewards::process_unsent_reward_eras();
+        run_rewards_initialize();
         assert_eq!(unsent_len(), 2);
 
         Mock::mutate(|mock| mock.send_message_fails = false);
 
         // Third call: window 30 (now at front again), succeeds
         System::reset_events();
-        ExternalValidatorsRewards::process_unsent_reward_eras();
+        run_rewards_initialize();
         assert_eq!(unsent_len(), 1);
         System::assert_has_event(RuntimeEvent::ExternalValidatorsRewards(
             crate::Event::RewardsWindowRetried {
@@ -4438,7 +4449,7 @@ fn on_initialize_moves_failed_entry_to_back() {
         ));
 
         // Fourth call: window 40 succeeds
-        ExternalValidatorsRewards::process_unsent_reward_eras();
+        run_rewards_initialize();
         assert!(unsent_is_empty());
     })
 }
@@ -4452,7 +4463,7 @@ fn on_initialize_removes_expired_window() {
         push_unsent(999, 99, duration);
 
         System::reset_events();
-        ExternalValidatorsRewards::process_unsent_reward_eras();
+        run_rewards_initialize();
 
         assert!(unsent_is_empty());
 
@@ -4471,7 +4482,7 @@ fn on_initialize_noop_when_queue_empty() {
         run_to_block(1);
         System::reset_events();
 
-        ExternalValidatorsRewards::process_unsent_reward_eras();
+        run_rewards_initialize();
 
         // No events should be emitted
         let events = System::events();
@@ -4495,7 +4506,7 @@ fn on_initialize_processes_only_head() {
         push_unsent(40, 4, duration);
 
         System::reset_events();
-        ExternalValidatorsRewards::process_unsent_reward_eras();
+        run_rewards_initialize();
 
         assert_eq!(unsent_len(), 1);
     })
@@ -4602,10 +4613,11 @@ fn send_failure_retains_window_and_advances_pointer() {
 
         System::reset_events();
         ExternalValidatorsRewards::on_era_end(1);
+        run_rewards_initialize();
 
         let next_window = crate::NextWindowToSubmit::<Test>::get();
         assert!(
-            next_window > window_start,
+            next_window == Some(window_start + window_duration),
             "NextWindowToSubmit should advance past the failed window"
         );
 
@@ -4681,15 +4693,15 @@ fn head_of_line_blocking_avoided() {
         Mock::mutate(|mock| mock.send_message_fails = true);
 
         // Block 1: tries window 30, fails, advances head → window 40
-        ExternalValidatorsRewards::process_unsent_reward_eras();
+        run_rewards_initialize();
         // Block 2: tries window 40, fails, advances head → window 50
-        ExternalValidatorsRewards::process_unsent_reward_eras();
+        run_rewards_initialize();
 
         Mock::mutate(|mock| mock.send_message_fails = false);
 
         // Block 3: tries window 50, succeeds
         System::reset_events();
-        ExternalValidatorsRewards::process_unsent_reward_eras();
+        run_rewards_initialize();
         System::assert_has_event(RuntimeEvent::ExternalValidatorsRewards(
             crate::Event::RewardsWindowRetried {
                 message_id: Default::default(),
@@ -4701,7 +4713,7 @@ fn head_of_line_blocking_avoided() {
         ));
 
         // Block 4: wraps around to window 30, succeeds
-        ExternalValidatorsRewards::process_unsent_reward_eras();
+        run_rewards_initialize();
         System::assert_has_event(RuntimeEvent::ExternalValidatorsRewards(
             crate::Event::RewardsWindowRetried {
                 message_id: Default::default(),
@@ -4713,7 +4725,7 @@ fn head_of_line_blocking_avoided() {
         ));
 
         // Block 5: window 40 succeeds
-        ExternalValidatorsRewards::process_unsent_reward_eras();
+        run_rewards_initialize();
         assert!(unsent_is_empty());
     })
 }

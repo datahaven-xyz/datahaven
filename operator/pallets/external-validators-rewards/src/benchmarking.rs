@@ -23,7 +23,7 @@ use crate::Pallet as ExternalValidatorsRewards;
 use {
     crate::types::BenchmarkHelper,
     frame_benchmarking::{account, v2::*, BenchmarkError},
-    frame_support::traits::{Currency, EnsureOrigin},
+    frame_support::traits::{Currency, EnsureOrigin, Hooks},
 };
 
 const SEED: u32 = 0;
@@ -108,12 +108,44 @@ mod benchmarks {
     // on_initialize: unsent queue is empty (2 reads for head+tail)
     #[benchmark]
     fn process_unsent_reward_eras_empty() -> Result<(), BenchmarkError> {
-        // Ensure queue is empty (default state: head == tail == 0)
-        assert!(ExternalValidatorsRewards::<T>::unsent_queue_is_empty());
+        // Exercise the "empty slot at head" fallback path that returns the empty weight.
+        <UnsentRewardHead<T>>::put(0);
+        <UnsentRewardTail<T>>::put(1);
+        frame_system::Pallet::<T>::set_block_number(1u32.into());
 
         #[block]
         {
-            ExternalValidatorsRewards::<T>::process_unsent_reward_eras();
+            <ExternalValidatorsRewards<T> as Hooks<
+                frame_system::pallet_prelude::BlockNumberFor<T>,
+            >>::on_initialize(1u32.into());
+        }
+
+        Ok(())
+    }
+
+    #[benchmark]
+    fn process_closed_windows_idle() -> Result<(), BenchmarkError> {
+        pallet_timestamp::Now::<T>::put(35_000u64);
+
+        #[block]
+        {
+            ExternalValidatorsRewards::<T>::process_closed_windows(35, 0, 10);
+        }
+
+        Ok(())
+    }
+
+    #[benchmark]
+    fn process_closed_windows_processed() -> Result<(), BenchmarkError> {
+        frame_system::Pallet::<T>::set_block_number(0u32.into());
+        T::BenchmarkHelper::setup();
+        setup_window_reward_state::<T>(20, 42);
+        <NextWindowToSubmit<T>>::put(20);
+        pallet_timestamp::Now::<T>::put(35_000u64);
+
+        #[block]
+        {
+            ExternalValidatorsRewards::<T>::process_closed_windows(35, 0, 10);
         }
 
         Ok(())
@@ -123,10 +155,13 @@ mod benchmarks {
     #[benchmark]
     fn process_unsent_reward_eras_expired() -> Result<(), BenchmarkError> {
         push_unsent_entry::<T>(999, 99, 10);
+        frame_system::Pallet::<T>::set_block_number(1u32.into());
 
         #[block]
         {
-            ExternalValidatorsRewards::<T>::process_unsent_reward_eras();
+            <ExternalValidatorsRewards<T> as Hooks<
+                frame_system::pallet_prelude::BlockNumberFor<T>,
+            >>::on_initialize(1u32.into());
         }
 
         // Entry should have been removed
@@ -143,10 +178,13 @@ mod benchmarks {
         setup_window_reward_state::<T>(0, 42);
 
         push_unsent_entry::<T>(0, 0, 10);
+        frame_system::Pallet::<T>::set_block_number(1u32.into());
 
         #[block]
         {
-            ExternalValidatorsRewards::<T>::process_unsent_reward_eras();
+            <ExternalValidatorsRewards<T> as Hooks<
+                frame_system::pallet_prelude::BlockNumberFor<T>,
+            >>::on_initialize(1u32.into());
         }
 
         assert!(ExternalValidatorsRewards::<T>::unsent_queue_is_empty());
@@ -162,10 +200,13 @@ mod benchmarks {
         setup_window_reward_state::<T>(0, 42);
 
         push_unsent_entry::<T>(0, 0, 10);
+        frame_system::Pallet::<T>::set_block_number(1u32.into());
 
         #[block]
         {
-            ExternalValidatorsRewards::<T>::process_unsent_reward_eras();
+            <ExternalValidatorsRewards<T> as Hooks<
+                frame_system::pallet_prelude::BlockNumberFor<T>,
+            >>::on_initialize(1u32.into());
         }
 
         Ok(())

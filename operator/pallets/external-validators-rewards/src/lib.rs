@@ -193,7 +193,16 @@ pub mod pallet {
     #[pallet::hooks]
     impl<T: Config> Hooks<frame_system::pallet_prelude::BlockNumberFor<T>> for Pallet<T> {
         fn on_initialize(_n: frame_system::pallet_prelude::BlockNumberFor<T>) -> Weight {
-            Self::process_unsent_reward_eras()
+            let head = UnsentRewardHead::<T>::get();
+            let tail = UnsentRewardTail::<T>::get();
+
+            if head != tail {
+                return Self::process_unsent_reward_eras_from(head, tail);
+            }
+
+            let (genesis, interval) = Self::rewards_window_config();
+            let now = Self::now_seconds();
+            Self::process_closed_windows(now, genesis, interval)
         }
 
         fn on_runtime_upgrade() -> Weight {
@@ -210,9 +219,6 @@ pub mod pallet {
             // in-flight era is not partially accounted under mixed semantics.
             WindowModeStartsAtEra::<T>::put(cutover_era);
             NextWindowToSubmit::<T>::kill();
-            for slot in 0..UNSENT_QUEUE_CAPACITY {
-                UnsentRewardWindow::<T>::remove(slot);
-            }
             UnsentRewardHead::<T>::put(0);
             UnsentRewardTail::<T>::put(0);
             STORAGE_VERSION.put::<Pallet<T>>();
@@ -223,7 +229,7 @@ pub mod pallet {
                 cutover_era,
             );
 
-            T::DbWeight::get().reads_writes(2, 69)
+            T::DbWeight::get().reads_writes(2, 5)
         }
 
         #[cfg(feature = "try-runtime")]
@@ -257,7 +263,7 @@ pub mod pallet {
                 "Window cutover era was not initialized correctly",
             );
             frame_support::ensure!(
-                NextWindowToSubmit::<T>::get() == 0,
+                NextWindowToSubmit::<T>::get().is_none(),
                 "NextWindowToSubmit was not reset",
             );
             frame_support::ensure!(
@@ -267,10 +273,6 @@ pub mod pallet {
             frame_support::ensure!(
                 UnsentRewardTail::<T>::get() == 0,
                 "UnsentRewardTail was not reset",
-            );
-            frame_support::ensure!(
-                UnsentRewardWindow::<T>::iter().next().is_none(),
-                "UnsentRewardWindow entries were not cleared",
             );
 
             Ok(())
@@ -429,7 +431,7 @@ pub mod pallet {
 
     /// Pointer to the next window start to submit.
     #[pallet::storage]
-    pub type NextWindowToSubmit<T: Config> = StorageValue<_, u32, ValueQuery>;
+    pub type NextWindowToSubmit<T: Config> = StorageValue<_, u32, OptionQuery>;
 
     /// Era at which window mode becomes active after a live upgrade.
     /// `0` means window mode is active immediately (fresh chains/tests).
@@ -495,19 +497,6 @@ pub mod pallet {
             WindowOperatorPoints::<T>::remove(window_start);
         }
 
-        fn earliest_window_with_state() -> Option<u32> {
-            let mut earliest = None;
-
-            for window in WindowOperatorPoints::<T>::iter_keys() {
-                earliest = Some(earliest.map_or(window, |current: u32| current.min(window)));
-            }
-            for window in WindowInflationAmount::<T>::iter_keys() {
-                earliest = Some(earliest.map_or(window, |current: u32| current.min(window)));
-            }
-
-            earliest
-        }
-
         fn window_rewards_info(
             window_start: u32,
             window_index: u32,
@@ -538,12 +527,21 @@ pub mod pallet {
             genesis: u32,
             interval: u32,
         ) {
-            if inflation_amount == 0 || era_end <= era_start {
+            if era_end <= era_start {
+                return;
+            }
+
+            let mut window_start = Self::window_start_for(era_start, genesis, interval);
+
+            if NextWindowToSubmit::<T>::get().is_none() {
+                NextWindowToSubmit::<T>::put(window_start);
+            }
+
+            if inflation_amount == 0 {
                 return;
             }
 
             let era_duration = era_end.saturating_sub(era_start).max(1);
-            let mut window_start = Self::window_start_for(era_start, genesis, interval);
             let mut allocated = 0u128;
             let mut last_window = None;
 
@@ -579,85 +577,85 @@ pub mod pallet {
             }
         }
 
-        fn process_closed_windows(now: u32, genesis: u32, interval: u32) {
-            let mut next_window = NextWindowToSubmit::<T>::get();
+        pub(crate) fn process_closed_windows(now: u32, genesis: u32, interval: u32) -> Weight {
+            let Some(mut next_window) = NextWindowToSubmit::<T>::get() else {
+                return T::WeightInfo::process_closed_windows_idle();
+            };
 
-            if next_window == 0 {
-                next_window = Self::earliest_window_with_state().unwrap_or_else(|| {
-                    Self::window_start_for(now.saturating_sub(interval), genesis, interval)
-                });
+            if next_window.saturating_add(interval) > now {
+                return T::WeightInfo::process_closed_windows_idle();
             }
 
-            while next_window.saturating_add(interval) <= now {
-                let inflation_amount = WindowInflationAmount::<T>::get(next_window);
-                let operator_points = WindowOperatorPoints::<T>::get(next_window);
-                let total_points: u128 = operator_points.values().map(|p| *p as u128).sum();
-                let window_index = Self::window_index_for(next_window, genesis, interval);
+            let inflation_amount = WindowInflationAmount::<T>::get(next_window);
+            let operator_points = WindowOperatorPoints::<T>::get(next_window);
+            let total_points: u128 = operator_points.values().map(|p| *p as u128).sum();
+            let window_index = Self::window_index_for(next_window, genesis, interval);
 
-                if total_points == 0 || inflation_amount == 0 {
-                    Self::clear_window(next_window);
-                    Self::deposit_event(Event::RewardsWindowSkipped {
+            if total_points == 0 || inflation_amount == 0 {
+                Self::clear_window(next_window);
+                Self::deposit_event(Event::RewardsWindowSkipped {
+                    window_start: next_window,
+                    window_index,
+                });
+                next_window = next_window.saturating_add(interval);
+                NextWindowToSubmit::<T>::put(next_window);
+                return T::WeightInfo::process_closed_windows_processed();
+            }
+
+            let utils = RewardsPeriodUtils {
+                period_index: window_index,
+                period_start: next_window,
+                duration: interval,
+                total_points,
+                individual_points: operator_points.into_iter().collect(),
+                inflation_amount,
+            };
+
+            match Self::send_rewards_message(&utils) {
+                Some(message_id) => {
+                    Self::deposit_event(Event::RewardsWindowSubmitted {
+                        message_id,
+                        window_start: next_window,
+                        window_index,
+                        total_points,
+                        inflation_amount,
+                    });
+                }
+                None => {
+                    Self::deposit_event(Event::RewardsWindowSubmissionFailed {
                         window_start: next_window,
                         window_index,
                     });
-                    next_window = next_window.saturating_add(interval);
-                    continue;
-                }
 
-                let utils = RewardsPeriodUtils {
-                    period_index: window_index,
-                    period_start: next_window,
-                    duration: interval,
-                    total_points,
-                    individual_points: operator_points.into_iter().collect(),
-                    inflation_amount,
-                };
+                    let queued_window = QueuedRewardsWindow {
+                        window_start: next_window,
+                        window_index,
+                        duration: interval,
+                    };
 
-                match Self::send_rewards_message(&utils) {
-                    Some(message_id) => {
-                        Self::deposit_event(Event::RewardsWindowSubmitted {
-                            message_id,
-                            window_start: next_window,
-                            window_index,
-                            total_points,
-                            inflation_amount,
-                        });
+                    if Self::unsent_queue_push(queued_window) {
+                        next_window = next_window.saturating_add(interval);
+                        NextWindowToSubmit::<T>::put(next_window);
+                        return T::WeightInfo::process_closed_windows_processed();
                     }
-                    None => {
-                        Self::deposit_event(Event::RewardsWindowSubmissionFailed {
-                            window_start: next_window,
-                            window_index,
-                        });
 
-                        let queued_window = QueuedRewardsWindow {
-                            window_start: next_window,
-                            window_index,
-                            duration: interval,
-                        };
-
-                        if Self::unsent_queue_push(queued_window) {
-                            next_window = next_window.saturating_add(interval);
-                            continue;
-                        }
-
-                        log::error!(
-                            target: "ext_validators_rewards",
-                            "Unsent reward queue full, cannot enqueue window {}",
-                            next_window,
-                        );
-                        Self::deposit_event(Event::UnsentWindowQueueFull {
-                            window_start: next_window,
-                            window_index,
-                        });
-                        break;
-                    }
+                    log::error!(
+                        target: "ext_validators_rewards",
+                        "Unsent reward queue full, cannot enqueue window {}",
+                        next_window,
+                    );
+                    Self::deposit_event(Event::UnsentWindowQueueFull {
+                        window_start: next_window,
+                        window_index,
+                    });
+                    return T::WeightInfo::process_closed_windows_processed();
                 }
-
-                Self::clear_window(next_window);
-                next_window = next_window.saturating_add(interval);
             }
 
+            Self::clear_window(next_window);
+            next_window = next_window.saturating_add(interval);
             NextWindowToSubmit::<T>::put(next_window);
+            T::WeightInfo::process_closed_windows_processed()
         }
 
         /// Reward validators. Does not check if the validators are valid, caller needs to make sure of that.
@@ -794,10 +792,7 @@ pub mod pallet {
         /// Process at most one unsent reward window per block.
         /// On failure the head pointer advances to the next entry so a single
         /// stuck window does not block retries for subsequent windows.
-        pub(crate) fn process_unsent_reward_eras() -> Weight {
-            let head = UnsentRewardHead::<T>::get();
-            let tail = UnsentRewardTail::<T>::get();
-
+        fn process_unsent_reward_eras_from(head: u32, tail: u32) -> Weight {
             if head == tail {
                 return T::WeightInfo::process_unsent_reward_eras_empty();
             }
@@ -1284,8 +1279,6 @@ pub mod pallet {
                 T::WeightInfo::on_era_end(),
                 DispatchClass::Mandatory,
             );
-
-            Self::process_closed_windows(now, genesis, interval);
         }
     }
 }

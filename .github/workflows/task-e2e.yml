@@ -34,7 +34,7 @@ permissions:
 env:
   FOUNDRY_PROFILE: ci
   LOG_LEVEL: debug
-  DOCKER_HOST: unix:///run/user/1020/podman/podman.sock
+  # DOCKER_HOST: unix:///run/user/1020/podman/podman.sock  # was: self-hosted podman socket
   KURTOSIS_CORE_IMAGE: docker.io/kurtosistech/core
   KURTOSIS_ENGINE_IMAGE: docker.io/kurtosistech/engine
   KURTOSIS_VERSION: 1.15.2
@@ -42,8 +42,9 @@ env:
 
 jobs:
   kurtosis:
-    runs-on:
-      group: DH-Testing
+    runs-on: ubuntu-latest
+    # was: runs-on:
+    #        group: DH-Testing
     name: E2E Tests with Kurtosis Ethereum Network
     defaults:
       run:
@@ -91,27 +92,26 @@ jobs:
           fi
           kurtosis analytics disable
           kurtosis version
-      - name: Configure Kurtosis cluster = podman
+      # was: podman cluster config for self-hosted runner
+      # - name: Configure Kurtosis cluster = podman
+      #   run: |
+      #     CFG_PATH="$(kurtosis config path)"
+      #     mkdir -p "$(dirname "$CFG_PATH")"
+      #     cat > "$CFG_PATH" <<'YML'
+      #     config-version: 6
+      #     should-send-metrics: true
+      #     kurtosis-clusters:
+      #       docker:
+      #         type: "docker"
+      #       podman:
+      #         type: "podman"
+      #     YML
+      #     kurtosis cluster set podman
+      #     kurtosis cluster get
+      - name: Start Kurtosis engine
         run: |
-          # Get the config path from Kurtosis itself (portable)
-          CFG_PATH="$(kurtosis config path)"
-          mkdir -p "$(dirname "$CFG_PATH")"
-          # Create/update config with a podman cluster entry
-          cat > "$CFG_PATH" <<'YML'
-          config-version: 6
-          should-send-metrics: true
-          kurtosis-clusters:
-            docker:
-              type: "docker"
-            podman:
-              type: "podman"
-          YML
-          kurtosis cluster set podman
-          kurtosis cluster get
-      - name: Start Kurtosis engine with Podman
-        run: |
-          kurtosis engine stop
-          kurtosis clean
+          kurtosis engine stop || true
+          kurtosis clean || true
           kurtosis engine start
           kurtosis engine status
       - uses: actions/cache@v4
@@ -154,4 +154,5 @@ jobs:
 
       - name: Delete volumes not used
         if: always()
-        run: podman system prune --volumes -f
+        run: docker system prune --volumes -f
+        # was: podman system prune --volumes -f

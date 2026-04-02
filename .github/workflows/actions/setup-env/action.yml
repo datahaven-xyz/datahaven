@@ -8,7 +8,7 @@ inputs:
     default: "cache"
   
   install-deps:
-    description: "Whether to install system dependencies. Set to false for self-hosted runners with pre-installed deps"
+    description: "Whether to install system dependencies via apt. Set to false to install dependencies locally without sudo."
     required: false
     default: "true"
 
@@ -128,9 +128,9 @@ runs:
       shell: bash
       run: sudo apt-get update && sudo apt-get install -y libpq-dev libclang-dev
     
-    # Auto-install missing dependencies when install-deps is false (for self-hosted runners)
+    # Auto-install missing dependencies locally when install-deps is false (no sudo required)
     # Note: PATH and env vars are already set up in "Setup paths for cached tools" step
-    - name: Setup system dependencies (self-hosted)
+    - name: Setup system dependencies (local install)
       if: inputs.install-deps == 'false'
       shell: bash
       run: |
@@ -226,8 +226,8 @@ runs:
       with:
         repo-token: ${{ github.token }}
     
-    # Auto-install protoc when install-deps is false (for self-hosted runners)
-    - name: Setup Protoc (self-hosted)
+    # Auto-install protoc locally when install-deps is false (no sudo required)
+    - name: Setup Protoc (local install)
       if: inputs.install-deps == 'false'
       shell: bash
       run: |

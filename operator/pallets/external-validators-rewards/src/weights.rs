@@ -54,6 +54,8 @@ use core::marker::PhantomData;
 /// Weight functions needed for pallet_external_validators_rewards.
 pub trait WeightInfo {
 	fn on_era_end() -> Weight;
+	fn process_closed_windows_idle() -> Weight;
+	fn process_closed_windows_processed() -> Weight;
 	fn process_unsent_reward_eras_empty() -> Weight;
 	fn process_unsent_reward_eras_expired() -> Weight;
 	fn process_unsent_reward_eras_success() -> Weight;
@@ -88,6 +90,17 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 		Weight::from_parts(1_136_401_000, 39987)
 			.saturating_add(T::DbWeight::get().reads(5_u64))
 			.saturating_add(T::DbWeight::get().writes(5_u64))
+	}
+
+	fn process_closed_windows_idle() -> Weight {
+		Weight::from_parts(10_000_000, 0)
+			.saturating_add(T::DbWeight::get().reads(3_u64))
+	}
+
+	fn process_closed_windows_processed() -> Weight {
+		// Use the existing resend success path as an upper bound for a single
+		// closed-window submission/skip attempt.
+		Self::process_unsent_reward_eras_success()
 	}
 
 	fn process_unsent_reward_eras_empty() -> Weight {
@@ -147,6 +160,15 @@ impl WeightInfo for () {
 		Weight::from_parts(1_136_401_000, 39987)
 			.saturating_add(RocksDbWeight::get().reads(5_u64))
 			.saturating_add(RocksDbWeight::get().writes(5_u64))
+	}
+
+	fn process_closed_windows_idle() -> Weight {
+		Weight::from_parts(10_000_000, 0)
+			.saturating_add(RocksDbWeight::get().reads(3_u64))
+	}
+
+	fn process_closed_windows_processed() -> Weight {
+		Self::process_unsent_reward_eras_success()
 	}
 
 	fn process_unsent_reward_eras_empty() -> Weight {

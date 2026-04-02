@@ -23,7 +23,7 @@ use crate::Pallet as ExternalValidatorsRewards;
 use {
     crate::types::BenchmarkHelper,
     frame_benchmarking::{account, v2::*, BenchmarkError},
-    frame_support::traits::{Currency, EnsureOrigin},
+    frame_support::traits::{Currency, EnsureOrigin, Hooks},
 };
 
 const SEED: u32 = 0;
@@ -42,15 +42,20 @@ fn create_funded_user<T: Config + pallet_balances::Config>(
     user
 }
 
-/// Helper: insert a single entry into the ring buffer at slot 0.
-fn push_unsent_entry<T: Config>(era_index: u32, timestamp: u32, inflation: u128) {
-    ExternalValidatorsRewards::<T>::unsent_queue_push((era_index, timestamp, inflation));
+/// Helper: insert a single queued window into the ring buffer at slot 0.
+fn push_unsent_entry<T: Config>(window_start: u32, window_index: u32, duration: u32) {
+    ExternalValidatorsRewards::<T>::unsent_queue_push(QueuedRewardsWindow {
+        window_start,
+        window_index,
+        duration,
+    });
 }
 
 #[allow(clippy::multiple_bound_locations)]
-#[benchmarks(where T: pallet_balances::Config)]
+#[benchmarks(where T: pallet_balances::Config + pallet_timestamp::Config<Moment = u64>)]
 mod benchmarks {
     use super::*;
+    use alloc::collections::BTreeMap;
 
     // worst case for the end of an era.
     #[benchmark]
@@ -67,6 +72,14 @@ mod benchmarks {
 
         T::BenchmarkHelper::setup();
         <RewardPointsForEra<T>>::insert(1u32, era_reward_points);
+        pallet_timestamp::Now::<T>::put(35_000u64);
+        #[cfg(test)]
+        crate::mock::Mock::mutate(|mock| {
+            mock.active_era = Some(pallet_external_validators::traits::ActiveEraInfo {
+                index: 1,
+                start: Some(30_000),
+            });
+        });
 
         #[block]
         {
@@ -76,42 +89,79 @@ mod benchmarks {
         Ok(())
     }
 
-    /// Helper to populate reward points for an era with 1000 validators.
-    fn setup_era_reward_points<T: Config + pallet_balances::Config>(era_index: u32) {
-        let mut era_reward_points = EraRewardPoints::default();
-        era_reward_points.total = 20 * 1000;
+    /// Helper to populate persisted state for a closed window with 1000 operators.
+    fn setup_window_reward_state<T: Config + pallet_balances::Config>(
+        window_start: u32,
+        inflation_amount: u128,
+    ) {
+        let mut operator_points = BTreeMap::new();
 
         for i in 0..1000 {
-            let account_id = create_funded_user::<T>("candidate", i, 100);
-            era_reward_points.individual.insert(account_id, 20);
+            let _ = create_funded_user::<T>("candidate", i, 100);
+            operator_points.insert(sp_core::H160::from_low_u64_be(i as u64 + 1), 20);
         }
 
-        <RewardPointsForEra<T>>::insert(era_index, era_reward_points);
+        <WindowOperatorPoints<T>>::insert(window_start, operator_points);
+        <WindowInflationAmount<T>>::insert(window_start, inflation_amount);
     }
 
     // on_initialize: unsent queue is empty (2 reads for head+tail)
     #[benchmark]
     fn process_unsent_reward_eras_empty() -> Result<(), BenchmarkError> {
-        // Ensure queue is empty (default state: head == tail == 0)
-        assert!(ExternalValidatorsRewards::<T>::unsent_queue_is_empty());
+        // Exercise the "empty slot at head" fallback path that returns the empty weight.
+        <UnsentRewardHead<T>>::put(0);
+        <UnsentRewardTail<T>>::put(1);
+        frame_system::Pallet::<T>::set_block_number(1u32.into());
 
         #[block]
         {
-            ExternalValidatorsRewards::<T>::process_unsent_reward_eras();
+            <ExternalValidatorsRewards<T> as Hooks<
+                frame_system::pallet_prelude::BlockNumberFor<T>,
+            >>::on_initialize(1u32.into());
         }
 
         Ok(())
     }
 
-    // on_initialize: oldest entry has pruned reward points
     #[benchmark]
-    fn process_unsent_reward_eras_expired() -> Result<(), BenchmarkError> {
-        // Push an entry whose reward points do NOT exist in storage
-        push_unsent_entry::<T>(999, 0, 42);
+    fn process_closed_windows_idle() -> Result<(), BenchmarkError> {
+        pallet_timestamp::Now::<T>::put(35_000u64);
 
         #[block]
         {
-            ExternalValidatorsRewards::<T>::process_unsent_reward_eras();
+            ExternalValidatorsRewards::<T>::process_closed_windows(35, 0, 10);
+        }
+
+        Ok(())
+    }
+
+    #[benchmark]
+    fn process_closed_windows_processed() -> Result<(), BenchmarkError> {
+        frame_system::Pallet::<T>::set_block_number(0u32.into());
+        T::BenchmarkHelper::setup();
+        setup_window_reward_state::<T>(20, 42);
+        <NextWindowToSubmit<T>>::put(20);
+        pallet_timestamp::Now::<T>::put(35_000u64);
+
+        #[block]
+        {
+            ExternalValidatorsRewards::<T>::process_closed_windows(35, 0, 10);
+        }
+
+        Ok(())
+    }
+
+    // on_initialize: oldest queued window no longer has persisted state
+    #[benchmark]
+    fn process_unsent_reward_eras_expired() -> Result<(), BenchmarkError> {
+        push_unsent_entry::<T>(999, 99, 10);
+        frame_system::Pallet::<T>::set_block_number(1u32.into());
+
+        #[block]
+        {
+            <ExternalValidatorsRewards<T> as Hooks<
+                frame_system::pallet_prelude::BlockNumberFor<T>,
+            >>::on_initialize(1u32.into());
         }
 
         // Entry should have been removed
@@ -125,13 +175,16 @@ mod benchmarks {
     fn process_unsent_reward_eras_success() -> Result<(), BenchmarkError> {
         frame_system::Pallet::<T>::set_block_number(0u32.into());
         T::BenchmarkHelper::setup();
-        setup_era_reward_points::<T>(1);
+        setup_window_reward_state::<T>(0, 42);
 
-        push_unsent_entry::<T>(1, 0, 42);
+        push_unsent_entry::<T>(0, 0, 10);
+        frame_system::Pallet::<T>::set_block_number(1u32.into());
 
         #[block]
         {
-            ExternalValidatorsRewards::<T>::process_unsent_reward_eras();
+            <ExternalValidatorsRewards<T> as Hooks<
+                frame_system::pallet_prelude::BlockNumberFor<T>,
+            >>::on_initialize(1u32.into());
         }
 
         assert!(ExternalValidatorsRewards::<T>::unsent_queue_is_empty());
@@ -144,32 +197,35 @@ mod benchmarks {
     fn process_unsent_reward_eras_failed() -> Result<(), BenchmarkError> {
         frame_system::Pallet::<T>::set_block_number(0u32.into());
         T::BenchmarkHelper::setup();
-        setup_era_reward_points::<T>(1);
+        setup_window_reward_state::<T>(0, 42);
 
-        push_unsent_entry::<T>(1, 0, 42);
+        push_unsent_entry::<T>(0, 0, 10);
+        frame_system::Pallet::<T>::set_block_number(1u32.into());
 
         #[block]
         {
-            ExternalValidatorsRewards::<T>::process_unsent_reward_eras();
+            <ExternalValidatorsRewards<T> as Hooks<
+                frame_system::pallet_prelude::BlockNumberFor<T>,
+            >>::on_initialize(1u32.into());
         }
 
         Ok(())
     }
 
-    // Governance extrinsic: retry a specific unsent era
+    // Governance extrinsic: retry a specific unsent window
     #[benchmark]
-    fn retry_unsent_reward_era() -> Result<(), BenchmarkError> {
+    fn retry_unsent_reward_window() -> Result<(), BenchmarkError> {
         frame_system::Pallet::<T>::set_block_number(0u32.into());
         T::BenchmarkHelper::setup();
-        setup_era_reward_points::<T>(1);
+        setup_window_reward_state::<T>(0, 42);
 
-        push_unsent_entry::<T>(1, 0, 42);
+        push_unsent_entry::<T>(0, 0, 10);
 
         let origin =
             T::GovernanceOrigin::try_successful_origin().map_err(|_| BenchmarkError::Weightless)?;
 
         #[extrinsic_call]
-        _(origin as T::RuntimeOrigin, 1u32);
+        _(origin as T::RuntimeOrigin, 0u32);
 
         assert!(ExternalValidatorsRewards::<T>::unsent_queue_is_empty());
 

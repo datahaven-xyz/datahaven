@@ -20,8 +20,7 @@ jobs:
     outputs:
       binary-hash: ${{ steps.hash-binary.outputs.datahaven-node-hash }}
     name: Build operator binary
-    runs-on:
-      group: DH-runners
+    runs-on: ubuntu-latest
     env:
       RUSTC_WRAPPER: "sccache"
       CARGO_INCREMENTAL: "0"
@@ -42,7 +41,6 @@ jobs:
       - uses: ./.github/workflows/actions/setup-env
         with:
           cache-key: BUILD-RELEASE
-          install-deps: false
 
       - name: Set build flags
         run: echo "RUSTFLAGS=${{ env.RUSTFLAGS }} -C linker=clang -C link-arg=-fuse-ld=mold" >> $GITHUB_ENV

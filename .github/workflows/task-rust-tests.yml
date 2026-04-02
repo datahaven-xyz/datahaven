@@ -13,8 +13,7 @@ permissions:
 jobs:
   rust-tests:
     name: Run Operator Rust tests
-    runs-on:
-      group: DH-runners
+    runs-on: ubuntu-latest
     env:
       RUSTC_WRAPPER: "sccache"
       CARGO_INCREMENTAL: "0"
@@ -32,7 +31,6 @@ jobs:
       - uses: ./.github/workflows/actions/setup-env
         with:
           cache-key: "TEST"
-          install-deps: false
 
       - name: Set build flags
         run: echo "RUSTFLAGS=${{ env.RUSTFLAGS }} -C linker=clang -C link-arg=-fuse-ld=mold" >> $GITHUB_ENV

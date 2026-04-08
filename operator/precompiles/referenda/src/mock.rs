@@ -18,6 +18,7 @@
 
 use super::*;
 
+use alloc::borrow::Cow;
 use frame_support::pallet_prelude::*;
 use frame_support::traits::VoteTally;
 use frame_support::{
@@ -29,6 +30,7 @@ use frame_system::RawOrigin;
 use pallet_evm::{
     EnsureAddressNever, EnsureAddressRoot, FrameSystemAccountProvider, SubstrateBlockHashMapping,
 };
+use pallet_referenda::Track;
 use pallet_referenda::{Curve, TrackInfo, TracksInfo};
 use precompile_utils::{precompile_set::*, testing::MockAccount};
 use sp_core::{H256, U256};
@@ -36,7 +38,7 @@ use sp_runtime::{
     traits::{BlakeTwo256, IdentityLookup},
     BuildStorage, Perbill,
 };
-use sp_std::{str::FromStr, vec::Vec};
+use std::{str::FromStr, vec::Vec};
 
 pub type AccountId = MockAccount;
 pub type Balance = u128;
@@ -164,6 +166,8 @@ impl pallet_evm::Config for Runtime {
     type GasWeightMapping = pallet_evm::FixedGasWeightMapping<Self>;
     type WeightPerGas = WeightPerGas;
     type CallOrigin = EnsureAddressRoot<AccountId>;
+    type CreateOriginFilter = ();
+    type CreateInnerOriginFilter = ();
     type WithdrawOrigin = EnsureAddressNever<AccountId>;
     type AddressMapping = AccountId;
     type Currency = Balances;
@@ -217,6 +221,7 @@ impl pallet_scheduler::Config for Runtime {
     type WeightInfo = ();
     type OriginPrivilegeCmp = EqualPrivilegeOnly;
     type Preimages = Preimage;
+    type BlockNumberProvider = ();
 }
 
 // Preimage configuration
@@ -244,7 +249,9 @@ parameter_types! {
 pub struct TestTracksInfo;
 
 // Simple tally implementation for testing
-#[derive(Debug, Clone, PartialEq, Eq, Encode, Decode, TypeInfo, MaxEncodedLen)]
+#[derive(
+    Debug, Clone, PartialEq, Eq, Encode, Decode, DecodeWithMemTracking, TypeInfo, MaxEncodedLen,
+)]
 pub struct Tally {
     pub ayes: u128,
     pub nays: u128,
@@ -274,7 +281,7 @@ impl Get<Vec<(u8, TrackInfo<Balance, u32>)>> for TestTracksInfo {
             (
                 0,
                 TrackInfo {
-                    name: "root",
+                    name: str_array("root"),
                     max_deciding: 1,
                     decision_deposit: 10,
                     prepare_period: 2,
@@ -296,7 +303,7 @@ impl Get<Vec<(u8, TrackInfo<Balance, u32>)>> for TestTracksInfo {
             (
                 1,
                 TrackInfo {
-                    name: "none",
+                    name: str_array("none"),
                     max_deciding: 1,
                     decision_deposit: 10,
                     prepare_period: 2,
@@ -323,12 +330,12 @@ impl TracksInfo<Balance, u32> for TestTracksInfo {
     type Id = u8;
     type RuntimeOrigin = OriginCaller;
 
-    fn tracks() -> &'static [(Self::Id, TrackInfo<Balance, u32>)] {
-        static TRACKS: &[(u8, TrackInfo<Balance, u32>)] = &[
-            (
-                0,
-                TrackInfo {
-                    name: "root",
+    fn tracks() -> impl Iterator<Item = Cow<'static, Track<Self::Id, Balance, u32>>> {
+        static DATA: [Track<u8, u128, u32>; 2] = [
+            Track {
+                id: 0,
+                info: TrackInfo {
+                    name: str_array("root"),
                     max_deciding: 1,
                     decision_deposit: 10,
                     prepare_period: 2,
@@ -346,11 +353,11 @@ impl TracksInfo<Balance, u32> for TestTracksInfo {
                         ceil: Perbill::from_percent(50),
                     },
                 },
-            ),
-            (
-                1,
-                TrackInfo {
-                    name: "none",
+            },
+            Track {
+                id: 1,
+                info: TrackInfo {
+                    name: str_array("none"),
                     max_deciding: 1,
                     decision_deposit: 10,
                     prepare_period: 2,
@@ -368,9 +375,9 @@ impl TracksInfo<Balance, u32> for TestTracksInfo {
                         ceil: Perbill::from_percent(50),
                     },
                 },
-            ),
+            },
         ];
-        TRACKS
+        DATA.iter().map(Cow::Borrowed)
     }
 
     fn track_for(origin: &Self::RuntimeOrigin) -> Result<Self::Id, ()> {
@@ -399,6 +406,7 @@ impl pallet_referenda::Config for Runtime {
     type AlarmInterval = ();
     type Tracks = TestTracksInfo;
     type Preimages = Preimage;
+    type BlockNumberProvider = ();
 }
 
 pub(crate) struct ExtBuilder {
@@ -425,6 +433,7 @@ impl ExtBuilder {
 
         pallet_balances::GenesisConfig::<Runtime> {
             balances: self.balances,
+            dev_accounts: Default::default(),
         }
         .assimilate_storage(&mut t)
         .expect("Pallet balances storage can be assimilated");

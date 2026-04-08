@@ -35,20 +35,24 @@ const MAX_SLASHES: u32 = 1000;
 mod benchmarks {
     use super::*;
 
+    fn dummy_slash<T: Config>(slash_id: T::SlashId) -> Slash<T::AccountId, T::SlashId> {
+        let dummy = || T::AccountId::decode(&mut TrailingZeroInput::zeroes()).unwrap();
+        Slash {
+            validator: dummy(),
+            reporters: vec![],
+            slash_id,
+            percentage: Perbill::from_percent(1),
+            confirmed: false,
+            offence_kind: OffenceKind::LivenessOffence,
+        }
+    }
+
     #[benchmark]
     fn cancel_deferred_slash(s: Linear<1, MAX_SLASHES>) -> Result<(), BenchmarkError> {
         let mut existing_slashes = Vec::new();
         let era = T::EraIndexProvider::active_era().index;
-        let dummy = || T::AccountId::decode(&mut TrailingZeroInput::zeroes()).unwrap();
         for _ in 0..MAX_SLASHES {
-            existing_slashes.push(Slash {
-                validator: dummy(),
-                reporters: vec![],
-                slash_id: One::one(),
-                percentage: Perbill::from_percent(1),
-                confirmed: false,
-                offence_kind: OffenceKind::LivenessOffence,
-            });
+            existing_slashes.push(dummy_slash::<T>(One::one()));
         }
         Slashes::<T>::insert(
             era.saturating_add(T::SlashDeferDuration::get())
@@ -102,31 +106,51 @@ mod benchmarks {
 
     #[benchmark]
     fn process_slashes_queue(s: Linear<1, 200>) -> Result<(), BenchmarkError> {
-        let mut queue = VecDeque::new();
-        let dummy = || T::AccountId::decode(&mut TrailingZeroInput::zeroes()).unwrap();
+        let first_batch = (0..s)
+            .map(|_| dummy_slash::<T>(One::one()))
+            .collect::<Vec<_>>();
+        let second_batch = vec![dummy_slash::<T>(One::one())];
 
-        for _ in 0..(s + 1) {
-            queue.push_back(Slash {
-                validator: dummy(),
-                reporters: vec![],
-                slash_id: One::one(),
-                percentage: Perbill::from_percent(1),
-                confirmed: false,
-                offence_kind: OffenceKind::LivenessOffence,
-            });
-        }
-
-        UnreportedSlashesQueue::<T>::set(queue);
+        assert!(ExternalValidatorSlashes::<T>::unsent_queue_push((
+            1,
+            first_batch
+        )));
+        assert!(ExternalValidatorSlashes::<T>::unsent_queue_push((
+            2,
+            second_batch
+        )));
 
         let processed;
 
         #[block]
         {
-            processed = Pallet::<T>::process_slashes_queue(s).unwrap();
+            processed = match Pallet::<T>::process_slashes_queue() {
+                crate::ProcessSlashesQueueOutcome::Sent(count) => count,
+                crate::ProcessSlashesQueueOutcome::Empty
+                | crate::ProcessSlashesQueueOutcome::Requeued(_) => {
+                    return Err(BenchmarkError::Stop("unexpected slashes queue outcome"))
+                }
+            };
         }
 
-        assert_eq!(UnreportedSlashesQueue::<T>::get().len(), 1);
+        assert_eq!(ExternalValidatorSlashes::<T>::unsent_queue_len(), 1);
         assert_eq!(processed, s);
+
+        Ok(())
+    }
+
+    #[benchmark]
+    fn retry_unsent_slash_era() -> Result<(), BenchmarkError> {
+        let batch = vec![dummy_slash::<T>(One::one())];
+        assert!(ExternalValidatorSlashes::<T>::unsent_queue_push((1, batch)));
+
+        let origin =
+            T::GovernanceOrigin::try_successful_origin().map_err(|_| BenchmarkError::Weightless)?;
+
+        #[extrinsic_call]
+        _(origin as T::RuntimeOrigin, 1u32);
+
+        assert!(ExternalValidatorSlashes::<T>::unsent_queue_is_empty());
 
         Ok(())
     }

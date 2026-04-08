@@ -2,10 +2,10 @@
 // SPDX-FileCopyrightText: 2023 Snowfork <hello@snowfork.com>
 use super::*;
 use codec::Encode;
+use core::marker::PhantomData;
 use frame_support::traits::Get;
 use sp_runtime::traits::TryConvert;
 use sp_runtime::DispatchError;
-use sp_std::marker::PhantomData;
 use xcm::prelude::{ExecuteXcm, Location, Parachain, SendError, SendXcm, XcmHash};
 
 /// A message processor that simply returns the Blake2_256 hash of the SCALE encoded message

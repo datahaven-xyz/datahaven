@@ -20,7 +20,6 @@ frame-support = { workspace = true }
 frame-system = { workspace = true }
 sp-core = { workspace = true }
 sp-runtime = { workspace = true }
-sp-std = { workspace = true }
 
 snowbridge-core = { workspace = true }
 snowbridge-outbound-queue-primitives = { workspace = true }
@@ -48,7 +47,6 @@ std = [
 	"sp-core/std",
 	"sp-io/std",
 	"sp-runtime/std",
-	"sp-std/std",
 	"xcm/std",
 	"xcm-builder/std",
 	"pallet-balances/std",

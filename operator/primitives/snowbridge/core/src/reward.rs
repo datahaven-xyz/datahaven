@@ -4,6 +4,7 @@
 extern crate alloc;
 
 use crate::reward::RewardPaymentError::{ChargeFeesFailure, XcmSendFailure};
+use core::{fmt::Debug, marker::PhantomData};
 use frame_support::dispatch::GetDispatchInfo;
 use scale_info::TypeInfo;
 use sp_runtime::{
@@ -11,7 +12,6 @@ use sp_runtime::{
     traits::Get,
     DispatchError,
 };
-use sp_std::{fmt::Debug, marker::PhantomData};
 use xcm::{
     opaque::latest::prelude::Xcm,
     prelude::{ExecuteXcm, Junction::*, Location, SendXcm, *},

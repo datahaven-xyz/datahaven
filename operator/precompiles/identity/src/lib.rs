@@ -20,6 +20,9 @@
 
 extern crate alloc;
 
+use alloc::boxed::Box;
+use alloc::vec::Vec;
+use core::marker::PhantomData;
 use fp_evm::PrecompileHandle;
 use frame_support::dispatch::{GetDispatchInfo, PostDispatchInfo};
 use frame_support::sp_runtime::traits::StaticLookup;
@@ -30,9 +33,6 @@ use parity_scale_codec::MaxEncodedLen;
 use precompile_utils::prelude::*;
 use sp_core::{ConstU32, Get, H160, H256, U256};
 use sp_runtime::traits::Dispatchable;
-use sp_std::boxed::Box;
-use sp_std::marker::PhantomData;
-use sp_std::vec::Vec;
 
 #[cfg(test)]
 mod mock;
@@ -78,8 +78,10 @@ where
         >,
     Runtime::AccountId: Into<H160>,
     Runtime::Hash: From<H256>,
-    Runtime::RuntimeCall: Dispatchable<PostInfo = PostDispatchInfo> + GetDispatchInfo,
-    <Runtime::RuntimeCall as Dispatchable>::RuntimeOrigin: From<Option<Runtime::AccountId>>,
+    <Runtime as frame_system::Config>::RuntimeCall:
+        Dispatchable<PostInfo = PostDispatchInfo> + GetDispatchInfo,
+    <<Runtime as frame_system::Config>::RuntimeCall as Dispatchable>::RuntimeOrigin:
+        From<Option<Runtime::AccountId>>,
     Runtime::RuntimeCall: From<pallet_identity::Call<Runtime>>,
     BalanceOf<Runtime>: TryFrom<U256> + Into<U256> + solidity::Codec,
     <Runtime as pallet_evm::Config>::AddressMapping: AddressMapping<Runtime::AccountId>,

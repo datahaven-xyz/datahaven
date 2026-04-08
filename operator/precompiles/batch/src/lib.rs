@@ -17,13 +17,16 @@
 //! Precompile to interact with pallet_balances instances using the ERC20 interface standard.
 
 #![cfg_attr(not(feature = "std"), no_std)]
+extern crate alloc;
 
+use alloc::vec;
+use alloc::vec::Vec;
+use core::{iter::repeat, marker::PhantomData};
 use evm::{ExitError, ExitReason};
 use fp_evm::{Context, Log, PrecompileFailure, PrecompileHandle, Transfer};
 use frame_support::traits::ConstU32;
 use precompile_utils::{evm::costs::call_cost, prelude::*};
 use sp_core::{H160, U256};
-use sp_std::{iter::repeat, marker::PhantomData, vec, vec::Vec};
 
 #[cfg(test)]
 mod mock;

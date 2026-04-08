@@ -1,14 +1,22 @@
 // SPDX-License-Identifier: Apache-2.0
 // SPDX-FileCopyrightText: 2023 Snowfork <hello@snowfork.com>
-use codec::{Decode, Encode};
+use alloc::vec::Vec;
+use codec::{Decode, DecodeWithMemTracking, Encode};
 use frame_support::{CloneNoBound, PartialEqNoBound, RuntimeDebugNoBound};
 use scale_info::TypeInfo;
 use sp_core::H256;
-use sp_std::prelude::*;
 
 use crate::types::{BeaconHeader, SyncAggregate, SyncCommittee};
 
-#[derive(Encode, Decode, CloneNoBound, PartialEqNoBound, RuntimeDebugNoBound, TypeInfo)]
+#[derive(
+    Encode,
+    Decode,
+    CloneNoBound,
+    PartialEqNoBound,
+    RuntimeDebugNoBound,
+    TypeInfo,
+    DecodeWithMemTracking,
+)]
 #[cfg_attr(
     feature = "std",
     derive(serde::Serialize, serde::Deserialize),
@@ -24,7 +32,14 @@ pub struct CheckpointUpdate<const COMMITTEE_SIZE: usize> {
 }
 
 #[derive(
-    Default, Encode, Decode, CloneNoBound, PartialEqNoBound, RuntimeDebugNoBound, TypeInfo,
+    Default,
+    Encode,
+    Decode,
+    CloneNoBound,
+    PartialEqNoBound,
+    RuntimeDebugNoBound,
+    TypeInfo,
+    DecodeWithMemTracking,
 )]
 #[cfg_attr(
     feature = "std",
@@ -54,7 +69,14 @@ pub struct Update<const COMMITTEE_SIZE: usize, const COMMITTEE_BITS_SIZE: usize>
 }
 
 #[derive(
-    Default, Encode, Decode, CloneNoBound, PartialEqNoBound, RuntimeDebugNoBound, TypeInfo,
+    Default,
+    Encode,
+    Decode,
+    CloneNoBound,
+    PartialEqNoBound,
+    RuntimeDebugNoBound,
+    TypeInfo,
+    DecodeWithMemTracking,
 )]
 #[cfg_attr(
     feature = "std",

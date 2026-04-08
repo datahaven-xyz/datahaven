@@ -15,7 +15,10 @@
 // along with Moonbeam.  If not, see <http://www.gnu.org/licenses/>.
 
 #![cfg_attr(not(feature = "std"), no_std)]
+extern crate alloc;
 
+use alloc::vec::Vec;
+use core::marker::PhantomData;
 use fp_evm::PrecompileHandle;
 use frame_support::dispatch::{GetDispatchInfo, PostDispatchInfo};
 use frame_support::traits::ConstU32;
@@ -24,7 +27,6 @@ use pallet_preimage::Call as PreimageCall;
 use precompile_utils::prelude::*;
 use sp_core::{Hasher, H256};
 use sp_runtime::traits::Dispatchable;
-use sp_std::{marker::PhantomData, vec::Vec};
 
 #[cfg(test)]
 mod mock;

@@ -49,6 +49,8 @@
 //!
 //! * `prove_message`: Generate a merkle proof for a committed message
 #![cfg_attr(not(feature = "std"), no_std)]
+extern crate alloc;
+
 pub mod api;
 pub mod process_message_impl;
 pub mod send_message_impl;
@@ -93,7 +95,6 @@ use sp_runtime::{
     traits::{BlockNumberProvider, Hash, MaybeEquivalence},
     DigestItem,
 };
-use sp_std::prelude::*;
 pub use types::{OnNewCommitment, PendingOrder, ProcessMessageOriginOf};
 pub use weights::WeightInfo;
 use xcm::latest::{Location, NetworkId};
@@ -107,6 +108,8 @@ pub use pallet::*;
 #[frame_support::pallet]
 pub mod pallet {
     use super::*;
+    use alloc::boxed::Box;
+    use alloc::vec::Vec;
     use frame_support::pallet_prelude::*;
     use frame_system::pallet_prelude::*;
 

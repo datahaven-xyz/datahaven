@@ -74,7 +74,7 @@ contract DeployParams is Script, Config {
         } else {
             config.avsOwner = vm.parseJsonAddress(configJson, ".avs.avsOwner");
         }
-        config.rewardsInitiator = vm.parseJsonAddress(configJson, ".avs.rewardsInitiator");
+        config.snowbridgeInitiator = vm.parseJsonAddress(configJson, ".avs.snowbridgeInitiator");
         config.validatorsStrategies =
             vm.parseJsonAddressArray(configJson, ".avs.validatorsStrategies");
 

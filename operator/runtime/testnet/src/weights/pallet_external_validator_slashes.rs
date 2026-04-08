@@ -50,7 +50,7 @@
 #![allow(unused_imports)]
 
 use frame_support::{traits::Get, weights::{Weight, constants::RocksDbWeight}};
-use sp_std::marker::PhantomData;
+use core::marker::PhantomData;
 
 /// Weights for `pallet_external_validator_slashes`.
 pub struct WeightInfo<T>(PhantomData<T>);
@@ -112,6 +112,9 @@ impl<T: frame_system::Config> pallet_external_validator_slashes::WeightInfo for 
 			.saturating_add(T::DbWeight::get().reads(6_u64))
 			.saturating_add(T::DbWeight::get().writes(4_u64))
 			.saturating_add(Weight::from_parts(0, 38).saturating_mul(s.into()))
+	}
+	fn retry_unsent_slash_era() -> Weight {
+		Self::process_slashes_queue(10)
 	}
 	/// Storage: `ExternalValidatorsSlashes::SlashingMode` (r:0 w:1)
 	/// Proof: `ExternalValidatorsSlashes::SlashingMode` (`max_values`: Some(1), `max_size`: Some(1), added: 496, mode: `MaxEncodedLen`)

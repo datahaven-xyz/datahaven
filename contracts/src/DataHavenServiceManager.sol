@@ -58,7 +58,7 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
     // ============ State Variables ============
 
     /// @notice The address authorized to initiate rewards submissions
-    address public rewardsInitiator;
+    address public snowbridgeInitiator;
 
     /// @inheritdoc IDataHavenServiceManager
     mapping(address => bool) public validatorsAllowlist;
@@ -90,8 +90,8 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
     // ============ Modifiers ============
 
     /// @notice Restricts function to the rewards initiator
-    modifier onlyRewardsInitiator() {
-        _checkRewardsInitiator();
+    modifier onlySnowbridgeInitiator() {
+        _checkSnowbridgeInitiator();
         _;
     }
 
@@ -129,8 +129,8 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         require(msg.sender == proxyAdmin, NotProxyAdmin());
     }
 
-    function _checkRewardsInitiator() internal view {
-        require(msg.sender == rewardsInitiator, OnlyRewardsInitiator());
+    function _checkSnowbridgeInitiator() internal view {
+        require(msg.sender == snowbridgeInitiator, OnlyRewardsInitiator());
     }
 
     function _checkValidator() internal view {
@@ -165,21 +165,21 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
     /// @inheritdoc IDataHavenServiceManager
     function initialize(
         address initialOwner,
-        address _rewardsInitiator,
+        address _snowbridgeInitiator,
         IRewardsCoordinatorTypes.StrategyAndMultiplier[] memory validatorsStrategiesAndMultipliers,
         address _snowbridgeGatewayAddress,
         address _validatorSetSubmitter,
         string memory initialVersion
     ) public virtual initializer {
         require(initialOwner != address(0), ZeroAddress());
-        require(_rewardsInitiator != address(0), ZeroAddress());
+        require(_snowbridgeInitiator != address(0), ZeroAddress());
         require(_snowbridgeGatewayAddress != address(0), ZeroAddress());
         require(bytes(initialVersion).length > 0, EmptyVersion());
 
         __Ownable_init();
         _transferOwnership(initialOwner);
-        rewardsInitiator = _rewardsInitiator;
-        emit RewardsInitiatorSet(address(0), _rewardsInitiator);
+        snowbridgeInitiator = _snowbridgeInitiator;
+        emit SnowbridgeInitiatorSet(address(0), _snowbridgeInitiator);
 
         // Set version from parameter (allows flexibility per deployment environment)
         _version = initialVersion;
@@ -524,7 +524,7 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
     /// @inheritdoc IDataHavenServiceManager
     function submitRewards(
         IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission calldata submission
-    ) external override onlyRewardsInitiator {
+    ) external override onlySnowbridgeInitiator {
         IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission memory translatedSubmission =
         submission;
 
@@ -568,13 +568,13 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
     }
 
     /// @inheritdoc IDataHavenServiceManager
-    function setRewardsInitiator(
-        address newRewardsInitiator
+    function setSnowbridgeInitiator(
+        address newSnowbridgeInitiator
     ) external override onlyOwner {
-        require(newRewardsInitiator != address(0), ZeroAddress());
-        address oldInitiator = rewardsInitiator;
-        rewardsInitiator = newRewardsInitiator;
-        emit RewardsInitiatorSet(oldInitiator, newRewardsInitiator);
+        require(newSnowbridgeInitiator != address(0), ZeroAddress());
+        address oldInitiator = snowbridgeInitiator;
+        snowbridgeInitiator = newSnowbridgeInitiator;
+        emit SnowbridgeInitiatorSet(oldInitiator, newSnowbridgeInitiator);
     }
 
     // ============ AVS Management Functions ============
@@ -613,7 +613,7 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
      */
     function slashValidatorsOperator(
         SlashingRequest[] calldata slashings
-    ) external onlyRewardsInitiator {
+    ) external onlySnowbridgeInitiator {
         for (uint256 i = 0; i < slashings.length; i++) {
             address ethOperator = _resolveSlashableEthOperator(slashings[i].operator);
             if (ethOperator == address(0)) continue;

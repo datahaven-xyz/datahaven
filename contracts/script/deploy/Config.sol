@@ -18,7 +18,7 @@ contract Config {
     // AVS parameters
     struct AVSConfig {
         address avsOwner;
-        address rewardsInitiator;
+        address snowbridgeInitiator;
         address[] validatorsStrategies;
         address validatorSetSubmitter;
     }

@@ -21,6 +21,7 @@
 
 use crate::common::*;
 use codec::Encode;
+use core::str::from_utf8;
 use datahaven_stagenet_runtime::{
     currency::{HAVE, SUPPLY_FACTOR},
     governance::TracksInfo,
@@ -42,13 +43,16 @@ use pallet_referenda::{Event as ReferendaEvent, ReferendumInfo};
 #[test]
 fn tracks_info_configured_correctly() {
     ExtBuilder::default().build().execute_with(|| {
-        let tracks = TracksInfo::tracks();
+        let tracks: Vec<_> = TracksInfo::tracks().collect();
 
         // Should have 6 tracks as configured
         assert_eq!(tracks.len(), 6);
 
         // Verify track IDs and names
-        let track_names: Vec<&str> = tracks.iter().map(|(_, info)| info.name).collect();
+        let track_names: Vec<&str> = tracks
+            .iter()
+            .map(|track| from_utf8(&track.info.name).unwrap().trim_end_matches('\0'))
+            .collect();
         assert_eq!(
             track_names,
             vec![
@@ -62,16 +66,17 @@ fn tracks_info_configured_correctly() {
         );
 
         // Verify root track has strictest requirements
-        let (root_id, root_info) = &tracks[0];
-        assert_eq!(*root_id, 0u16);
-        assert_eq!(root_info.max_deciding, 5);
-        assert_eq!(root_info.decision_deposit, 100000 * HAVE * SUPPLY_FACTOR); // 100 * KILO_HAVE
+        assert_eq!(tracks[0].id, 0u16);
+        assert_eq!(tracks[0].info.max_deciding, 5);
+        assert_eq!(
+            tracks[0].info.decision_deposit,
+            100000 * HAVE * SUPPLY_FACTOR
+        ); // 100 * KILO_HAVE
 
         // Verify general admin track
-        let (admin_id, admin_info) = &tracks[2];
-        assert_eq!(*admin_id, 2u16);
-        assert_eq!(admin_info.max_deciding, 10);
-        assert_eq!(admin_info.decision_deposit, 500 * HAVE * SUPPLY_FACTOR);
+        assert_eq!(tracks[2].id, 2u16);
+        assert_eq!(tracks[2].info.max_deciding, 10);
+        assert_eq!(tracks[2].info.decision_deposit, 500 * HAVE * SUPPLY_FACTOR);
     });
 }
 
@@ -225,7 +230,8 @@ fn referendum_timing_works() {
         ));
 
         // Advance time through prepare period (1 DAY for root track)
-        let track_info = &TracksInfo::tracks()[0].1; // Root track
+        let tracks: Vec<_> = TracksInfo::tracks().collect();
+        let track_info = &tracks[0].info; // Root track
         advance_referendum_time(track_info.prepare_period + 1);
 
         // Place decision deposit
@@ -243,7 +249,8 @@ fn referendum_timing_works() {
         }
 
         // Advance time through decision period
-        let track_info = &TracksInfo::tracks()[0].1; // Root track
+        let tracks: Vec<_> = TracksInfo::tracks().collect();
+        let track_info = &tracks[0].info; // Root track
         advance_referendum_time(track_info.decision_period + 1);
 
         // Referendum should still exist (may have timed out)
@@ -499,7 +506,8 @@ fn referendum_insufficient_support_fails() {
         ));
 
         // Advance through the entire decision period
-        let track_info = &TracksInfo::tracks()[0].1; // Root track
+        let tracks: Vec<_> = TracksInfo::tracks().collect();
+        let track_info = &tracks[0].info; // Root track
         advance_referendum_time(track_info.decision_period + track_info.confirm_period + 1);
 
         // Should still be ongoing or rejected due to insufficient support
@@ -578,7 +586,8 @@ fn decision_deposit_mechanics_work() {
         }
 
         // Advance time through prepare period (1 DAY for root track)
-        let track_info = &TracksInfo::tracks()[0].1; // Root track
+        let tracks: Vec<_> = TracksInfo::tracks().collect();
+        let track_info = &tracks[0].info; // Root track
         advance_referendum_time(track_info.prepare_period + 1);
 
         let alice_balance_before = Balances::free_balance(&alice());
@@ -591,7 +600,8 @@ fn decision_deposit_mechanics_work() {
 
         // Alice's balance should decrease by decision deposit
         let alice_balance_after = Balances::free_balance(&alice());
-        let track_info = &TracksInfo::tracks()[0].1; // Root track
+        let tracks: Vec<_> = TracksInfo::tracks().collect();
+        let track_info = &tracks[0].info; // Root track
         assert_eq!(
             alice_balance_before - alice_balance_after,
             track_info.decision_deposit
@@ -619,7 +629,8 @@ fn decision_deposit_mechanics_work() {
 fn track_capacity_limits_enforced() {
     ExtBuilder::default().build().execute_with(|| {
         // Use root track which has max_deciding of 5 (more reasonable for testing)
-        let track_info = &TracksInfo::tracks()[0].1; // root track
+        let tracks: Vec<_> = TracksInfo::tracks().collect();
+        let track_info = &tracks[0].info; // root track
         let max_deciding = track_info.max_deciding.min(5); // Use smaller number for testing
 
         // Submit max_deciding referenda (but cap at 5 for scheduler limits)
@@ -723,7 +734,8 @@ fn insufficient_balance_for_deposits() {
         ));
 
         // Advance through prepare period
-        let track_info = &TracksInfo::tracks()[0].1;
+        let tracks: Vec<_> = TracksInfo::tracks().collect();
+        let track_info = &tracks[0].info;
         advance_referendum_time(track_info.prepare_period + 1);
 
         // Should fail to place decision deposit due to insufficient balance
@@ -753,7 +765,8 @@ fn referendum_confirmation_period_works() {
             DispatchTime::After(10)
         ));
 
-        let track_info = &TracksInfo::tracks()[0].1; // Root track
+        let tracks: Vec<_> = TracksInfo::tracks().collect();
+        let track_info = &tracks[0].info; // Root track
 
         // Advance through prepare period
         advance_referendum_time(track_info.prepare_period + 1);
@@ -821,7 +834,8 @@ fn split_votes_with_conviction() {
         ));
 
         // Place decision deposit after prepare period
-        let track_info = &TracksInfo::tracks()[0].1;
+        let tracks: Vec<_> = TracksInfo::tracks().collect();
+        let track_info = &tracks[0].info;
         advance_referendum_time(track_info.prepare_period + 1);
         assert_ok!(Referenda::place_decision_deposit(
             RuntimeOrigin::signed(alice()),

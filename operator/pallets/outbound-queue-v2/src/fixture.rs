@@ -3,13 +3,13 @@
 // Generated, do not edit!
 // See ethereum client README.md for instructions to generate
 
+use alloc::vec;
 use hex_literal::hex;
 use snowbridge_beacon_primitives::{
     types::deneb, AncestryProof, BeaconHeader, ExecutionProof, VersionedExecutionPayloadHeader,
 };
 use snowbridge_verification_primitives::{EventFixture, EventProof, Log, Proof};
 use sp_core::U256;
-use sp_std::vec;
 
 pub fn make_submit_delivery_receipt_message() -> EventFixture {
     EventFixture {

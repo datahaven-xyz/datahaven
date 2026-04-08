@@ -14,9 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with Tanssi.  If not, see <http://www.gnu.org/licenses/>
 
+use alloc::vec::Vec;
 use snowbridge_outbound_queue_primitives::SendError;
 use sp_core::{H160, H256};
-use sp_std::vec::Vec;
 
 /// Data needed for EigenLayer rewards submission via Snowbridge.
 #[derive(Debug, PartialEq, Eq, Clone)]

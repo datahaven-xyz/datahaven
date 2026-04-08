@@ -24,7 +24,6 @@ frame-support = { workspace = true }
 sp-core = { workspace = true }
 sp-io = { workspace = true }
 sp-runtime = { workspace = true }
-sp-std = { workspace = true }
 
 byte-slice-cast = { workspace = true }
 ssz_rs = { workspace = true }
@@ -51,6 +50,5 @@ std = [
     "sp-core/std",
     "sp-io/std",
     "sp-runtime/std",
-    "sp-std/std",
     "ssz_rs/std",
 ]

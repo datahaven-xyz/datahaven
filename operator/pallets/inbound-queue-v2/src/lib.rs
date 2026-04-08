@@ -37,6 +37,7 @@ mod mock;
 mod test;
 
 pub use crate::weights::WeightInfo;
+use alloc::boxed::Box;
 use frame_system::ensure_signed;
 use snowbridge_core::{
     sparse_bitmap::{SparseBitmap, SparseBitmapImpl},
@@ -48,7 +49,6 @@ use snowbridge_inbound_queue_primitives::{
 };
 use sp_core::H160;
 use sp_runtime::traits::Zero;
-use sp_std::prelude::*;
 use xcm::prelude::*;
 
 #[cfg(feature = "runtime-benchmarks")]

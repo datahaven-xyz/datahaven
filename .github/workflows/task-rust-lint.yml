@@ -27,8 +27,7 @@ env:
 jobs:
   cargo-fmt:
     name: "Check format with rustfmt"
-    runs-on:
-      group: DH-runners
+    runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: ${{ env.WORKING_DIR }}
@@ -38,15 +37,13 @@ jobs:
       - uses: ./.github/workflows/actions/setup-env
         with:
           cache-key: FMT
-          install-deps: false  # Self-hosted runners have deps pre-installed
 
       - name: Run cargo fmt
         run: cargo fmt --all -- --check
 
   check-rust-lint:
     name: "Check lint with clippy"
-    runs-on:
-      group: DH-runners
+    runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: ${{ env.WORKING_DIR }}
@@ -56,7 +53,6 @@ jobs:
       - uses: ./.github/workflows/actions/setup-env
         with:
           cache-key: LINT
-          install-deps: false  # Self-hosted runners have deps pre-installed
 
       - name: Set build flags
         run: echo "RUSTFLAGS=${{ env.RUSTFLAGS }} -C linker=clang -C link-arg=-fuse-ld=mold" >> $GITHUB_ENV
@@ -66,8 +62,7 @@ jobs:
 
   check-cargo-sort:
     name: "Check Cargo sort"
-    runs-on:
-      group: DH-runners
+    runs-on: ubuntu-latest
 
     defaults:
       run:

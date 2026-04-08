@@ -24,7 +24,6 @@ frame-system = { workspace = true }
 impl-trait-for-tuples = { workspace = true }
 sp-runtime = { workspace = true }
 sp-staking = { workspace = true }
-sp-std = { workspace = true }
 sp-core = { workspace = true }
 
 frame-benchmarking = { workspace = true }
@@ -56,7 +55,6 @@ std = [
     "sp-io/std",
     "sp-runtime/std",
     "sp-staking/std",
-    "sp-std/std",
 ]
 runtime-benchmarks = [
     "frame-benchmarking/runtime-benchmarks",

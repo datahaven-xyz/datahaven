@@ -50,6 +50,7 @@ impl ExtensionOperations<crate::RuntimeCall, crate::Runtime> for crate::SignedEx
                 minimal.tip,
             ),
             frame_metadata_hash_extension::CheckMetadataHash::<crate::Runtime>::new(false),
+            frame_system::WeightReclaim::<crate::Runtime>::new(),
         )
     }
 }

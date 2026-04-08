@@ -28,8 +28,7 @@ frame_benchmarking::define_benchmarks!(
     // Substrate pallets
     [pallet_balances, Balances]
     [pallet_session, pallet_session_benchmarking::Pallet::<Runtime>]
-    // FIXME: benchmarking identity fail
-    // [pallet_identity, Identity]
+    [pallet_identity, Identity]
     [pallet_im_online, ImOnline]
     [pallet_multisig, Multisig]
     [pallet_preimage, Preimage]

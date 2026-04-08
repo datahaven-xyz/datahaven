@@ -280,7 +280,7 @@ fn transfer() {
                         value: 400.into(),
                     },
                 )
-                .expect_cost(176106756) // 1 weight => 1 gas in mock
+                .expect_cost(173835756) // 1 weight => 1 gas in mock
                 .expect_log(log3(
                     Precompile1,
                     SELECTOR_LOG_TRANSFER,
@@ -370,7 +370,7 @@ fn transfer_from() {
                         value: 400.into(),
                     },
                 )
-                .expect_cost(176106756) // 1 weight => 1 gas in mock
+                .expect_cost(173835756) // 1 weight => 1 gas in mock
                 .expect_log(log3(
                     Precompile1,
                     SELECTOR_LOG_TRANSFER,
@@ -466,7 +466,7 @@ fn transfer_from_self() {
                         value: 400.into(),
                     },
                 )
-                .expect_cost(176106756) // 1 weight => 1 gas in mock
+                .expect_cost(173835756) // 1 weight => 1 gas in mock
                 .expect_log(log3(
                     Precompile1,
                     SELECTOR_LOG_TRANSFER,
@@ -576,6 +576,7 @@ fn deposit(data: Vec<u8>) {
                 None,            // max priority
                 None,            // nonce
                 vec![],          // access list
+                vec![],          // authorization list
             )
             .expect("it works");
 
@@ -692,6 +693,7 @@ fn deposit_zero() {
                 None,          // max priority
                 None,          // nonce
                 vec![],        // access list
+                vec![],        // authorization list
             )
             .expect("it works");
 

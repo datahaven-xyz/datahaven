@@ -75,6 +75,15 @@ impl<T: frame_system::Config> pallet_external_validators_rewards::WeightInfo for
 			.saturating_add(T::DbWeight::get().writes(2_u64))
 	}
 
+	fn process_closed_windows_idle() -> Weight {
+		Weight::from_parts(10_000_000, 0)
+			.saturating_add(T::DbWeight::get().reads(3_u64))
+	}
+
+	fn process_closed_windows_processed() -> Weight {
+		Self::process_unsent_reward_eras_success()
+	}
+
 	fn process_unsent_reward_eras_empty() -> Weight {
 		Weight::from_parts(5_000_000, 0)
 			.saturating_add(T::DbWeight::get().reads(1_u64))

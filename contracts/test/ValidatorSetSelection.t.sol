@@ -519,6 +519,33 @@ contract ValidatorSetSelectionTest is SnowbridgeAndAVSDeployer {
         );
     }
 
+    function test_removeValidatorFromAllowlist_excludesOperatorFromValidatorSetMessage() public {
+        _setupMultipliers(_uniformMultipliers());
+
+        address op1 = vm.addr(601);
+        address solochain1 = address(uint160(0x4001));
+        _registerOperator(op1, solochain1, _uniformStakes(100 ether));
+
+        address op2 = vm.addr(602);
+        address solochain2 = address(uint160(0x4002));
+        _registerOperator(op2, solochain2, _uniformStakes(200 ether));
+
+        _advancePastAllocationConfigDelay();
+        _allocateForOperator(op1);
+        _allocateForOperator(op2);
+        _advancePastAllocationEffect();
+
+        vm.prank(avsOwner);
+        serviceManager.removeValidatorFromAllowlist(op2);
+
+        address[] memory expected = new address[](1);
+        expected[0] = solochain1;
+
+        assertEq(
+            serviceManager.buildNewValidatorSetMessageForEra(0), _buildExpectedMessage(expected, 0)
+        );
+    }
+
     // Test #6: A zero multiplier is accepted and causes that strategy's stake to contribute
     // no weight. The operator is still included if other strategies have non-zero multipliers.
     function test_zeroMultiplier_accepted_contributesNoWeight() public {

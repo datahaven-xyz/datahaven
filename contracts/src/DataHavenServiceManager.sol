@@ -134,9 +134,8 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
     }
 
     function _checkValidator() internal view {
-        OperatorSet memory operatorSet = OperatorSet({avs: address(this), id: VALIDATORS_SET_ID});
         require(
-            _ALLOCATION_MANAGER.isMemberOfOperatorSet(msg.sender, operatorSet),
+            _ALLOCATION_MANAGER.isMemberOfOperatorSet(msg.sender, _validatorsOperatorSet()),
             CallerIsNotValidator()
         );
     }
@@ -337,7 +336,7 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         address oldSolochainAddress = validatorEthAddressToSolochainAddress[msg.sender];
         require(oldSolochainAddress != solochainAddress, SolochainAddressAlreadyAssigned());
 
-        address existingEthOperator = validatorSolochainAddressToEthAddress[solochainAddress];
+        address existingEthOperator = _consumeExpiredSolochainMapping(solochainAddress);
         require(existingEthOperator == address(0), SolochainAddressAlreadyAssigned());
 
         delete validatorSolochainAddressToEthAddress[oldSolochainAddress];
@@ -380,10 +379,8 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         );
 
         address solochainAddress = _toAddress(data);
-        require(
-            validatorSolochainAddressToEthAddress[solochainAddress] == address(0),
-            SolochainAddressAlreadyAssigned()
-        );
+        address existingEthOperator = _consumeExpiredSolochainMapping(solochainAddress);
+        require(existingEthOperator == address(0), SolochainAddressAlreadyAssigned());
 
         validatorEthAddressToSolochainAddress[operator] = solochainAddress;
         validatorSolochainAddressToEthAddress[solochainAddress] = operator;
@@ -404,9 +401,7 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
             validatorEthAddressToSolochainAddress[operator] != address(0), OperatorNotRegistered()
         );
 
-        address oldSolochainAddress = validatorEthAddressToSolochainAddress[operator];
         delete validatorEthAddressToSolochainAddress[operator];
-        delete validatorSolochainAddressToEthAddress[oldSolochainAddress];
 
         emit OperatorDeregistered(operator, operatorSetIds[0]);
     }
@@ -434,6 +429,13 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         address validator
     ) external onlyOwner {
         validatorsAllowlist[validator] = false;
+
+        if (validatorEthAddressToSolochainAddress[validator] != address(0)) {
+            uint32[] memory operatorSetIds = new uint32[](1);
+            operatorSetIds[0] = VALIDATORS_SET_ID;
+            _deregisterOperatorFromOperatorSets(validator, operatorSetIds);
+        }
+
         emit ValidatorRemovedFromAllowlist(validator);
     }
 
@@ -532,9 +534,8 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         uint256 totalAmount = 0;
         uint256 resolvedCount = 0;
         for (uint256 i = 0; i < len; i++) {
-            address ethOp = validatorSolochainAddressToEthAddress[
-                translatedSubmission.operatorRewards[i].operator
-            ];
+            address ethOp =
+                _resolveSlashableEthOperator(translatedSubmission.operatorRewards[i].operator);
             if (ethOp == address(0)) continue;
             translated[resolvedCount] = translatedSubmission.operatorRewards[i];
             translated[resolvedCount].operator = ethOp;
@@ -600,6 +601,13 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         address operator,
         uint32[] calldata operatorSetIds
     ) external onlyOwner {
+        _deregisterOperatorFromOperatorSets(operator, operatorSetIds);
+    }
+
+    function _deregisterOperatorFromOperatorSets(
+        address operator,
+        uint32[] memory operatorSetIds
+    ) internal {
         IAllocationManagerTypes.DeregisterParams memory params =
             IAllocationManagerTypes.DeregisterParams({
                 operator: operator, avs: address(this), operatorSetIds: operatorSetIds
@@ -617,7 +625,7 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         SlashingRequest[] calldata slashings
     ) external onlySnowbridgeInitiator {
         for (uint256 i = 0; i < slashings.length; i++) {
-            address ethOperator = validatorSolochainAddressToEthAddress[slashings[i].operator];
+            address ethOperator = _resolveSlashableEthOperator(slashings[i].operator);
             if (ethOperator == address(0)) continue;
             IAllocationManagerTypes.SlashingParams memory slashingParams =
                 IAllocationManagerTypes.SlashingParams({
@@ -725,5 +733,33 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
             return stakeA > stakeB;
         }
         return opA < opB;
+    }
+
+    function _validatorsOperatorSet() internal view returns (OperatorSet memory) {
+        return OperatorSet({avs: address(this), id: VALIDATORS_SET_ID});
+    }
+
+    function _resolveSlashableEthOperator(
+        address solochainAddress
+    ) internal view returns (address) {
+        address ethOperator = validatorSolochainAddressToEthAddress[solochainAddress];
+        if (ethOperator == address(0)) return address(0);
+        if (!_ALLOCATION_MANAGER.isOperatorSlashable(ethOperator, _validatorsOperatorSet())) {
+            return address(0);
+        }
+        return ethOperator;
+    }
+
+    function _consumeExpiredSolochainMapping(
+        address solochainAddress
+    ) internal returns (address) {
+        address existingEthOperator = validatorSolochainAddressToEthAddress[solochainAddress];
+        if (existingEthOperator == address(0)) return address(0);
+        if (_ALLOCATION_MANAGER.isOperatorSlashable(existingEthOperator, _validatorsOperatorSet()))
+        {
+            return existingEthOperator;
+        }
+        delete validatorSolochainAddressToEthAddress[solochainAddress];
+        return address(0);
     }
 }

@@ -110,24 +110,25 @@ export const getPostgresUrl = (networkId: string): string => {
 };
 
 /**
- * Injects a BCSV ECDSA key into a StorageHub provider node's keystore.
- *
- * @param containerName - Name of the Docker container
- * @param secretKey - The secret key (or private key) we want to add to the node
+ * Prepares a persistent data volume for a StorageHub provider and seeds its keystore
+ * before the node starts. Provider nodes can now require `bcsv` on first block import,
+ * so post-start injection is too late.
  */
-export const injectStorageHubKey = async (
-  containerName: string,
+const prepareStorageHubProviderVolume = async (
+  volumeName: string,
+  imageTag: string,
   secretKey: string
 ): Promise<void> => {
-  logger.info(`🔑 Injecting key into ${containerName}...`);
+  logger.info(`🔑 Preparing provider volume ${volumeName}...`);
 
-  // Use Bun's $ directly with docker exec (no sh -c wrapper needed)
-  // This properly handles the spaces in the seed phrase
+  await $`docker volume rm -f ${volumeName}`.nothrow().quiet();
+  await $`docker volume create ${volumeName}`.quiet();
+
   try {
-    await $`docker exec ${containerName} datahaven-node key insert --chain local --key-type bcsv --scheme ecdsa --suri ${secretKey}`;
-    logger.success("Key injected successfully");
+    await $`docker run --rm -v ${volumeName}:/data ${imageTag} key insert --base-path /data --chain local --key-type bcsv --scheme ecdsa --suri ${secretKey}`;
+    logger.success(`Provider volume ${volumeName} seeded with bcsv key`);
   } catch (error) {
-    logger.error(`Failed to inject key : ${error}`);
+    logger.error(`Failed to seed provider volume ${volumeName}: ${error}`);
     throw error;
   }
 };
@@ -146,7 +147,14 @@ export const launchMspNode = async (
 
   const containerName = `storagehub-msp-${options.networkId}`;
   const dockerNetworkName = `datahaven-${options.networkId}`;
+  const dataVolumeName = `${containerName}-data`;
   const wsPort = 9945; // External port for MSP node
+
+  await prepareStorageHubProviderVolume(
+    dataVolumeName,
+    options.datahavenImageTag,
+    SUBSTRATE_FUNDED_ACCOUNTS.CHARLETH.privateKey
+  );
 
   const command: string[] = [
     "docker",
@@ -156,6 +164,8 @@ export const launchMspNode = async (
     containerName,
     "--network",
     dockerNetworkName,
+    "-v",
+    `${dataVolumeName}:/data`,
     "-p",
     `${wsPort}:${DEFAULT_SUBSTRATE_WS_PORT}`,
     options.datahavenImageTag,
@@ -191,14 +201,6 @@ export const launchMspNode = async (
   logger.debug(`Executing: ${command.join(" ")}`);
   await $`sh -c "${command.join(" ")}"`.nothrow();
 
-  await waitForContainerToStart(containerName);
-
-  // Inject key
-  await injectStorageHubKey(containerName, SUBSTRATE_FUNDED_ACCOUNTS.CHARLETH.privateKey);
-
-  // Restart container to load key
-  logger.info("🔄 Restarting MSP node to load key...");
-  await $`docker restart ${containerName}`.nothrow();
   await waitForContainerToStart(containerName);
 
   // Wait for node to be ready
@@ -238,7 +240,14 @@ export const launchBspNode = async (
 
   const containerName = `storagehub-bsp-${options.networkId}`;
   const dockerNetworkName = `datahaven-${options.networkId}`;
+  const dataVolumeName = `${containerName}-data`;
   const wsPort = 9946; // External port for BSP node
+
+  await prepareStorageHubProviderVolume(
+    dataVolumeName,
+    options.datahavenImageTag,
+    SUBSTRATE_FUNDED_ACCOUNTS.DOROTHY.privateKey
+  );
 
   const command: string[] = [
     "docker",
@@ -248,6 +257,8 @@ export const launchBspNode = async (
     containerName,
     "--network",
     dockerNetworkName,
+    "-v",
+    `${dataVolumeName}:/data`,
     "-p",
     `${wsPort}:${DEFAULT_SUBSTRATE_WS_PORT}`,
     options.datahavenImageTag,
@@ -278,14 +289,6 @@ export const launchBspNode = async (
   logger.debug(`Executing: ${command.join(" ")}`);
   await $`sh -c "${command.join(" ")}"`.nothrow();
 
-  await waitForContainerToStart(containerName);
-
-  // Inject key
-  await injectStorageHubKey(containerName, SUBSTRATE_FUNDED_ACCOUNTS.DOROTHY.privateKey);
-
-  // Restart container to load key
-  logger.info("🔄 Restarting BSP node to load key...");
-  await $`docker restart ${containerName}`.nothrow();
   await waitForContainerToStart(containerName);
 
   // Wait for node to be ready

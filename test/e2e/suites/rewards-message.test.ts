@@ -10,7 +10,7 @@ import { BaseTestSuite } from "../framework";
  * Temporary helper to set V2 rewards parameters via sudo.
  * This is needed until the launcher properly configures these parameters.
  */
-async function setV2RewardsParameters(dhApi: any) {
+async function setV2RewardsParameters(dhApi: any, publicClient: any) {
   const signer = getEvmEcdsaSigner(SUBSTRATE_FUNDED_ACCOUNTS.ALITH.privateKey);
 
   // Get addresses from deployments
@@ -21,16 +21,25 @@ async function setV2RewardsParameters(dhApi: any) {
   const strategyAddress =
     deployments.DeployedStrategies?.[0]?.address ?? "0x0000000000000000000000000000000000000000";
   const serviceManagerAddress = deployments.ServiceManager;
+  const rewardsCoordinator = await getContractInstance("RewardsCoordinator");
+  const rewardsDuration = Number(
+    await publicClient.readContract({
+      address: rewardsCoordinator.address,
+      abi: rewardsCoordinator.abi,
+      functionName: "CALCULATION_INTERVAL_SECONDS",
+      args: []
+    })
+  );
 
-  // Set RewardsGenesisTimestamp to 1 day ago (aligned to day boundary) to ensure valid rewards periods
-  const genesisTimestamp = Math.floor((Date.now() / 1000 - 86400) / 86400) * 86400;
-
+  // The window genesis is now a runtime constant. For local e2e we only need to
+  // match the runtime rewards duration to the locally deployed RewardsCoordinator
+  // interval so a rewards window can close during CI.
   logger.debug(
     "Setting V2 rewards parameters:\n" +
       `  WHAVETokenAddress=${whaveTokenAddress}\n` +
       `  StrategyAddress=${strategyAddress}\n` +
       `  ServiceManagerAddress=${serviceManagerAddress}\n` +
-      `  RewardsGenesisTimestamp=${genesisTimestamp}`
+      `  RewardsDuration=${rewardsDuration}`
   );
 
   // Build sudo calls to set parameters
@@ -58,8 +67,8 @@ async function setV2RewardsParameters(dhApi: any) {
       key_value: {
         type: "RuntimeConfig",
         value: {
-          type: "RewardsGenesisTimestamp",
-          value: [genesisTimestamp]
+          type: "RewardsDuration",
+          value: [rewardsDuration]
         }
       }
     }).decodedCall,
@@ -84,6 +93,16 @@ async function setV2RewardsParameters(dhApi: any) {
     throw new Error("Failed to set V2 rewards parameters");
   }
 
+  const sudidEvent = result.events.find((e: any) => e.type === "Sudo" && e.value?.type === "Sudid");
+  if (!sudidEvent) {
+    throw new Error("Sudo.Sudid event not found while setting V2 rewards parameters");
+  }
+
+  const sudoResult = (sudidEvent.value as any).value.sudo_result;
+  if (sudoResult.type === "Err") {
+    throw new Error(`Failed to set V2 rewards parameters: ${JSON.stringify(sudoResult)}`);
+  }
+
   logger.debug("V2 rewards parameters set successfully");
 }
 
@@ -104,7 +123,6 @@ describe("Rewards Message Flow", () => {
   let publicClient!: any;
   let dhApi!: any;
   let eraIndex!: number;
-  let totalPoints!: bigint;
 
   beforeAll(async () => {
     const connectors = suite.getTestConnectors();
@@ -114,7 +132,7 @@ describe("Rewards Message Flow", () => {
     serviceManager = await getContractInstance("ServiceManager");
 
     // Set V2 rewards parameters (temporary until launcher configures them)
-    await setV2RewardsParameters(dhApi);
+    await setV2RewardsParameters(dhApi, publicClient);
   });
 
   it("should verify rewards infrastructure deployment", async () => {
@@ -135,29 +153,27 @@ describe("Rewards Message Flow", () => {
     logger.debug(`ServiceManager snowbridgeInitiator: ${snowbridgeInitiator}`);
   });
 
-  it("should wait for era end and emit RewardsMessageSent", async () => {
-    // Get current era for event filtering
+  it("should wait for era end and record reward points", async () => {
     const currentEra = await dhApi.query.ExternalValidators.ActiveEra.getValue();
-    const currentEraIndex = currentEra?.index ?? 0;
-    logger.debug(`Waiting for RewardsMessageSent for era ${currentEraIndex}`);
+    eraIndex = currentEra?.index ?? 0;
+    logger.debug(`Waiting for ExternalValidators.NewEra after era ${eraIndex}`);
 
     const payload = await waitForDataHavenEvent<any>({
       api: dhApi,
-      pallet: "ExternalValidatorsRewards",
-      event: "RewardsMessageSent",
-      filter: (e) => e.era_index === currentEraIndex,
+      pallet: "ExternalValidators",
+      event: "NewEra",
+      filter: (e) => e.era > eraIndex,
       timeout: CROSS_CHAIN_TIMEOUTS.DH_TO_ETH_MS
     });
 
     expect(payload).toBeDefined();
-    totalPoints = payload.total_points;
-    eraIndex = payload.era_index;
-    expect(totalPoints).toBeGreaterThan(0n);
-    logger.debug(`RewardsMessageSent received: era=${eraIndex}, totalPoints=${totalPoints}`);
+    expect(payload.era).toBeGreaterThan(eraIndex);
+    logger.debug(
+      `ExternalValidators.NewEra received: previousEra=${eraIndex}, newEra=${payload.era}`
+    );
   });
 
   it("should verify reward points were recorded for the era", async () => {
-    // Verify reward points were recorded on DataHaven side
     const rewardPoints =
       await dhApi.query.ExternalValidatorsRewards.RewardPointsForEra.getValue(eraIndex);
     expect(rewardPoints).toBeDefined();

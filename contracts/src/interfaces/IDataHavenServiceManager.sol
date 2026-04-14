@@ -261,8 +261,10 @@ interface IDataHavenServiceManager is
     ) external;
 
     /**
-     * @notice Removes a validator from the allowlist
+     * @notice Removes a validator from the allowlist and revokes its active validator membership
      * @param validator Address of the validator to remove
+     * @dev If the validator is currently registered in the validators operator set,
+     *      this also force-deregisters it from EigenLayer for `VALIDATORS_SET_ID`.
      */
     function removeValidatorFromAllowlist(
         address validator

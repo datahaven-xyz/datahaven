@@ -94,10 +94,10 @@ interface IDataHavenServiceManagerEvents {
     /// @param operatorCount The number of operators that received rewards
     event RewardsSubmitted(uint256 totalAmount, uint256 operatorCount);
 
-    /// @notice Emitted when the rewards initiator address is updated
-    /// @param oldInitiator The previous rewards initiator address
-    /// @param newInitiator The new rewards initiator address
-    event RewardsInitiatorSet(address indexed oldInitiator, address indexed newInitiator);
+    /// @notice Emitted when the snowbridge initiator address is updated
+    /// @param oldInitiator The previous snowbridge initiator address
+    /// @param newInitiator The new snowbridge initiator address
+    event SnowbridgeInitiatorSet(address indexed oldInitiator, address indexed newInitiator);
 
     /// @notice Emitted when a validator updates their solochain address
     /// @param validator Address of the validator
@@ -202,7 +202,7 @@ interface IDataHavenServiceManager is
     /**
      * @notice Initializes the DataHaven Service Manager
      * @param initialOwner Address of the initial owner (AVS owner)
-     * @param rewardsInitiator Address authorized to initiate rewards
+     * @param snowbridgeInitiator Address authorized to initiate rewards
      * @param validatorsStrategiesAndMultipliers Array of strategy-multiplier pairs for the validators
      *        operator set. Each multiplier must be non-zero.
      * @param _snowbridgeGatewayAddress Address of the Snowbridge Gateway
@@ -211,7 +211,7 @@ interface IDataHavenServiceManager is
      */
     function initialize(
         address initialOwner,
-        address rewardsInitiator,
+        address snowbridgeInitiator,
         IRewardsCoordinatorTypes.StrategyAndMultiplier[] memory validatorsStrategiesAndMultipliers,
         address _snowbridgeGatewayAddress,
         address _validatorSetSubmitter,
@@ -274,8 +274,10 @@ interface IDataHavenServiceManager is
     ) external;
 
     /**
-     * @notice Removes a validator from the allowlist
+     * @notice Removes a validator from the allowlist and revokes its active validator membership
      * @param validator Address of the validator to remove
+     * @dev If the validator is currently registered in the validators operator set,
+     *      this also force-deregisters it from EigenLayer for `VALIDATORS_SET_ID`.
      */
     function removeValidatorFromAllowlist(
         address validator
@@ -359,11 +361,11 @@ interface IDataHavenServiceManager is
     ) external;
 
     /**
-     * @notice Set the rewards initiator address authorized to submit rewards
-     * @param initiator The address of the rewards initiator (Snowbridge Agent)
+     * @notice Set the snowbridge initiator address authorized to submit rewards
+     * @param initiator The address of the snowbridge initiator (Snowbridge Agent)
      * @dev Only callable by the owner
      */
-    function setRewardsInitiator(
+    function setSnowbridgeInitiator(
         address initiator
     ) external;
 

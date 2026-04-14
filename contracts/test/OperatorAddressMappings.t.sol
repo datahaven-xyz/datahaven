@@ -6,6 +6,7 @@ import {DataHavenServiceManager} from "../src/DataHavenServiceManager.sol";
 import {
     IAllocationManagerTypes
 } from "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
+import {OperatorSet} from "eigenlayer-contracts/src/contracts/libraries/OperatorSetLib.sol";
 import {Test} from "forge-std/Test.sol";
 
 contract OperatorAddressMappingsTest is AVSDeployer {
@@ -20,7 +21,7 @@ contract OperatorAddressMappingsTest is AVSDeployer {
         // Configure the rewards initiator (not strictly needed for these tests,
         // but keeps setup consistent with other suites).
         vm.prank(avsOwner);
-        serviceManager.setRewardsInitiator(snowbridgeAgent);
+        serviceManager.setSnowbridgeInitiator(snowbridgeAgent);
     }
 
     function _registerOperator(
@@ -158,8 +159,8 @@ contract OperatorAddressMappingsTest is AVSDeployer {
         );
         assertEq(
             serviceManager.validatorSolochainAddressToEthAddress(solo1),
-            address(0),
-            "reverse mapping should be cleared"
+            operator1,
+            "reverse mapping should remain slashable until deallocation delay passes"
         );
     }
 
@@ -170,6 +171,107 @@ contract OperatorAddressMappingsTest is AVSDeployer {
         vm.prank(address(allocationManager));
         vm.expectRevert(abi.encodeWithSignature("OperatorNotRegistered()"));
         serviceManager.deregisterOperator(operator1, address(serviceManager), operatorSetIds);
+    }
+
+    function test_removeValidatorFromAllowlist_deregistersRegisteredOperator() public {
+        address solo1 = address(0xBEEF);
+        _registerOperator(operator1, solo1);
+
+        assertEq(
+            serviceManager.validatorEthAddressToSolochainAddress(operator1),
+            solo1,
+            "forward mapping should be set before removal"
+        );
+        assertTrue(
+            serviceManager.validatorsAllowlist(operator1), "operator should start allowlisted"
+        );
+        assertTrue(
+            allocationManager.isMemberOfOperatorSet(
+                operator1,
+                OperatorSet({avs: address(serviceManager), id: serviceManager.VALIDATORS_SET_ID()})
+            ),
+            "operator should start in validator set"
+        );
+
+        vm.prank(avsOwner);
+        serviceManager.removeValidatorFromAllowlist(operator1);
+
+        assertFalse(
+            serviceManager.validatorsAllowlist(operator1),
+            "operator should be removed from allowlist"
+        );
+        assertFalse(
+            allocationManager.isMemberOfOperatorSet(
+                operator1,
+                OperatorSet({avs: address(serviceManager), id: serviceManager.VALIDATORS_SET_ID()})
+            ),
+            "operator should be removed from validator set"
+        );
+        assertEq(
+            serviceManager.validatorEthAddressToSolochainAddress(operator1),
+            address(0),
+            "forward mapping should be cleared"
+        );
+        assertEq(
+            serviceManager.validatorSolochainAddressToEthAddress(solo1),
+            operator1,
+            "reverse mapping should remain slashable until deallocation delay passes"
+        );
+    }
+
+    function test_removeValidatorFromAllowlist_succeedsForUnregisteredValidator() public {
+        vm.prank(avsOwner);
+        serviceManager.addValidatorToAllowlist(operator1);
+
+        assertTrue(
+            serviceManager.validatorsAllowlist(operator1), "operator should start allowlisted"
+        );
+
+        vm.prank(avsOwner);
+        serviceManager.removeValidatorFromAllowlist(operator1);
+
+        assertFalse(
+            serviceManager.validatorsAllowlist(operator1),
+            "operator should be removed from allowlist"
+        );
+        assertEq(
+            serviceManager.validatorEthAddressToSolochainAddress(operator1),
+            address(0),
+            "forward mapping should remain empty"
+        );
+    }
+
+    function test_registerOperator_reclaimsExpiredSolochainMapping() public {
+        address solo1 = address(0xBEEF);
+        _registerOperator(operator1, solo1);
+
+        vm.prank(avsOwner);
+        serviceManager.removeValidatorFromAllowlist(operator1);
+
+        vm.roll(block.number + uint32(7 days) + 1);
+
+        vm.prank(avsOwner);
+        serviceManager.addValidatorToAllowlist(operator2);
+        vm.prank(operator2);
+        delegationManager.registerAsOperator(address(0), 0, "");
+
+        uint32[] memory operatorSetIds = new uint32[](1);
+        operatorSetIds[0] = serviceManager.VALIDATORS_SET_ID();
+        IAllocationManagerTypes.RegisterParams memory registerParams =
+            IAllocationManagerTypes.RegisterParams({
+                avs: address(serviceManager),
+                operatorSetIds: operatorSetIds,
+                data: abi.encodePacked(solo1)
+            });
+
+        vm.prank(operator2);
+        allocationManager.registerForOperatorSets(operator2, registerParams);
+
+        assertEq(
+            serviceManager.validatorSolochainAddressToEthAddress(solo1),
+            operator2,
+            "expired reverse mapping should be reclaimed by the new operator"
+        );
     }
 
     function test_updateSolochainAddressForValidator_revertsIfSameAddress() public {

@@ -28,6 +28,40 @@ use {
     sp_staking::offence::ReportOffence,
 };
 
+fn queued_slash_ids() -> Vec<u32> {
+    let mut queued = Vec::new();
+    let mut slot = UnsentSlashHead::<Test>::get();
+    let tail = UnsentSlashTail::<Test>::get();
+
+    while slot != tail {
+        if let Some((_, batch)) = UnsentSlashBatch::<Test>::get(slot) {
+            queued.extend(batch.into_iter().map(|slash| slash.slash_id));
+        }
+        slot = (slot + 1) % UNSENT_QUEUE_CAPACITY;
+    }
+
+    queued
+}
+
+fn queued_batch_eras() -> Vec<u32> {
+    let mut queued = Vec::new();
+    let mut slot = UnsentSlashHead::<Test>::get();
+    let tail = UnsentSlashTail::<Test>::get();
+
+    while slot != tail {
+        if let Some((era, _)) = UnsentSlashBatch::<Test>::get(slot) {
+            queued.push(era);
+        }
+        slot = (slot + 1) % UNSENT_QUEUE_CAPACITY;
+    }
+
+    queued
+}
+
+fn unsent_queue_len() -> u32 {
+    ExternalValidatorSlashes::unsent_queue_len()
+}
+
 #[test]
 fn root_can_inject_manual_offence() {
     new_test_ext().execute_with(|| {
@@ -574,14 +608,228 @@ fn test_on_offence_defer_period_0_messages_get_queued() {
 
         assert_eq!(Slashes::<Test>::get(get_slashing_era(1)).len(), 25);
         start_era(2, 2, 2);
-        assert_eq!(UnreportedSlashesQueue::<Test>::get().len(), 25);
+        assert_eq!(unsent_queue_len(), 2);
+        assert_eq!(queued_batch_eras(), vec![2, 2]);
 
         // this triggers on_initialize
         run_block();
-        assert_eq!(UnreportedSlashesQueue::<Test>::get().len(), 5);
+        assert_eq!(unsent_queue_len(), 1);
+        assert_eq!(queued_slash_ids(), (20..25).collect::<Vec<_>>());
 
         run_block();
-        assert_eq!(UnreportedSlashesQueue::<Test>::get().len(), 0);
+        assert!(ExternalValidatorSlashes::unsent_queue_is_empty());
+    });
+}
+
+#[test]
+fn failed_slashes_batch_is_moved_to_back_of_queue() {
+    new_test_ext().execute_with(|| {
+        crate::mock::DeferPeriodGetter::with_defer_period(0);
+        MockOkOutboundQueue::set_should_fail(true);
+
+        start_era(0, 0, 0);
+        start_era(1, 1, 1);
+
+        for i in 0..25 {
+            PendingOffenceKind::<Test>::insert(0, 3 + i, OffenceKind::LivenessOffence);
+            Pallet::<Test>::on_offence(
+                &[OffenceDetails {
+                    offender: (3 + i, ()),
+                    reporters: vec![],
+                }],
+                &[Perbill::from_percent(75)],
+                0,
+            );
+        }
+
+        start_era(2, 2, 2);
+        assert_eq!(queued_slash_ids(), (0..25).collect::<Vec<_>>());
+        assert_eq!(queued_batch_eras(), vec![2, 2]);
+
+        run_block();
+
+        assert_eq!(unsent_queue_len(), 2);
+        assert_eq!(
+            queued_slash_ids(),
+            (20..25).chain(0..20).collect::<Vec<_>>()
+        );
+        System::assert_has_event(RuntimeEvent::ExternalValidatorSlashes(
+            crate::Event::SlashesMessageSendFailed { era: 2, count: 20 },
+        ));
+    });
+}
+
+#[test]
+fn failed_slashes_batch_retries_after_send_is_reenabled() {
+    new_test_ext().execute_with(|| {
+        crate::mock::DeferPeriodGetter::with_defer_period(0);
+        MockOkOutboundQueue::set_should_fail(true);
+
+        start_era(0, 0, 0);
+        start_era(1, 1, 1);
+
+        for i in 0..25 {
+            PendingOffenceKind::<Test>::insert(0, 3 + i, OffenceKind::LivenessOffence);
+            Pallet::<Test>::on_offence(
+                &[OffenceDetails {
+                    offender: (3 + i, ()),
+                    reporters: vec![],
+                }],
+                &[Perbill::from_percent(75)],
+                0,
+            );
+        }
+
+        start_era(2, 2, 2);
+        run_block();
+        assert_eq!(
+            queued_slash_ids(),
+            (20..25).chain(0..20).collect::<Vec<_>>()
+        );
+
+        start_era(3, 3, 3);
+        MockOkOutboundQueue::set_should_fail(false);
+
+        run_block();
+        assert_eq!(unsent_queue_len(), 1);
+        assert_eq!(queued_slash_ids(), (0..20).collect::<Vec<_>>());
+        assert_eq!(MockOkOutboundQueue::last_sent_slashes().len(), 5);
+        assert_eq!(MockOkOutboundQueue::last_built_era(), Some(2));
+        System::assert_has_event(RuntimeEvent::ExternalValidatorSlashes(
+            crate::Event::SlashesMessageSent {
+                message_id: Default::default(),
+            },
+        ));
+
+        run_block();
+        assert!(ExternalValidatorSlashes::unsent_queue_is_empty());
+    });
+}
+
+#[test]
+fn retry_extrinsic_succeeds_for_matching_era() {
+    new_test_ext().execute_with(|| {
+        crate::mock::DeferPeriodGetter::with_defer_period(0);
+
+        start_era(0, 0, 0);
+        start_era(1, 1, 1);
+
+        for i in 0..25 {
+            PendingOffenceKind::<Test>::insert(0, 3 + i, OffenceKind::LivenessOffence);
+            Pallet::<Test>::on_offence(
+                &[OffenceDetails {
+                    offender: (3 + i, ()),
+                    reporters: vec![],
+                }],
+                &[Perbill::from_percent(75)],
+                0,
+            );
+        }
+
+        start_era(2, 2, 2);
+        start_era(5, 5, 5);
+
+        assert_ok!(ExternalValidatorSlashes::retry_unsent_slash_era(
+            RuntimeOrigin::root(),
+            2,
+        ));
+
+        assert_eq!(unsent_queue_len(), 1);
+        assert_eq!(queued_slash_ids(), (20..25).collect::<Vec<_>>());
+        assert_eq!(MockOkOutboundQueue::last_built_era(), Some(2));
+    });
+}
+
+#[test]
+fn retry_extrinsic_errors_when_era_not_queued() {
+    new_test_ext().execute_with(|| {
+        assert_noop!(
+            ExternalValidatorSlashes::retry_unsent_slash_era(RuntimeOrigin::root(), 2),
+            Error::<Test>::EraNotInUnsentQueue
+        );
+    });
+}
+
+#[test]
+fn retry_extrinsic_requires_root() {
+    new_test_ext().execute_with(|| {
+        assert_noop!(
+            ExternalValidatorSlashes::retry_unsent_slash_era(RuntimeOrigin::signed(1), 2),
+            sp_runtime::DispatchError::BadOrigin
+        );
+    });
+}
+
+#[test]
+fn retry_extrinsic_preserves_failed_batch_when_send_still_fails() {
+    new_test_ext().execute_with(|| {
+        crate::mock::DeferPeriodGetter::with_defer_period(0);
+        MockOkOutboundQueue::set_should_fail(true);
+
+        start_era(0, 0, 0);
+        start_era(1, 1, 1);
+
+        for i in 0..25 {
+            PendingOffenceKind::<Test>::insert(0, 3 + i, OffenceKind::LivenessOffence);
+            Pallet::<Test>::on_offence(
+                &[OffenceDetails {
+                    offender: (3 + i, ()),
+                    reporters: vec![],
+                }],
+                &[Perbill::from_percent(75)],
+                0,
+            );
+        }
+
+        start_era(2, 2, 2);
+        let before = queued_slash_ids();
+
+        assert_noop!(
+            ExternalValidatorSlashes::retry_unsent_slash_era(RuntimeOrigin::root(), 2),
+            Error::<Test>::MessageSendFailed
+        );
+
+        assert_eq!(queued_slash_ids(), before);
+        assert_eq!(unsent_queue_len(), 2);
+    });
+}
+
+#[test]
+fn unsent_queue_full_emits_event() {
+    new_test_ext().execute_with(|| {
+        crate::mock::DeferPeriodGetter::with_defer_period(0);
+
+        for i in 0..63u32 {
+            let slash = Slash {
+                validator: 1000 + i as u64,
+                reporters: vec![],
+                slash_id: i,
+                percentage: Perbill::from_percent(1),
+                confirmed: true,
+                offence_kind: OffenceKind::LivenessOffence,
+            };
+            assert!(ExternalValidatorSlashes::unsent_queue_push((
+                1,
+                vec![slash]
+            )));
+        }
+
+        Slashes::<Test>::insert(
+            2,
+            vec![Slash {
+                validator: 5000u64,
+                reporters: vec![],
+                slash_id: 999,
+                percentage: Perbill::from_percent(10),
+                confirmed: true,
+                offence_kind: OffenceKind::LivenessOffence,
+            }],
+        );
+
+        start_era(2, 2, 2);
+
+        assert_eq!(unsent_queue_len(), 63);
+        assert_eq!(Slashes::<Test>::get(2).len(), 1);
     });
 }
 
@@ -628,14 +876,13 @@ fn test_on_offence_defer_period_0_messages_get_queued_across_eras() {
         }
         assert_eq!(Slashes::<Test>::get(get_slashing_era(1)).len(), 25);
         start_era(2, 2, 2);
-        assert_eq!(UnreportedSlashesQueue::<Test>::get().len(), 25);
+        assert_eq!(unsent_queue_len(), 2);
 
         // this triggers on_initialize
         run_block();
-        assert_eq!(UnreportedSlashesQueue::<Test>::get().len(), 5);
+        assert_eq!(unsent_queue_len(), 1);
+        assert_eq!(queued_slash_ids(), (20..25).collect::<Vec<_>>());
 
-        // We have 5 non-dispatched, which should accumulate
-        // We shoulld have 30 after we initialie era 3
         for i in 0..25 {
             PendingOffenceKind::<Test>::insert(2, 3 + i, OffenceKind::LivenessOffence);
             Pallet::<Test>::on_offence(
@@ -651,15 +898,20 @@ fn test_on_offence_defer_period_0_messages_get_queued_across_eras() {
         }
 
         start_era(3, 3, 3);
-        assert_eq!(UnreportedSlashesQueue::<Test>::get().len(), 30);
+        assert_eq!(unsent_queue_len(), 3);
+        assert_eq!(queued_batch_eras(), vec![2, 3, 3]);
 
         // this triggers on_initialize
         run_block();
-        assert_eq!(UnreportedSlashesQueue::<Test>::get().len(), 10);
+        assert_eq!(unsent_queue_len(), 2);
+        assert_eq!(queued_batch_eras(), vec![3, 3]);
 
         // this triggers on_initialize
         run_block();
-        assert_eq!(UnreportedSlashesQueue::<Test>::get().len(), 0);
+        assert_eq!(unsent_queue_len(), 1);
+
+        run_block();
+        assert!(ExternalValidatorSlashes::unsent_queue_is_empty());
     });
 }
 

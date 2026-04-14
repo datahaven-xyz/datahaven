@@ -57,6 +57,8 @@ impl pallet_conviction_voting::Config for Runtime {
     type MaxVotes = ConstU32<20>;
     type MaxTurnout = frame_support::traits::TotalIssuanceOf<Balances, AccountId>;
     type Polls = Referenda;
+    type BlockNumberProvider = System;
+    type VotingHooks = ();
 }
 
 impl pallet_whitelist::Config for Runtime {
@@ -79,8 +81,6 @@ impl pallet_whitelist::Config for Runtime {
     type WeightInfo = testnet_weights::pallet_whitelist::WeightInfo<Runtime>;
 }
 
-pallet_referenda::impl_tracksinfo_get!(TracksInfo, Balance, BlockNumber);
-
 // Referenda Implementation
 impl pallet_referenda::Config for Runtime {
     type WeightInfo = testnet_weights::pallet_referenda::WeightInfo<Runtime>;
@@ -100,4 +100,5 @@ impl pallet_referenda::Config for Runtime {
     type AlarmInterval = AlarmInterval;
     type Tracks = TracksInfo;
     type Preimages = Preimage;
+    type BlockNumberProvider = System;
 }

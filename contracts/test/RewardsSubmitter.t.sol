@@ -14,12 +14,14 @@ import {
 } from "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
 import {OperatorSet} from "eigenlayer-contracts/src/contracts/libraries/OperatorSetLib.sol";
 
+import {StdStorage, stdStorage} from "forge-std/StdStorage.sol";
 import {AVSDeployer} from "./utils/AVSDeployer.sol";
 import {ERC20FixedSupply} from "./utils/ERC20FixedSupply.sol";
 import {IDataHavenServiceManagerEvents} from "../src/interfaces/IDataHavenServiceManager.sol";
 
 contract RewardsSubmitterTest is AVSDeployer {
     using SafeERC20 for IERC20;
+    using stdStorage for StdStorage;
 
     // Test addresses
     address public snowbridgeAgent = address(uint160(uint256(keccak256("snowbridgeAgent"))));
@@ -40,7 +42,7 @@ contract RewardsSubmitterTest is AVSDeployer {
 
         // Configure the rewards initiator
         vm.prank(avsOwner);
-        serviceManager.setRewardsInitiator(snowbridgeAgent);
+        serviceManager.setSnowbridgeInitiator(snowbridgeAgent);
 
         // Fund the service manager with reward tokens
         IERC20(address(rewardToken)).safeTransfer(address(serviceManager), 100000e18);
@@ -106,21 +108,21 @@ contract RewardsSubmitterTest is AVSDeployer {
 
     // ============ Configuration Tests ============
 
-    function test_setRewardsInitiator() public {
+    function test_setSnowbridgeInitiator() public {
         address newInitiator = address(0x123);
 
         vm.prank(avsOwner);
         vm.expectEmit(true, true, false, false);
-        emit IDataHavenServiceManagerEvents.RewardsInitiatorSet(snowbridgeAgent, newInitiator);
-        serviceManager.setRewardsInitiator(newInitiator);
+        emit IDataHavenServiceManagerEvents.SnowbridgeInitiatorSet(snowbridgeAgent, newInitiator);
+        serviceManager.setSnowbridgeInitiator(newInitiator);
 
-        assertEq(serviceManager.rewardsInitiator(), newInitiator);
+        assertEq(serviceManager.snowbridgeInitiator(), newInitiator);
     }
 
-    function test_setRewardsInitiator_revertsIfNotOwner() public {
+    function test_setSnowbridgeInitiator_revertsIfNotOwner() public {
         vm.prank(operator1);
         vm.expectRevert(bytes("Ownable: caller is not the owner"));
-        serviceManager.setRewardsInitiator(address(0x123));
+        serviceManager.setSnowbridgeInitiator(address(0x123));
     }
 
     // ============ Access Control Tests ============
@@ -404,6 +406,137 @@ contract RewardsSubmitterTest is AVSDeployer {
         vm.prank(snowbridgeAgent);
         vm.expectEmit();
         emit IDataHavenServiceManagerEvents.RewardsSubmitted(0, 0);
+        serviceManager.submitRewards(_eraIndexForStart(submission.startTimestamp), submission);
+    }
+
+    function test_submitRewards_afterAllowlistRemovalStillTranslatesDuringDeallocationDelay()
+        public
+    {
+        address solochainOperator = address(0xBEEF);
+        _registerOperator(operator1, solochainOperator);
+
+        vm.prank(avsOwner);
+        serviceManager.removeValidatorFromAllowlist(operator1);
+
+        uint256 rewardAmount = 1000e18;
+        IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission memory submission =
+            _buildSubmission(rewardAmount, solochainOperator);
+
+        vm.warp(submission.startTimestamp + submission.duration + 1);
+
+        IRewardsCoordinatorTypes.OperatorReward[] memory expectedOperatorRewards =
+            new IRewardsCoordinatorTypes.OperatorReward[](1);
+        expectedOperatorRewards[0] =
+            IRewardsCoordinatorTypes.OperatorReward({operator: operator1, amount: rewardAmount});
+
+        IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission memory expectedSubmission =
+            IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission({
+                strategiesAndMultipliers: submission.strategiesAndMultipliers,
+                token: submission.token,
+                operatorRewards: expectedOperatorRewards,
+                startTimestamp: submission.startTimestamp,
+                duration: submission.duration,
+                description: submission.description
+            });
+
+        IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission[] memory submissions =
+            new IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission[](1);
+        submissions[0] = expectedSubmission;
+
+        OperatorSet memory operatorSet =
+            OperatorSet({avs: address(serviceManager), id: serviceManager.VALIDATORS_SET_ID()});
+        vm.expectCall(
+            address(rewardsCoordinator),
+            abi.encodeCall(
+                IRewardsCoordinator.createOperatorDirectedOperatorSetRewardsSubmission,
+                (operatorSet, submissions)
+            )
+        );
+
+        vm.prank(snowbridgeAgent);
+        serviceManager.submitRewards(_eraIndexForStart(submission.startTimestamp), submission);
+    }
+
+    function test_submitRewards_mergesDuplicateTranslatedOperators() public {
+        // Register operator1 with solochain1
+        address solochain1 = address(0xAA01);
+        address solochain2 = address(0xAA02);
+        _registerOperator(operator1, solochain1);
+
+        // Simulate the scenario where solochain2 also maps to operator1
+        // (e.g. operator deregistered and re-registered with a new solochain address
+        // within the same reward window, so the pallet accumulated points under both)
+        stdstore.target(address(serviceManager))
+            .sig("validatorSolochainAddressToEthAddress(address)").with_key(solochain2)
+            .checked_write(operator1);
+
+        // Build submission with two entries for different solochain addresses
+        // that both map to the same ETH operator
+        uint256 amount1 = 600e18;
+        uint256 amount2 = 400e18;
+        uint256 totalAmount = amount1 + amount2;
+
+        IRewardsCoordinatorTypes.StrategyAndMultiplier[] memory strategiesAndMultipliers =
+            new IRewardsCoordinatorTypes.StrategyAndMultiplier[](deployedStrategies.length);
+        for (uint256 i = 0; i < deployedStrategies.length; i++) {
+            strategiesAndMultipliers[i] = IRewardsCoordinatorTypes.StrategyAndMultiplier({
+                strategy: deployedStrategies[i], multiplier: uint96((i + 1) * 1e18)
+            });
+        }
+
+        IRewardsCoordinatorTypes.OperatorReward[] memory operatorRewards =
+            new IRewardsCoordinatorTypes.OperatorReward[](2);
+        operatorRewards[0] =
+            IRewardsCoordinatorTypes.OperatorReward({operator: solochain1, amount: amount1});
+        operatorRewards[1] =
+            IRewardsCoordinatorTypes.OperatorReward({operator: solochain2, amount: amount2});
+
+        IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission memory submission =
+            IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission({
+                strategiesAndMultipliers: strategiesAndMultipliers,
+                token: IERC20(address(rewardToken)),
+                operatorRewards: operatorRewards,
+                startTimestamp: GENESIS_REWARDS_TIMESTAMP,
+                duration: TEST_CALCULATION_INTERVAL,
+                description: "DataHaven rewards"
+            });
+
+        vm.warp(submission.startTimestamp + submission.duration + 1);
+
+        // Expect the RewardsCoordinator to receive a single merged entry
+        IRewardsCoordinatorTypes.OperatorReward[] memory expectedOperatorRewards =
+            new IRewardsCoordinatorTypes.OperatorReward[](1);
+        expectedOperatorRewards[0] =
+            IRewardsCoordinatorTypes.OperatorReward({operator: operator1, amount: totalAmount});
+
+        IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission memory expectedSubmission =
+            IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission({
+                strategiesAndMultipliers: strategiesAndMultipliers,
+                token: submission.token,
+                operatorRewards: expectedOperatorRewards,
+                startTimestamp: submission.startTimestamp,
+                duration: submission.duration,
+                description: submission.description
+            });
+
+        IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission[] memory submissions =
+            new IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission[](1);
+        submissions[0] = expectedSubmission;
+
+        OperatorSet memory operatorSet =
+            OperatorSet({avs: address(serviceManager), id: serviceManager.VALIDATORS_SET_ID()});
+        vm.expectCall(
+            address(rewardsCoordinator),
+            abi.encodeCall(
+                IRewardsCoordinator.createOperatorDirectedOperatorSetRewardsSubmission,
+                (operatorSet, submissions)
+            )
+        );
+
+        // Event should emit with total amount and ORIGINAL operator count (2)
+        vm.prank(snowbridgeAgent);
+        vm.expectEmit(false, false, false, true);
+        emit IDataHavenServiceManagerEvents.RewardsSubmitted(totalAmount, 2);
         serviceManager.submitRewards(_eraIndexForStart(submission.startTimestamp), submission);
     }
 

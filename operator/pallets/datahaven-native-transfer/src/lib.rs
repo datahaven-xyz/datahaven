@@ -29,7 +29,9 @@
 //! It uses a dedicated Ethereum sovereign account to hold locked tokens during transfers.
 
 #![cfg_attr(not(feature = "std"), no_std)]
+extern crate alloc;
 
+use alloc::vec;
 use frame_support::{
     pallet_prelude::*,
     traits::{
@@ -41,7 +43,6 @@ use snowbridge_core::TokenId;
 use snowbridge_outbound_queue_primitives::v2::{Command, Message as OutboundMessage, SendMessage};
 use sp_core::{H160, H256};
 use sp_runtime::{traits::Saturating, BoundedVec};
-use sp_std::vec;
 
 pub use pallet::*;
 

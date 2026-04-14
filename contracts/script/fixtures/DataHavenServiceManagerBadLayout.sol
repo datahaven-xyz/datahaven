@@ -12,7 +12,7 @@ contract DataHavenServiceManagerBadLayout is OwnableUpgradeable {
     uint256 public layoutBreaker;
 
     // Original variables (shifted by one slot)
-    address public rewardsInitiator;
+    address public snowbridgeInitiator;
     mapping(address => bool) public validatorsAllowlist;
     IGatewayV2 private _snowbridgeGateway;
     mapping(address => address) public validatorEthAddressToSolochainAddress;

@@ -15,6 +15,7 @@ use xcm::prelude::*;
 #[benchmarks]
 mod benchmarks {
     use super::*;
+    use alloc::vec::Vec;
 
     #[benchmark]
     fn register_token() -> Result<(), BenchmarkError> {

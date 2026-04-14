@@ -14,11 +14,11 @@
 // You should have received a copy of the GNU General Public License
 // along with DataHaven.  If not, see <http://www.gnu.org/licenses/>.
 
+use alloc::vec;
 use frame_support::dynamic_params::{dynamic_pallet_params, dynamic_params};
 use hex_literal::hex;
 use sp_core::{ConstU32, H160, H256};
 use sp_runtime::{BoundedVec, Perbill};
-use sp_std::vec;
 
 use crate::Runtime;
 
@@ -401,14 +401,11 @@ pub mod dynamic_params {
         /// The wHAVE ERC20 token address on Ethereum.
         pub static WHAVETokenAddress: H160 = H160::repeat_byte(0x0);
 
-        #[codec(index = 43)]
-        #[allow(non_upper_case_globals)]
-        /// EigenLayer-aligned genesis timestamp for rewards calculation.
-        pub static RewardsGenesisTimestamp: u32 = 0;
-
         #[codec(index = 44)]
         #[allow(non_upper_case_globals)]
         /// Rewards duration in seconds.
+        /// Must be a positive multiple of EigenLayer interval (86400 = 1 day)
+        /// and must not exceed EigenLayer max rewards duration.
         pub static RewardsDuration: u32 = 86400;
 
         #[codec(index = 45)]

@@ -30,7 +30,7 @@
   },
   "avs": {
     "avsOwner": "0x0000000000000000000000000000000000000000",
-    "rewardsInitiator": "0x0000000000000000000000000000000000000000",
+    "snowbridgeInitiator": "0x0000000000000000000000000000000000000000",
     "validatorsStrategies": [
       "0xbeaC0eeEeeeeEEeEeEEEEeeEEeEeeeEeeEEBEaC0",
       "0x93c4b944D05dfe6df7645A86cd2206016c51564D",

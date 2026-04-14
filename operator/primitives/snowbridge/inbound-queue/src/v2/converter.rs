@@ -1,9 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
 // SPDX-FileCopyrightText: 2023 Snowfork <hello@snowfork.com>
 //! Converts messages from Solidity ABI-encoding to XCM
+extern crate alloc;
 
 use super::{message::*, traits::*};
 use crate::{v2::LOG_TARGET, CallIndex, EthereumLocationsConverterFor};
+use alloc::vec;
+use alloc::vec::Vec;
 use codec::{Decode, DecodeLimit, Encode};
 use core::marker::PhantomData;
 use frame_support::ensure;
@@ -11,7 +14,6 @@ use snowbridge_core::TokenId;
 use sp_core::{Get, RuntimeDebug, H160};
 use sp_io::hashing::blake2_256;
 use sp_runtime::{traits::MaybeEquivalence, MultiAddress};
-use sp_std::prelude::*;
 use xcm::{
     prelude::{Junction::*, *},
     MAX_XCM_DECODE_DEPTH,

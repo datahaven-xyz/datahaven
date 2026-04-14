@@ -2,8 +2,9 @@
 // SPDX-FileCopyrightText: 2023 Snowfork <hello@snowfork.com>
 use crate::{
     decompress_sync_committee_bits, Config, CurrentSyncCommittee, Pallet as EthereumBeaconClient,
-    Update, ValidatorsRoot, Vec,
+    Update, ValidatorsRoot,
 };
+use alloc::vec::Vec;
 use snowbridge_beacon_primitives::PublicKeyPrepared;
 use sp_core::H256;
 

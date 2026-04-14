@@ -15,7 +15,11 @@
 // along with Moonbeam.  If not, see <http://www.gnu.org/licenses/>.
 
 #![cfg_attr(not(feature = "std"), no_std)]
+extern crate alloc;
 
+use alloc::boxed::Box;
+use alloc::vec::Vec;
+use core::{marker::PhantomData, str::FromStr};
 use fp_evm::PrecompileHandle;
 use frame_support::dispatch::{GetDispatchInfo, PostDispatchInfo};
 use frame_support::traits::{
@@ -29,8 +33,8 @@ use pallet_referenda::{
 use parity_scale_codec::{Encode, MaxEncodedLen};
 use precompile_utils::prelude::*;
 use sp_core::{H160, H256, U256};
+use sp_runtime::str_array;
 use sp_runtime::traits::Dispatchable;
-use sp_std::{boxed::Box, marker::PhantomData, str::FromStr, vec::Vec};
 
 #[cfg(test)]
 mod mock;
@@ -39,7 +43,7 @@ mod tests;
 
 pub const CALL_DATA_LIMIT: u32 = 2u32.pow(16);
 
-type BlockNumberFor<T> = frame_system::pallet_prelude::BlockNumberFor<T>;
+type BlockNumberFor<T> = pallet_referenda::BlockNumberFor<T, ()>;
 type BalanceOf<Runtime> = <<Runtime as pallet_referenda::Config>::Currency as Currency<
     <Runtime as frame_system::Config>::AccountId,
 >>::Balance;
@@ -202,7 +206,7 @@ where
     fn track_ids(_handle: &mut impl PrecompileHandle) -> EvmResult<Vec<u16>> {
         let track_ids: Vec<u16> = Runtime::Tracks::tracks()
             .into_iter()
-            .filter_map(|(track_id, _)| (*track_id).try_into().ok())
+            .filter_map(|track| track.id.try_into().ok())
             .collect();
 
         Ok(track_ids)
@@ -215,21 +219,18 @@ where
             .try_into()
             .map_err(|_| RevertReason::value_is_too_large("Track id type").into())
             .in_field("trackId")?;
-        let (_, track_info) = Runtime::Tracks::tracks()
-            .iter()
-            .find(|(id, _)| *id == track_id)
+        let track = Runtime::Tracks::tracks()
+            .find(|track| track.id == track_id)
             .ok_or(RevertReason::custom("No such track").in_field("trackId"))?;
+        let track_info = &track.info;
 
         // trim the nulls bytes at the end of the name
         // caused by this https://github.com/paritytech/polkadot-sdk/pull/2072
         let track_name_trimmed: &[u8] = track_info
             .name
-            .as_bytes()
             .iter()
             .rposition(|&b| b != 0)
-            .map_or(track_info.name.as_bytes(), |pos| {
-                &track_info.name.as_bytes()[..=pos]
-            });
+            .map_or(&[], |pos| &track_info.name[..=pos]);
 
         Ok(TrackInfo {
             name: track_name_trimmed.into(),
@@ -246,19 +247,22 @@ where
 
     /// Use Runtime::Tracks::tracks to get the origin for input trackId
     fn track_id_to_origin(track_id: TrackIdOf<Runtime>) -> EvmResult<Box<OriginOf<Runtime>>> {
-        let (_, track_info) = Runtime::Tracks::tracks()
-            .iter()
-            .find(|(id, _)| *id == track_id)
+        let track = Runtime::Tracks::tracks()
+            .find(|track| track.id == track_id)
             .ok_or(RevertReason::custom("No such track").in_field("trackId"))?;
-        let origin = if track_info.name == "root" {
+        let track_info = &track.info;
+
+        let origin = if track_info.name == str_array("root") {
             frame_system::RawOrigin::Root.into()
         } else {
-            GovOrigin::from_str(track_info.name)
-                .map_err(|_| {
-                    RevertReason::custom("Custom origin does not exist for {track_info.name}")
-                        .in_field("trackId")
-                })?
-                .into()
+            GovOrigin::from_str(str::from_utf8(&track_info.name).map_err(|_| {
+                RevertReason::custom("Track name is not valid UTF-8").in_field("trackId")
+            })?)
+            .map_err(|_| {
+                RevertReason::custom("Custom origin does not exist for {track_info.name}")
+                    .in_field("trackId")
+            })?
+            .into()
         };
         Ok(Box::new(origin))
     }

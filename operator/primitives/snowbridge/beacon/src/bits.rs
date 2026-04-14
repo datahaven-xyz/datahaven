@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 // SPDX-FileCopyrightText: 2023 Snowfork <hello@snowfork.com>
-use sp_std::prelude::*;
+use alloc::vec::Vec;
 use ssz_rs::{Bitvector, Deserialize};
 
 pub fn decompress_sync_committee_bits<

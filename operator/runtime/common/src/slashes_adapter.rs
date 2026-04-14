@@ -1,3 +1,5 @@
+use alloc::vec;
+use alloc::vec::Vec;
 use alloy_core::{
     primitives::{Address, U256},
     sol,
@@ -8,8 +10,6 @@ use snowbridge_outbound_queue_primitives::v2::SendMessage;
 use snowbridge_outbound_queue_primitives::v2::{Command, Message as OutboundMessage};
 use snowbridge_outbound_queue_primitives::SendError;
 use sp_core::{H160, H256};
-use sp_std::vec;
-use sp_std::vec::Vec;
 
 use crate::AccountId;
 

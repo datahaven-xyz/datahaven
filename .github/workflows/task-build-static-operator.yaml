@@ -10,8 +10,7 @@ on:
 jobs:
   build-node:
     name: Build operator binary
-    runs-on:
-      group: DH-runners
+    runs-on: ubuntu-latest
     env:
       RUSTC_WRAPPER: "sccache"
       CARGO_INCREMENTAL: "0"
@@ -29,8 +28,6 @@ jobs:
       - uses: ./.github/workflows/actions/setup-env
         with:
           cache-key: BUILD-RELEASE
-          install-deps: false
-          skip-libpq: true
 
       - name: Set build flags
         run: echo "RUSTFLAGS=-C linker=clang -C link-arg=-fuse-ld=mold" >> $GITHUB_ENV

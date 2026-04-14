@@ -67,6 +67,7 @@ fn validate_transaction_fails_on_filtered_call() {
                 max_priority_fee_per_gas: Some(sp_core::U256::zero()),
                 nonce: None,
                 access_list: Vec::new(),
+                authorization_list: Vec::new(),
             }
             .into(),
         );

@@ -15,7 +15,10 @@
 // along with Moonbeam.  If not, see <http://www.gnu.org/licenses/>.
 
 #![cfg_attr(not(feature = "std"), no_std)]
+extern crate alloc;
 
+use alloc::vec::Vec;
+use core::marker::PhantomData;
 use evm::ExitReason;
 use fp_evm::{
     Context, PrecompileFailure, PrecompileHandle, Transfer, ACCOUNT_CODES_METADATA_PROOF_SIZE,
@@ -33,7 +36,6 @@ use sp_runtime::{
     traits::{ConstU32, Dispatchable, StaticLookup, Zero},
     SaturatedConversion,
 };
-use sp_std::marker::PhantomData;
 
 /// System account size in bytes = Pallet_Name_Hash (16) + Storage_name_hash (16) +
 /// Blake2_128Concat (16) + AccountId (20) + AccountInfo (4 + 12 + AccountData (4* 16)) = 148
@@ -57,11 +59,12 @@ where
     <Runtime as frame_system::Config>::RuntimeCall:
         Dispatchable<PostInfo = PostDispatchInfo> + GetDispatchInfo,
     <<Runtime as frame_system::Config>::RuntimeCall as Dispatchable>::RuntimeOrigin:
-        From<Option<Runtime::AccountId>>,
+        From<Option<<Runtime as frame_system::Config>::AccountId>>,
     <Runtime as frame_system::Config>::RuntimeCall:
         From<ProxyCall<Runtime>> + From<BalancesCall<Runtime>>,
     <Runtime as pallet_balances::Config<()>>::Balance: TryFrom<U256> + Into<U256>,
-    <Runtime as pallet_evm::Config>::AddressMapping: AddressMapping<Runtime::AccountId>,
+    <Runtime as pallet_evm::Config>::AddressMapping:
+        AddressMapping<<Runtime as frame_system::Config>::AccountId>,
 {
     fn is_allowed(_caller: H160, selector: Option<u32>) -> bool {
         match selector {
@@ -85,16 +88,17 @@ where
     Runtime:
         pallet_proxy::Config + pallet_evm::Config + frame_system::Config + pallet_balances::Config,
     <<Runtime as pallet_proxy::Config>::RuntimeCall as Dispatchable>::RuntimeOrigin:
-        From<Option<Runtime::AccountId>>,
+        From<Option<<Runtime as frame_system::Config>::AccountId>>,
     <Runtime as pallet_proxy::Config>::ProxyType: Decode + EvmProxyCallFilter,
     <Runtime as frame_system::Config>::RuntimeCall:
         Dispatchable<PostInfo = PostDispatchInfo> + GetDispatchInfo,
     <<Runtime as frame_system::Config>::RuntimeCall as Dispatchable>::RuntimeOrigin:
-        From<Option<Runtime::AccountId>>,
+        From<Option<<Runtime as frame_system::Config>::AccountId>>,
     <Runtime as frame_system::Config>::RuntimeCall:
         From<ProxyCall<Runtime>> + From<BalancesCall<Runtime>>,
     <Runtime as pallet_balances::Config<()>>::Balance: TryFrom<U256> + Into<U256>,
-    <Runtime as pallet_evm::Config>::AddressMapping: AddressMapping<Runtime::AccountId>,
+    <Runtime as pallet_evm::Config>::AddressMapping:
+        AddressMapping<<Runtime as frame_system::Config>::AccountId>,
 {
     fn is_allowed(_caller: H160, selector: Option<u32>) -> bool {
         match selector {
@@ -147,16 +151,17 @@ where
     Runtime:
         pallet_proxy::Config + pallet_evm::Config + frame_system::Config + pallet_balances::Config,
     <<Runtime as pallet_proxy::Config>::RuntimeCall as Dispatchable>::RuntimeOrigin:
-        From<Option<Runtime::AccountId>>,
+        From<Option<<Runtime as frame_system::Config>::AccountId>>,
     <Runtime as pallet_proxy::Config>::ProxyType: Decode + EvmProxyCallFilter,
     <Runtime as frame_system::Config>::RuntimeCall:
         Dispatchable<PostInfo = PostDispatchInfo> + GetDispatchInfo,
     <<Runtime as frame_system::Config>::RuntimeCall as Dispatchable>::RuntimeOrigin:
-        From<Option<Runtime::AccountId>>,
+        From<Option<<Runtime as frame_system::Config>::AccountId>>,
     <Runtime as frame_system::Config>::RuntimeCall:
         From<ProxyCall<Runtime>> + From<BalancesCall<Runtime>>,
     <Runtime as pallet_balances::Config<()>>::Balance: TryFrom<U256> + Into<U256>,
-    <Runtime as pallet_evm::Config>::AddressMapping: AddressMapping<Runtime::AccountId>,
+    <Runtime as pallet_evm::Config>::AddressMapping:
+        AddressMapping<<Runtime as frame_system::Config>::AccountId>,
 {
     /// Register a proxy account for the sender that is able to make calls on its behalf.
     /// The dispatch origin for this call must be Signed.
@@ -198,8 +203,8 @@ where
             return Err(revert("Cannot add more than one proxy"));
         }
 
-        let delegate: <Runtime::Lookup as StaticLookup>::Source =
-            Runtime::Lookup::unlookup(delegate.clone());
+        let delegate: <<Runtime as frame_system::Config>::Lookup as StaticLookup>::Source =
+            <Runtime as frame_system::Config>::Lookup::unlookup(delegate.clone());
         let call: ProxyCall<Runtime> = ProxyCall::<Runtime>::add_proxy {
             delegate,
             proxy_type,
@@ -233,8 +238,8 @@ where
             })?;
         let delay = delay.into();
 
-        let delegate: <Runtime::Lookup as StaticLookup>::Source =
-            Runtime::Lookup::unlookup(delegate.clone());
+        let delegate: <<Runtime as frame_system::Config>::Lookup as StaticLookup>::Source =
+            <Runtime as frame_system::Config>::Lookup::unlookup(delegate.clone());
         let origin = Runtime::AddressMapping::into_account_id(handle.context().caller);
         let call: ProxyCall<Runtime> = ProxyCall::<Runtime>::remove_proxy {
             delegate,
@@ -413,7 +418,7 @@ where
         let transfer = if value.is_zero() {
             None
         } else {
-            let contract_address: Runtime::AccountId =
+            let contract_address: <Runtime as frame_system::Config>::AccountId =
                 Runtime::AddressMapping::into_account_id(handle.context().address);
 
             // Send back funds received by the precompile.
@@ -421,12 +426,12 @@ where
                 handle,
                 Some(contract_address).into(),
                 pallet_balances::Call::<Runtime>::transfer_allow_death {
-                    dest: Runtime::Lookup::unlookup(who),
+                    dest: <Runtime as frame_system::Config>::Lookup::unlookup(who),
                     value: {
                         let balance: <Runtime as pallet_balances::Config<()>>::Balance =
                             value.try_into().map_err(|_| PrecompileFailure::Revert {
                                 exit_status: fp_evm::ExitRevert::Reverted,
-                                output: sp_std::vec::Vec::new(),
+                                output: Vec::new(),
                             })?;
                         balance
                     },

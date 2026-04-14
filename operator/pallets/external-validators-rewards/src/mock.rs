@@ -123,10 +123,10 @@ impl mock_data::Config for Test {}
 
 pub struct MockOkOutboundQueue;
 impl crate::types::SendMessage for MockOkOutboundQueue {
-    type Ticket = crate::types::EraRewardsUtils;
-    type Message = crate::types::EraRewardsUtils;
+    type Ticket = crate::types::RewardsPeriodUtils;
+    type Message = crate::types::RewardsPeriodUtils;
 
-    fn build(utils: &crate::types::EraRewardsUtils) -> Option<Self::Ticket> {
+    fn build(utils: &crate::types::RewardsPeriodUtils) -> Option<Self::Ticket> {
         Some(utils.clone())
     }
 
@@ -138,6 +138,9 @@ impl crate::types::SendMessage for MockOkOutboundQueue {
     }
 
     fn deliver(_: Self::Ticket) -> Result<H256, SendError> {
+        if OutboundDeliverShouldFail::get() {
+            return Err(SendError::Halted);
+        }
         Ok(H256::zero())
     }
 }
@@ -160,6 +163,9 @@ impl ExternalIndexProvider for TimestampProvider {
 parameter_types! {
     pub RewardsEthereumSovereignAccount: H160 = REWARDS_ACCOUNT;
     pub TreasuryAccount: H160 = TREASURY_ACCOUNT;
+    pub static OutboundDeliverShouldFail: bool = false;
+    pub static RewardsWindowGenesisTimestamp: u32 = 0;
+    pub static RewardsWindowDuration: u32 = 10;
     pub const InflationTreasuryProportion: sp_runtime::Perbill = sp_runtime::Perbill::from_percent(20);
     pub EraInflationProvider: u128 = Mock::mock().era_inflation.unwrap_or(42);
     // Inflation scaling parameters for tests
@@ -226,6 +232,9 @@ impl pallet_external_validators_rewards::Config for Test {
     type HandleInflation = InflationMinter;
     type Currency = Balances;
     type RewardsEthereumSovereignAccount = RewardsEthereumSovereignAccount;
+    type RewardsWindowGenesisTimestamp = RewardsWindowGenesisTimestamp;
+    type RewardsWindowDuration = RewardsWindowDuration;
+    type UnixTime = Timestamp;
     type GovernanceOrigin = frame_system::EnsureRoot<H160>;
     type WeightInfo = ();
     #[cfg(feature = "runtime-benchmarks")]
@@ -283,6 +292,7 @@ impl HandleInflation<H160> for InflationMinter {
 // Pallet to provide some mock data, used to test
 #[frame_support::pallet]
 pub mod mock_data {
+    use alloc::vec::Vec;
     use {
         frame_support::pallet_prelude::*,
         pallet_external_validators::traits::{ActiveEraInfo, EraIndex, EraIndexProvider},
@@ -293,9 +303,9 @@ pub mod mock_data {
         pub active_era: Option<ActiveEraInfo>,
         pub era_inflation: Option<u128>,
         /// Set of validators that are considered offline (for liveness testing)
-        pub offline_validators: sp_std::vec::Vec<sp_core::H160>,
+        pub offline_validators: Vec<sp_core::H160>,
         /// Set of (era_index, validator_id) pairs that are slashed
-        pub slashed_validators: sp_std::vec::Vec<(u32, sp_core::H160)>,
+        pub slashed_validators: Vec<(u32, sp_core::H160)>,
         /// When true, MockOkOutboundQueue::validate will return Err(SendError::MessageTooLarge)
         pub send_message_fails: bool,
     }
@@ -357,12 +367,17 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
             ExistentialDeposit::get(),
         ), // Rewards account needs existential deposit
     ];
-    pallet_balances::GenesisConfig::<Test> { balances }
-        .assimilate_storage(&mut t)
-        .unwrap();
+    pallet_balances::GenesisConfig::<Test> {
+        balances,
+        dev_accounts: Default::default(),
+    }
+    .assimilate_storage(&mut t)
+    .unwrap();
 
-    let ext: sp_io::TestExternalities = t.into();
-
+    let mut ext: sp_io::TestExternalities = t.into();
+    ext.execute_with(|| {
+        Timestamp::set_timestamp(INIT_TIMESTAMP);
+    });
     ext
 }
 

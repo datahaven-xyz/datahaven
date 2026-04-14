@@ -28,7 +28,6 @@ frame-system = { workspace = true }
 sp-core = { workspace = true }
 sp-io = { optional = true, workspace = true }
 sp-runtime = { workspace = true }
-sp-std = { workspace = true }
 
 pallet-timestamp = { optional = true, workspace = true }
 snowbridge-beacon-primitives = { workspace = true }
@@ -77,7 +76,6 @@ std = [
     "sp-core/std",
     "sp-io/std",
     "sp-runtime/std",
-    "sp-std/std",
     'frame-benchmarking/std',
 ]
 try-runtime = [

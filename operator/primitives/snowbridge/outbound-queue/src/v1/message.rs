@@ -1,15 +1,17 @@
 // SPDX-License-Identifier: Apache-2.0
 // SPDX-FileCopyrightText: 2023 Snowfork <hello@snowfork.com>
 //! # Outbound V1 primitives
+extern crate alloc;
 
 use crate::{OperatingMode, SendError, SendMessageFeeProvider};
+use alloc::borrow::ToOwned;
+use alloc::{vec, vec::Vec};
 use codec::{Decode, DecodeWithMemTracking, Encode};
 use ethabi::Token;
 use scale_info::TypeInfo;
 use snowbridge_core::{pricing::UD60x18, ChannelId};
 use sp_arithmetic::traits::{BaseArithmetic, Unsigned};
 use sp_core::{RuntimeDebug, H160, H256, U256};
-use sp_std::{borrow::ToOwned, vec, vec::Vec};
 
 /// Enqueued outbound messages need to be versioned to prevent data corruption
 /// or loss after forkless runtime upgrades

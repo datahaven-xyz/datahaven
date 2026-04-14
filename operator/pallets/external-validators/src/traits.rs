@@ -14,12 +14,12 @@
 // You should have received a copy of the GNU General Public License
 // along with Tanssi.  If not, see <http://www.gnu.org/licenses/>
 
+use alloc::vec::Vec;
 use parity_scale_codec::{Decode, Encode, MaxEncodedLen};
 use scale_info::TypeInfo;
 use snowbridge_outbound_queue_primitives::SendError;
 use sp_core::H256;
 use sp_runtime::RuntimeDebug;
-use sp_std::vec::Vec;
 
 /// Information regarding the active era (era in used in session).
 #[derive(Clone, Encode, Decode, RuntimeDebug, TypeInfo, MaxEncodedLen)]

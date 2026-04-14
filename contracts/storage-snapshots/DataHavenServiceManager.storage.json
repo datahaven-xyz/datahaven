@@ -43,7 +43,7 @@
     {
       "astId": 23887,
       "contract": "src/DataHavenServiceManager.sol:DataHavenServiceManager",
-      "label": "rewardsInitiator",
+      "label": "snowbridgeInitiator",
       "offset": 0,
       "slot": "101",
       "type": "t_address"

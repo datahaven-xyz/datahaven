@@ -4,6 +4,7 @@ use super::*;
 use frame_support::ensure;
 use snowbridge_beacon_primitives::ExecutionProof;
 
+use alloc::vec::Vec;
 use snowbridge_beacon_primitives::merkle_proof::{generalized_index_length, subtree_index};
 use snowbridge_ethereum::Receipt;
 use snowbridge_inbound_queue_primitives::{

@@ -15,7 +15,6 @@ pallet-proxy = { workspace = true }
 parity-scale-codec = { workspace = true, features = ["derive"] }
 sp-core = { workspace = true }
 sp-runtime = { workspace = true }
-sp-std = { workspace = true }
 
 # Frontier
 evm = { workspace = true, features = ["with-codec"] }
@@ -47,5 +46,4 @@ std = [
 	"precompile-utils/std",
 	"sp-core/std",
 	"sp-runtime/std",
-	"sp-std/std",
 ]

@@ -21,6 +21,9 @@ use crate::Pallet as OutboundQueue;
 )]
 mod benchmarks {
     use super::*;
+    use alloc::boxed::Box;
+    use alloc::vec;
+    use alloc::vec::Vec;
 
     /// Build `Upgrade` message with `MaxMessagePayloadSize`, in the worst-case.
     fn build_message<T: Config>() -> (Message, OutboundMessage) {

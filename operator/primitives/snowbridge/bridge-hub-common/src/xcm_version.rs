@@ -25,7 +25,7 @@ use xcm::{
 /// configured XCM version between the destination `dest` and the bridge hub location provided as
 /// `Get<Location>`.
 pub struct XcmVersionOfDestAndRemoteBridge<Version, RemoteBridge>(
-    sp_std::marker::PhantomData<(Version, RemoteBridge)>,
+    core::marker::PhantomData<(Version, RemoteBridge)>,
 );
 impl<Version: GetVersion, RemoteBridge: Get<Location>> GetVersion
     for XcmVersionOfDestAndRemoteBridge<Version, RemoteBridge>
@@ -35,7 +35,7 @@ impl<Version: GetVersion, RemoteBridge: Get<Location>> GetVersion
         let bridge_hub_version = Version::get_version_for(&RemoteBridge::get());
 
         match (dest_version, bridge_hub_version) {
-            (Some(dv), Some(bhv)) => Some(sp_std::cmp::min(dv, bhv)),
+            (Some(dv), Some(bhv)) => Some(core::cmp::min(dv, bhv)),
             (Some(dv), None) => Some(dv),
             (None, Some(bhv)) => Some(bhv),
             (None, None) => None,

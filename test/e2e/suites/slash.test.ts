@@ -91,16 +91,16 @@ describe("Should slash an operator", () => {
     expect(serviceManager.address).toBeDefined();
     expect(gateway.address).toBeDefined();
 
-    const rewardsInitiator = (await publicClient.readContract({
+    const snowbridgeInitiator = (await publicClient.readContract({
       address: serviceManager.address,
       abi: serviceManager.abi,
-      functionName: "rewardsInitiator",
+      functionName: "snowbridgeInitiator",
       args: []
     })) as Address;
 
-    // ServiceManager must have a rewardsInitiator configured for EigenLayer rewards submission
-    expect(rewardsInitiator).toBeDefined();
-    logger.info(`ServiceManager rewardsInitiator: ${rewardsInitiator}`);
+    // ServiceManager must have a snowbridgeInitiator configured for EigenLayer rewards submission
+    expect(snowbridgeInitiator).toBeDefined();
+    logger.info(`ServiceManager snowbridgeInitiator: ${snowbridgeInitiator}`);
   });
 
   it("Activate slashing", async () => {

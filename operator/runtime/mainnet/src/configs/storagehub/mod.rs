@@ -19,7 +19,7 @@ use super::HAVE;
 #[cfg(feature = "runtime-benchmarks")]
 use super::MICROHAVE;
 use super::{
-    AccountId, Balance, Balances, BlockNumber, Hash, RuntimeEvent, RuntimeHoldReason,
+    AccountId, Balance, Balances, BlockNumber, Hash, RuntimeEvent, RuntimeHoldReason, System,
     TreasuryAccount,
 };
 use crate::configs::runtime_params::dynamic_params::runtime_config;
@@ -27,7 +27,10 @@ use crate::{
     BucketNfts, Nfts, PaymentStreams, ProofsDealer, Providers, Runtime, Signature, WeightToFee,
     HOURS,
 };
+use alloc::{vec, vec::Vec};
+use core::convert::{From, Into};
 use core::marker::PhantomData;
+
 #[cfg(feature = "runtime-benchmarks")]
 use datahaven_runtime_common::benchmarking::StorageHubBenchmarking;
 use datahaven_runtime_common::time::{DAYS, MINUTES};
@@ -59,8 +62,6 @@ use sp_runtime::traits::Verify;
 use sp_runtime::traits::Zero;
 use sp_runtime::SaturatedConversion;
 use sp_runtime::{traits::BlakeTwo256, Perbill};
-use sp_std::convert::{From, Into};
-use sp_std::{vec, vec::Vec};
 use sp_trie::{LayoutV1, TrieConfiguration, TrieLayout};
 
 #[cfg(feature = "std")]
@@ -126,6 +127,7 @@ impl pallet_nfts::Config for Runtime {
     type OffchainPublic = <Signature as Verify>::Signer;
     type WeightInfo = crate::weights::pallet_nfts::WeightInfo<Runtime>;
     type Locker = ();
+    type BlockNumberProvider = System;
     #[cfg(feature = "runtime-benchmarks")]
     type Helper = benchmark_helpers::NftHelper;
 }
@@ -626,16 +628,16 @@ parameter_types! {
 /// "\x19Ethereum Signed Message:\n" + len(message) + message"
 pub struct Eip191Adapter;
 impl shp_traits::MessageAdapter for Eip191Adapter {
-    fn bytes_to_verify(message: &[u8]) -> Vec<u8> {
+    fn bytes_to_verify(intention: &[u8], _context: &[u8]) -> Vec<u8> {
         const PREFIX: &str = "\x19Ethereum Signed Message:\n";
-        let len = message.len();
+        let len = intention.len();
         let mut len_string_buffer = itoa::Buffer::new();
         let len_string = len_string_buffer.format(len);
 
         let mut eth_message = Vec::with_capacity(PREFIX.len() + len_string.len() + len);
         eth_message.extend_from_slice(PREFIX.as_bytes());
         eth_message.extend_from_slice(len_string.as_bytes());
-        eth_message.extend_from_slice(message);
+        eth_message.extend_from_slice(intention);
         eth_message
     }
 }
@@ -699,6 +701,8 @@ impl pallet_file_system::Config for Runtime {
     type OffchainPublicKey = <Signature as Verify>::Signer;
     type MaxFileDeletionsPerExtrinsic = ConstU32<100>;
     type IntentionMsgAdapter = Eip191Adapter;
+    type MaxBspVolunteers = ConstU32<1000>;
+    type MaxMspRespondFileKeys = ConstU32<10>;
 }
 
 impl MostlyStablePriceIndexUpdaterConfig for Runtime {

@@ -2,12 +2,14 @@
 // SPDX-FileCopyrightText: 2023 Snowfork <hello@snowfork.com>
 // SPDX-FileCopyrightText: 2021-2022 Parity Technologies (UK) Ltd.
 #![cfg_attr(not(feature = "std"), no_std)]
+extern crate alloc;
+
 pub mod v1;
 pub mod v2;
 use codec::Encode;
+use core::marker::PhantomData;
 use snowbridge_beacon_primitives::BeaconHeader;
 use sp_core::{blake2_256, RuntimeDebug, H256};
-use sp_std::marker::PhantomData;
 use xcm::prelude::{AccountKey20, Ethereum, GlobalConsensus, Location};
 use xcm_executor::traits::ConvertLocation;
 

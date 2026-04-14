@@ -30,8 +30,9 @@ use super::{
     Signature, System, Timestamp, Treasury, TxPause, BLOCK_HASH_COUNT, EXTRINSIC_BASE_WEIGHT,
     MAXIMUM_BLOCK_WEIGHT, NORMAL_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO, SLOT_DURATION, VERSION,
 };
+use alloc::vec::Vec;
 use alloy_core::primitives::Address;
-use codec::{Decode, Encode, MaxEncodedLen};
+use codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
 use scale_info::TypeInfo;
 use sp_runtime::{traits::AccountIdConversion, RuntimeDebug};
 
@@ -49,6 +50,7 @@ use sp_runtime::{traits::AccountIdConversion, RuntimeDebug};
     RuntimeDebug,
     MaxEncodedLen,
     TypeInfo,
+    DecodeWithMemTracking,
     serde::Serialize,
     serde::Deserialize,
 )]
@@ -76,6 +78,7 @@ impl Default for ProxyType {
         Self::Any
     }
 }
+use core::convert::{From, Into};
 use datahaven_runtime_common::{
     deal_with_fees::{
         DealWithEthereumBaseFees, DealWithEthereumPriorityFees, DealWithSubstrateFeesAndTip,
@@ -141,10 +144,6 @@ use sp_runtime::{
     FixedPointNumber, Perbill, Perquintill,
 };
 use sp_staking::EraIndex;
-use sp_std::{
-    convert::{From, Into},
-    prelude::*,
-};
 use sp_version::RuntimeVersion;
 use xcm::latest::NetworkId;
 use xcm::prelude::*;
@@ -395,6 +394,7 @@ impl pallet_session::Config for Runtime {
     type SessionHandler = <SessionKeys as OpaqueKeys>::KeyTypeIdProviders;
     type Keys = SessionKeys;
     type WeightInfo = stagenet_weights::pallet_session::WeightInfo<Runtime>;
+    type DisablingStrategy = ();
 }
 
 parameter_types! {
@@ -590,6 +590,7 @@ impl pallet_scheduler::Config for Runtime {
     type OriginPrivilegeCmp = EqualPrivilegeOnly;
     type Preimages = Preimage;
     type WeightInfo = stagenet_weights::pallet_scheduler::WeightInfo<Runtime>;
+    type BlockNumberProvider = System;
 }
 
 parameter_types! {
@@ -653,8 +654,7 @@ impl pallet_identity::Config for Runtime {
     type UsernameDeposit = UsernameDeposit;
     type UsernameGracePeriod = UsernameGracePeriod;
 
-    // TODO: Re-enable after upgrade to Polkadot SDK stable2412-8
-    // see https://github.com/paritytech/polkadot-sdk/releases/tag/polkadot-stable2412-8
+    // TODO: Replace by Identity pallet's BenchmarkHelper when available (stable2506).
     // #[cfg(feature = "runtime-benchmarks")]
     // fn benchmark_helper(message: &[u8]) -> (Vec<u8>, Vec<u8>) {
     //     let public = sp_io::crypto::ecdsa_generate(0.into(), None);
@@ -684,6 +684,7 @@ impl pallet_multisig::Config for Runtime {
     type DepositFactor = DepositFactor;
     type MaxSignatories = MaxSignatories;
     type WeightInfo = stagenet_weights::pallet_multisig::WeightInfo<Runtime>;
+    type BlockNumberProvider = System;
 }
 
 parameter_types! {
@@ -849,6 +850,7 @@ impl pallet_proxy::Config for Runtime {
     type CallHasher = sp_runtime::traits::BlakeTwo256;
     type AnnouncementDepositBase = AnnouncementDepositBase;
     type AnnouncementDepositFactor = AnnouncementDepositFactor;
+    type BlockNumberProvider = System;
 }
 
 impl pallet_proxy_genesis_companion::Config for Runtime {
@@ -1050,6 +1052,8 @@ impl pallet_evm::Config for Runtime {
     type GasLimitPovSizeRatio = GasLimitPovSizeRatio;
     type GasLimitStorageGrowthRatio = GasLimitStorageGrowthRatio;
     type Timestamp = Timestamp;
+    type CreateOriginFilter = ();
+    type CreateInnerOriginFilter = ();
     type WeightInfo = stagenet_weights::pallet_evm::WeightInfo<Runtime>;
 }
 
@@ -1501,10 +1505,6 @@ pub struct StagenetRewardsConfig;
 impl datahaven_runtime_common::rewards_adapter::RewardsSubmissionConfig for StagenetRewardsConfig {
     type OutboundQueue = EthereumOutboundQueueV2;
 
-    fn rewards_duration() -> u32 {
-        runtime_params::dynamic_params::runtime_config::RewardsDuration::get()
-    }
-
     fn whave_token_address() -> H160 {
         runtime_params::dynamic_params::runtime_config::WHAVETokenAddress::get()
     }
@@ -1569,6 +1569,10 @@ parameter_types! {
 
     /// Maximum inflation percentage (caps at 100% even if blocks exceed expectations)
     pub const MaxInflationPercent: u32 = 100;
+
+    /// EigenLayer RewardsCoordinator GENESIS_REWARDS_TIMESTAMP.
+    /// This is the immutable genesis timestamp from the deployed RewardsCoordinator contract.
+    pub const RewardsWindowGenesisTimestamp: u32 = 1_712_188_800;
 }
 
 impl pallet_external_validators_rewards::Config for Runtime {
@@ -1592,6 +1596,9 @@ impl pallet_external_validators_rewards::Config for Runtime {
     type Hashing = Keccak256;
     type Currency = Balances;
     type RewardsEthereumSovereignAccount = ExternalValidatorRewardsAccount;
+    type RewardsWindowGenesisTimestamp = RewardsWindowGenesisTimestamp;
+    type RewardsWindowDuration = runtime_params::dynamic_params::runtime_config::RewardsDuration;
+    type UnixTime = Timestamp;
     type SendMessage = RewardsSendAdapter;
     type HandleInflation = ExternalRewardsInflationHandler;
     type GovernanceOrigin =
@@ -1727,6 +1734,7 @@ impl pallet_external_validator_slashes::Config for Runtime {
     type QueuedSlashesProcessedPerBlock = ConstU32<10>;
     type WeightInfo = stagenet_weights::pallet_external_validator_slashes::WeightInfo<Runtime>;
     type SendMessage = SlashesSendAdapter;
+    type GovernanceOrigin = EnsureRootWithSuccess<AccountId, RootLocation>;
 }
 
 parameter_types! {
@@ -1768,12 +1776,13 @@ mod tests {
 
     #[test]
     fn test_rewards_send_adapter_with_zero_address() {
-        use pallet_external_validators_rewards::types::{EraRewardsUtils, SendMessage};
+        use pallet_external_validators_rewards::types::{RewardsPeriodUtils, SendMessage};
 
         TestExternalities::default().execute_with(|| {
-            let rewards_utils = EraRewardsUtils {
-                era_index: 1,
-                era_start_timestamp: 1_700_000_000,
+            let rewards_utils = RewardsPeriodUtils {
+                period_index: 1,
+                period_start: 1_700_000_000,
+                duration: runtime_params::dynamic_params::runtime_config::RewardsDuration::get(),
                 total_points: 1000,
                 individual_points: vec![
                     (H160::from_low_u64_be(1), 500),
@@ -1791,7 +1800,7 @@ mod tests {
 
     #[test]
     fn test_rewards_send_adapter_with_valid_config() {
-        use pallet_external_validators_rewards::types::{EraRewardsUtils, SendMessage};
+        use pallet_external_validators_rewards::types::{RewardsPeriodUtils, SendMessage};
 
         TestExternalities::default().execute_with(|| {
             let service_manager = H160::from_low_u64_be(0x1234567890abcdef);
@@ -1823,9 +1832,10 @@ mod tests {
             snowbridge_pallet_system::NativeToForeignId::<Runtime>::insert(reanchored.clone(), token_id);
             snowbridge_pallet_system::ForeignToNativeId::<Runtime>::insert(token_id, reanchored);
 
-            let rewards_utils = EraRewardsUtils {
-                era_index: 1,
-                era_start_timestamp: 1_700_000_000,
+            let rewards_utils = RewardsPeriodUtils {
+                period_index: 1,
+                period_start: 1_700_000_000,
+                duration: runtime_params::dynamic_params::runtime_config::RewardsDuration::get(),
                 total_points: 1000,
                 individual_points: vec![(H160::from_low_u64_be(1), 600), (H160::from_low_u64_be(2), 400)],
                 inflation_amount: 1_000_000_000,

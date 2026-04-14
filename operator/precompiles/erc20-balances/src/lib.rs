@@ -17,7 +17,10 @@
 //! Precompile to interact with pallet_balances instances using the ERC20 interface standard.
 
 #![cfg_attr(not(feature = "std"), no_std)]
+extern crate alloc;
 
+use core::convert::{TryFrom, TryInto};
+use core::marker::PhantomData;
 use fp_evm::PrecompileHandle;
 use frame_support::{
     dispatch::{GetDispatchInfo, PostDispatchInfo},
@@ -33,10 +36,6 @@ use pallet_balances::pallet::{
 use pallet_evm::AddressMapping;
 use precompile_utils::prelude::*;
 use sp_core::{H160, H256, U256};
-use sp_std::{
-    convert::{TryFrom, TryInto},
-    marker::PhantomData,
-};
 
 mod eip2612;
 use eip2612::Eip2612;

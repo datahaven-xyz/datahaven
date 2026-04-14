@@ -205,7 +205,7 @@ contract DeployLocal is DeployBase {
         bytes memory initData = abi.encodeWithSelector(
             DataHavenServiceManager.initialize.selector,
             params.avsOwner,
-            params.rewardsInitiator,
+            params.snowbridgeInitiator,
             params.validatorsStrategiesAndMultipliers,
             params.gateway,
             params.validatorSetSubmitter,

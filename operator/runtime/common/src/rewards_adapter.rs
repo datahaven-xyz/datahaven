@@ -81,7 +81,7 @@ sol! {
     }
 
     /// The submitRewards function on DataHavenServiceManager.
-    function submitRewards(uint32 eraIndex, OperatorDirectedRewardsSubmission submission);
+    function submitRewards(OperatorDirectedRewardsSubmission submission);
 }
 
 /// Configuration for rewards submission.
@@ -186,7 +186,6 @@ fn build_rewards_message<C: RewardsSubmissionConfig>(
     strategies_and_multipliers.sort_by_key(|(strategy, _)| *strategy);
 
     let calldata = encode_rewards_calldata(
-        rewards_utils.period_index,
         whave_token_address,
         &strategies_and_multipliers,
         &operator_rewards,
@@ -267,7 +266,7 @@ pub fn points_to_rewards(
 /// ABI-encode the submitRewards calldata for DataHavenServiceManager.
 ///
 /// Uses alloy's type-safe ABI encoding to generate the calldata for
-/// `submitRewards(uint32,OperatorDirectedRewardsSubmission)`.
+/// `submitRewards(OperatorDirectedRewardsSubmission)`.
 ///
 /// # Arguments
 /// * `token` - ERC20 reward token address
@@ -281,7 +280,6 @@ pub fn points_to_rewards(
 /// `Ok(Vec<u8>)` with the ABI-encoded calldata, or `Err` if encoding fails
 /// (e.g., multiplier exceeds uint96 max).
 pub fn encode_rewards_calldata(
-    era_index: u32,
     token: H160,
     strategies_and_multipliers: &[(H160, u128)],
     operator_rewards: &[(H160, u128)],
@@ -330,11 +328,7 @@ pub fn encode_rewards_calldata(
         description: description.into(),
     };
 
-    Ok(submitRewardsCall {
-        eraIndex: era_index,
-        submission,
-    }
-    .abi_encode())
+    Ok(submitRewardsCall { submission }.abi_encode())
 }
 
 #[cfg(test)]
@@ -625,9 +619,8 @@ mod tests {
     #[test]
     fn test_encode_submit_rewards_calldata_selector() {
         // Verify the function selector matches the expected value
-        // cast sig "submitRewards(uint32,((address,uint96)[],address,(address,uint256)[],uint32,uint32,string))" = 0x61115ba2
+        // cast sig "submitRewards(((address,uint96)[],address,(address,uint256)[],uint32,uint32,string))" = 0x83821e8e
         let calldata = encode_rewards_calldata(
-            7,
             H160::from_low_u64_be(0x1234),
             &[],
             &[(H160::from_low_u64_be(0x5678), 1000)],
@@ -638,7 +631,7 @@ mod tests {
         .expect("Encoding should succeed");
 
         // Check the function selector (first 4 bytes)
-        assert_eq!(&calldata[0..4], &[0x61, 0x11, 0x5b, 0xa2]);
+        assert_eq!(&calldata[0..4], &[0x83, 0x82, 0x1e, 0x8e]);
     }
 
     #[test]
@@ -647,7 +640,6 @@ mod tests {
         let invalid_multiplier = MAX_UINT96 + 1;
 
         let result = encode_rewards_calldata(
-            7,
             H160::from_low_u64_be(0x1234),
             &[(H160::from_low_u64_be(0x9999), invalid_multiplier)],
             &[(H160::from_low_u64_be(0x5678), 1000u128)],
@@ -666,13 +658,11 @@ mod tests {
         let multiplier = (1u128 << 80) + 123u128;
         let operator = H160::from_low_u64_be(0x5678);
         let amount = 1000u128;
-        let era_index = 7u32;
         let start_timestamp = 86_400u32;
         let duration = 86_400u32;
         let description = "round trip";
 
         let calldata = encode_rewards_calldata(
-            era_index,
             token,
             &[(strategy, multiplier)],
             &[(operator, amount)],
@@ -683,7 +673,6 @@ mod tests {
         .expect("Encoding should succeed");
 
         let decoded = submitRewardsCall::abi_decode(&calldata, true).expect("Decoding should work");
-        assert_eq!(decoded.eraIndex, era_index);
         let submission = decoded.submission;
 
         assert_eq!(submission.token, Address::from(token.as_fixed_bytes()));
@@ -712,7 +701,6 @@ mod tests {
         );
 
         let empty_calldata = encode_rewards_calldata(
-            era_index,
             token,
             &[],
             &[],
@@ -723,7 +711,6 @@ mod tests {
         .expect("Encoding should succeed");
         let empty_decoded =
             submitRewardsCall::abi_decode(&empty_calldata, true).expect("Decoding should work");
-        assert_eq!(empty_decoded.eraIndex, era_index);
         let empty_submission = empty_decoded.submission;
 
         assert_eq!(
@@ -771,7 +758,6 @@ mod tests {
         .0;
 
         let expected_calldata = encode_rewards_calldata(
-            rewards_utils.period_index,
             HappyPathConfig::whave_token_address(),
             &HappyPathConfig::strategies_and_multipliers(),
             &expected_operator_rewards,
@@ -821,7 +807,6 @@ mod tests {
             .expect("Expected message to be built");
 
         let expected_calldata = encode_rewards_calldata(
-            rewards_utils.period_index,
             HappyPathConfig::whave_token_address(),
             &HappyPathConfig::strategies_and_multipliers(),
             &operator_rewards,

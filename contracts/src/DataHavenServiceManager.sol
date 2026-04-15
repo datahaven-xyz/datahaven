@@ -83,8 +83,8 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
     /// `contracts/deployments/<chain>.json`.
     string private _version;
 
-    /// @notice Tracks whether rewards have already been submitted for a source-chain era and token.
-    mapping(uint32 => mapping(address => bool)) public rewardsSubmittedForEra;
+    /// @notice Tracks whether rewards have already been submitted for a reward window and token.
+    mapping(uint32 => mapping(uint32 => mapping(address => bool))) public rewardsSubmittedForWindow;
 
     /// @notice Storage gap for upgradeability (must be at end of state variables)
     // solhint-disable-next-line var-name-mixedcase
@@ -526,7 +526,6 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
 
     /// @inheritdoc IDataHavenServiceManager
     function submitRewards(
-        uint32 eraIndex,
         IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission calldata submission
     ) external override onlySnowbridgeInitiator {
         IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission memory translatedSubmission =
@@ -570,10 +569,13 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         }
 
         address token = address(submission.token);
+        uint32 startTimestamp = submission.startTimestamp;
+        uint32 duration = submission.duration;
         require(
-            !rewardsSubmittedForEra[eraIndex][token], RewardsAlreadySubmittedForEra(eraIndex, token)
+            !rewardsSubmittedForWindow[startTimestamp][duration][token],
+            RewardsAlreadySubmittedForWindow(startTimestamp, duration, token)
         );
-        rewardsSubmittedForEra[eraIndex][token] = true;
+        rewardsSubmittedForWindow[startTimestamp][duration][token] = true;
 
         submission.token.safeIncreaseAllowance(address(_REWARDS_COORDINATOR), totalAmount);
 

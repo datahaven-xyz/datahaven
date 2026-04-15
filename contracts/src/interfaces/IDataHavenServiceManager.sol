@@ -58,8 +58,8 @@ interface IDataHavenServiceManagerErrors {
     /// @notice Thrown when the caller is not the ProxyAdmin
     error NotProxyAdmin();
 
-    /// @notice Thrown when rewards for an era and token have already been submitted
-    error RewardsAlreadySubmittedForEra(uint32 eraIndex, address token);
+    /// @notice Thrown when rewards for a reward window and token have already been submitted
+    error RewardsAlreadySubmittedForWindow(uint32 startTimestamp, uint32 duration, address token);
 }
 
 /**
@@ -190,12 +190,14 @@ interface IDataHavenServiceManager is
     ) external view returns (address);
 
     /**
-     * @notice Returns whether rewards have already been submitted for an era and token
-     * @param eraIndex The source-chain era index for the rewards submission
+     * @notice Returns whether rewards have already been submitted for a reward window and token
+     * @param startTimestamp The reward window start timestamp
+     * @param duration The reward window duration in seconds
      * @param token The reward token address
      */
-    function rewardsSubmittedForEra(
-        uint32 eraIndex,
+    function rewardsSubmittedForWindow(
+        uint32 startTimestamp,
+        uint32 duration,
         address token
     ) external view returns (bool);
 
@@ -347,16 +349,14 @@ interface IDataHavenServiceManager is
 
     /**
      * @notice Submit rewards to EigenLayer
-     * @param eraIndex The source-chain era index associated with the submission
      * @param submission The operator-directed rewards submission containing all reward parameters
      * @dev Only callable by the authorized Snowbridge Agent
      * @dev Strategies must be sorted in ascending order by address
      * @dev Operators must be sorted in ascending order by address
      * @dev Token must be pre-approved or held by the ServiceManager
-     * @dev Only one submission is allowed per era and reward token
+     * @dev Only one submission is allowed per reward window and token
      */
     function submitRewards(
-        uint32 eraIndex,
         IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission calldata submission
     ) external;
 

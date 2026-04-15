@@ -2233,9 +2233,10 @@ export const dataHavenServiceManagerAbi = [
     type: 'function',
     inputs: [
       { name: '', internalType: 'uint32', type: 'uint32' },
+      { name: '', internalType: 'uint32', type: 'uint32' },
       { name: '', internalType: 'address', type: 'address' },
     ],
-    name: 'rewardsSubmittedForEra',
+    name: 'rewardsSubmittedForWindow',
     outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
     stateMutability: 'view',
   },
@@ -2353,7 +2354,6 @@ export const dataHavenServiceManagerAbi = [
   {
     type: 'function',
     inputs: [
-      { name: 'eraIndex', internalType: 'uint32', type: 'uint32' },
       {
         name: 'submission',
         internalType:
@@ -2732,10 +2732,11 @@ export const dataHavenServiceManagerAbi = [
   {
     type: 'error',
     inputs: [
-      { name: 'eraIndex', internalType: 'uint32', type: 'uint32' },
+      { name: 'startTimestamp', internalType: 'uint32', type: 'uint32' },
+      { name: 'duration', internalType: 'uint32', type: 'uint32' },
       { name: 'token', internalType: 'address', type: 'address' },
     ],
-    name: 'RewardsAlreadySubmittedForEra',
+    name: 'RewardsAlreadySubmittedForWindow',
   },
   { type: 'error', inputs: [], name: 'SolochainAddressAlreadyAssigned' },
   { type: 'error', inputs: [], name: 'StrategyNotInOperatorSet' },
@@ -11049,12 +11050,12 @@ export const readDataHavenServiceManagerOwner =
   })
 
 /**
- * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"rewardsSubmittedForEra"`
+ * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"rewardsSubmittedForWindow"`
  */
-export const readDataHavenServiceManagerRewardsSubmittedForEra =
+export const readDataHavenServiceManagerRewardsSubmittedForWindow =
   /*#__PURE__*/ createReadContract({
     abi: dataHavenServiceManagerAbi,
-    functionName: 'rewardsSubmittedForEra',
+    functionName: 'rewardsSubmittedForWindow',
   })
 
 /**

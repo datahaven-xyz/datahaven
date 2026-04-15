@@ -700,15 +700,9 @@ mod tests {
             expected_multiplier_u96
         );
 
-        let empty_calldata = encode_rewards_calldata(
-            token,
-            &[],
-            &[],
-            start_timestamp,
-            duration,
-            "empty",
-        )
-        .expect("Encoding should succeed");
+        let empty_calldata =
+            encode_rewards_calldata(token, &[], &[], start_timestamp, duration, "empty")
+                .expect("Encoding should succeed");
         let empty_decoded =
             submitRewardsCall::abi_decode(&empty_calldata, true).expect("Decoding should work");
         let empty_submission = empty_decoded.submission;

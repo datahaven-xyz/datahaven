@@ -83,9 +83,12 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
     /// `contracts/deployments/<chain>.json`.
     string private _version;
 
+    /// @notice Tracks whether rewards have already been submitted for a reward window and token.
+    mapping(uint32 => mapping(uint32 => mapping(address => bool))) public rewardsSubmittedForWindow;
+
     /// @notice Storage gap for upgradeability (must be at end of state variables)
     // solhint-disable-next-line var-name-mixedcase
-    uint256[42] private __GAP;
+    uint256[41] private __GAP;
 
     // ============ Modifiers ============
 
@@ -564,6 +567,15 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
             }
             translatedSubmission.operatorRewards = trimmed;
         }
+
+        address token = address(submission.token);
+        uint32 startTimestamp = submission.startTimestamp;
+        uint32 duration = submission.duration;
+        require(
+            !rewardsSubmittedForWindow[startTimestamp][duration][token],
+            RewardsAlreadySubmittedForWindow(startTimestamp, duration, token)
+        );
+        rewardsSubmittedForWindow[startTimestamp][duration][token] = true;
 
         submission.token.safeIncreaseAllowance(address(_REWARDS_COORDINATOR), totalAmount);
 

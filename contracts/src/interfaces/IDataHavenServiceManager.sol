@@ -57,6 +57,9 @@ interface IDataHavenServiceManagerErrors {
 
     /// @notice Thrown when the caller is not the ProxyAdmin
     error NotProxyAdmin();
+
+    /// @notice Thrown when rewards for a reward window and token have already been submitted
+    error RewardsAlreadySubmittedForWindow(uint32 startTimestamp, uint32 duration, address token);
 }
 
 /**
@@ -185,6 +188,18 @@ interface IDataHavenServiceManager is
     function validatorSolochainAddressToEthAddress(
         address solochainAddress
     ) external view returns (address);
+
+    /**
+     * @notice Returns whether rewards have already been submitted for a reward window and token
+     * @param startTimestamp The reward window start timestamp
+     * @param duration The reward window duration in seconds
+     * @param token The reward token address
+     */
+    function rewardsSubmittedForWindow(
+        uint32 startTimestamp,
+        uint32 duration,
+        address token
+    ) external view returns (bool);
 
     /**
      * @notice Initializes the DataHaven Service Manager
@@ -339,6 +354,7 @@ interface IDataHavenServiceManager is
      * @dev Strategies must be sorted in ascending order by address
      * @dev Operators must be sorted in ascending order by address
      * @dev Token must be pre-approved or held by the ServiceManager
+     * @dev Only one submission is allowed per reward window and token
      */
     function submitRewards(
         IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission calldata submission

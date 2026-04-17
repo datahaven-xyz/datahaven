@@ -3,7 +3,6 @@ import { $ } from "bun";
 import { Binary, FixedSizeBinary } from "polkadot-api";
 import { CROSS_CHAIN_TIMEOUTS, getPapiSigner, logger } from "utils";
 import type { Address } from "viem";
-import { gatewayAbi } from "../../contract-bindings";
 import { getContractInstance, parseDeploymentsFile } from "../../utils/contracts";
 import { waitForDataHavenEvent, waitForEthereumEvent } from "../../utils/events";
 import { waitFor } from "../../utils/waits";
@@ -173,11 +172,11 @@ describe("Should slash an operator", () => {
     logger.info("Slashes message sent");
 
     const fromBlock = await publicClient.getBlockNumber();
-    const deployments = await parseDeploymentsFile();
+    const serviceManager = await getContractInstance("ServiceManager");
     const _ethEvent = await waitForEthereumEvent({
       client: publicClient,
-      address: deployments.Gateway,
-      abi: gatewayAbi,
+      address: serviceManager.address,
+      abi: serviceManager.abi,
       eventName: "SlashingComplete",
       fromBlock: fromBlock > 0n ? fromBlock - 1n : fromBlock,
       timeout: CROSS_CHAIN_TIMEOUTS.DH_TO_ETH_MS

@@ -2232,6 +2232,17 @@ export const dataHavenServiceManagerAbi = [
   {
     type: 'function',
     inputs: [
+      { name: '', internalType: 'uint32', type: 'uint32' },
+      { name: '', internalType: 'uint32', type: 'uint32' },
+      { name: '', internalType: 'address', type: 'address' },
+    ],
+    name: 'rewardsSubmittedForWindow',
+    outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
       { name: 'targetEra', internalType: 'uint64', type: 'uint64' },
       { name: 'executionFee', internalType: 'uint128', type: 'uint128' },
       { name: 'relayerFee', internalType: 'uint128', type: 'uint128' },
@@ -2718,6 +2729,15 @@ export const dataHavenServiceManagerAbi = [
   { type: 'error', inputs: [], name: 'OperatorAlreadyRegistered' },
   { type: 'error', inputs: [], name: 'OperatorNotInAllowlist' },
   { type: 'error', inputs: [], name: 'OperatorNotRegistered' },
+  {
+    type: 'error',
+    inputs: [
+      { name: 'startTimestamp', internalType: 'uint32', type: 'uint32' },
+      { name: 'duration', internalType: 'uint32', type: 'uint32' },
+      { name: 'token', internalType: 'address', type: 'address' },
+    ],
+    name: 'RewardsAlreadySubmittedForWindow',
+  },
   { type: 'error', inputs: [], name: 'SolochainAddressAlreadyAssigned' },
   { type: 'error', inputs: [], name: 'StrategyNotInOperatorSet' },
   { type: 'error', inputs: [], name: 'UnknownSolochainAddress' },
@@ -11027,6 +11047,15 @@ export const readDataHavenServiceManagerOwner =
   /*#__PURE__*/ createReadContract({
     abi: dataHavenServiceManagerAbi,
     functionName: 'owner',
+  })
+
+/**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"rewardsSubmittedForWindow"`
+ */
+export const readDataHavenServiceManagerRewardsSubmittedForWindow =
+  /*#__PURE__*/ createReadContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: 'rewardsSubmittedForWindow',
   })
 
 /**

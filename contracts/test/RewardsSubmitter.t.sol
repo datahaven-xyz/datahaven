@@ -224,6 +224,67 @@ contract RewardsSubmitterTest is AVSDeployer {
         serviceManager.submitRewards(submission2);
     }
 
+    function test_submitRewards_revertsIfWindowAlreadySubmittedForToken() public {
+        _registerOperator(operator1, operator1);
+        IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission memory submission =
+            _buildSubmission(1000e18, operator1);
+
+        vm.warp(submission.startTimestamp + submission.duration + 1);
+
+        vm.prank(snowbridgeAgent);
+        serviceManager.submitRewards(submission);
+
+        assertTrue(
+            serviceManager.rewardsSubmittedForWindow(
+                submission.startTimestamp, submission.duration, address(rewardToken)
+            ),
+            "replay guard should be set for the submitted window and token"
+        );
+
+        vm.prank(snowbridgeAgent);
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "RewardsAlreadySubmittedForWindow(uint32,uint32,address)",
+                submission.startTimestamp,
+                submission.duration,
+                address(rewardToken)
+            )
+        );
+        serviceManager.submitRewards(submission);
+    }
+
+    function test_submitRewards_allowsDifferentDurationForSameStartAndToken() public {
+        _registerOperator(operator1, operator1);
+
+        IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission memory firstSubmission =
+            _buildSubmission(1000e18, operator1);
+        IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission memory secondSubmission =
+            _buildSubmission(500e18, operator1);
+
+        secondSubmission.duration = 2 * TEST_CALCULATION_INTERVAL;
+
+        vm.warp(secondSubmission.startTimestamp + secondSubmission.duration + 1);
+
+        vm.prank(snowbridgeAgent);
+        serviceManager.submitRewards(firstSubmission);
+
+        vm.prank(snowbridgeAgent);
+        serviceManager.submitRewards(secondSubmission);
+
+        assertTrue(
+            serviceManager.rewardsSubmittedForWindow(
+                firstSubmission.startTimestamp, firstSubmission.duration, address(rewardToken)
+            ),
+            "first window should be tracked independently"
+        );
+        assertTrue(
+            serviceManager.rewardsSubmittedForWindow(
+                secondSubmission.startTimestamp, secondSubmission.duration, address(rewardToken)
+            ),
+            "second window should be tracked independently"
+        );
+    }
+
     function test_submitRewards_withCustomDescription() public {
         _registerOperator(operator1, operator1);
         // Build submission with custom description
@@ -256,6 +317,9 @@ contract RewardsSubmitterTest is AVSDeployer {
 
     function test_submitRewards_withDifferentToken() public {
         _registerOperator(operator1, operator1);
+        IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission memory firstSubmission =
+            _buildSubmission(1000e18, operator1);
+
         // Deploy a different token
         ERC20FixedSupply otherToken =
             new ERC20FixedSupply("Other", "OTHER", 1000000e18, address(this));
@@ -286,9 +350,25 @@ contract RewardsSubmitterTest is AVSDeployer {
         vm.warp(submission.startTimestamp + submission.duration + 1);
 
         vm.prank(snowbridgeAgent);
+        serviceManager.submitRewards(firstSubmission);
+
+        vm.prank(snowbridgeAgent);
         vm.expectEmit(false, false, false, true);
         emit IDataHavenServiceManagerEvents.RewardsSubmitted(500e18, 1);
         serviceManager.submitRewards(submission);
+
+        assertTrue(
+            serviceManager.rewardsSubmittedForWindow(
+                submission.startTimestamp, submission.duration, address(rewardToken)
+            ),
+            "original token should be marked as submitted for the window"
+        );
+        assertTrue(
+            serviceManager.rewardsSubmittedForWindow(
+                submission.startTimestamp, submission.duration, address(otherToken)
+            ),
+            "different token should be independently tracked for the same window"
+        );
     }
 
     function test_submitRewards_translatesSolochainOperatorToEthOperator() public {

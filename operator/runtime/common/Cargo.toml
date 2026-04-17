@@ -43,6 +43,7 @@ std = [
     "log/std",
     "pallet-authorship/std",
     "pallet-balances/std",
+    "pallet-external-validator-slashes/std",
     "pallet-external-validators-rewards/std",
     "pallet-timestamp/std",
     "pallet-evm/std",

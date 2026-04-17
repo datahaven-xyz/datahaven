@@ -45,6 +45,7 @@ std = [
     "parity-scale-codec/std",
     "pallet-external-validators/std",
     "scale-info/std",
+    "serde/std",
     "snowbridge-core/std",
     "snowbridge-outbound-queue-primitives/std",
     "sp-core/std",

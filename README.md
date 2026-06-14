@@ -1,5 +1,7 @@
 # DataHaven 🫎
 
+[![Listed on TakoAPI](https://img.shields.io/badge/Listed%20on-TakoAPI-7c3aed)](https://takoapi.com/agents/datahaven-xyz-datahaven)
+
 AI-First Decentralized Storage secured by EigenLayer — a verifiable storage network for AI training data, machine learning models, and Web3 applications.
 
 ## Overview
